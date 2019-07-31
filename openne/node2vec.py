@@ -24,6 +24,8 @@ class Node2vec(object):
             self.walker.preprocess_transition_probs()
         sentences = self.walker.simulate_walks(
             num_walks=num_paths, walk_length=path_length)
+        for idx in range(len(sentences)):
+            sentences[idx] = [str(x) for x in sentences[idx]]
         kwargs["sentences"] = sentences
         kwargs["min_count"] = kwargs.get("min_count", 0)
         kwargs["size"] = kwargs.get("size", dim)
@@ -34,7 +36,7 @@ class Node2vec(object):
         word2vec = Word2Vec(**kwargs)
         self.vectors = {}
         for word in graph.G.nodes():
-            self.vectors[word] = word2vec.wv[word]
+            self.vectors[word] = word2vec.wv[str(word)]
         del word2vec
 
     def save_embeddings(self, filename):

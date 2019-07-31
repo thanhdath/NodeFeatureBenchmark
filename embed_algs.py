@@ -1,0 +1,34 @@
+import multiprocessing
+from gensim.models import Word2Vec
+from openne.walker import BasicWalker
+from openne.node2vec import Node2vec
+from openne.hope import HOPE as HOPE_Openne
+from openne.graph import Graph
+
+def deepwalk(G, dim_size, number_walks=20, walk_length=10, 
+    workers=multiprocessing.cpu_count()):
+    walk = BasicWalker(G, workers=workers)
+    sentences = walk.simulate_walks(num_walks=number_walks, walk_length=walk_length, num_workers=workers)
+    for idx in range(len(sentences)):
+        sentences[idx] = [str(x) for x in sentences[idx]]
+
+    print("Learning representation...")
+    word2vec = Word2Vec(sentences=sentences, min_count=0, workers=workers,
+                            size=dim_size, sg=1)
+    vectors = {}
+    for word in G.nodes():
+        vectors[word] = word2vec.wv[str(word)]
+    return vectors
+
+def node2vec(G, dim_size, number_walks=20, walk_length=10, 
+    workers=multiprocessing.cpu_count(), p=1.0, q=1.0):
+    graph = Graph()
+    graph.read_g(G)
+    n2v = Node2vec(graph, walk_length, number_walks, dim_size, p, q, workers=workers)
+    return n2v.vectors
+
+def HOPE(G, dim_size):
+    graph = Graph()
+    graph.read_g(G)
+    hh = HOPE_Openne(graph, dim_size)
+    return hh.vectors

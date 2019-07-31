@@ -33,9 +33,7 @@ def deepwalk_walk(args):
 
 class BasicWalker:
     def __init__(self, G, workers):
-        self.G = G.G
-        self.node_size = G.node_size
-        self.look_up_dict = G.look_up_dict
+        self.G = G
         self.build_neibs_dict()
 
 
@@ -44,47 +42,7 @@ class BasicWalker:
         for node in self.G.nodes():
             self.neibs[node] = list(self.G.neighbors(node))
 
-    def deepwalk_walk(self, walk_length, start_node):
-        '''
-        Simulate a random walk starting from start node.
-        '''
-        G = self.G
-        look_up_dict = self.look_up_dict
-        node_size = self.node_size
-
-        walk = [start_node]
-
-        while len(walk) < walk_length:
-            cur = walk[-1]
-            cur_nbrs = list(G.neighbors(cur))
-            if len(cur_nbrs) > 0:
-                walk.append(np.random.choice(cur_nbrs))
-            else:
-                break
-        return walk
-
     def simulate_walks(self, num_walks, walk_length, num_workers):
-        '''
-        Repeatedly simulate random walks from each node.
-        '''
-        G = self.G
-        walks = []
-        nodes = list(G.nodes())
-        print('Walk iteration:')
-        for walk_iter in range(num_walks):
-            print(str(walk_iter+1), '/', str(num_walks))
-            np.random.shuffle(nodes)
-            for node in nodes:
-                # if len(list(G.neighbors(node))) == 0: continue
-                # walks.append(pool.apply_async(deepwalk_walk_wrapper, (self, walk_length, node, )))
-                walks.append(self.deepwalk_walk(
-                    walk_length=walk_length, start_node=node))
-            # pool.close()
-            # pool.join()
-        # print(len(walks))
-        return walks
-
-    def simulate_walks2(self, num_walks, walk_length, num_workers):
         pool = multiprocessing.Pool(processes=num_workers)
         walks = []
         print('Walk iteration:')
