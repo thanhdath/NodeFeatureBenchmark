@@ -23,7 +23,7 @@ class FeatureInitialization():
         return {}
 
 class NodeDegreesFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(NodeDegreesFeature).__init__()
     def _generate(self, graph, dim_size):
         prep_dict = {}
@@ -32,7 +32,7 @@ class NodeDegreesFeature(FeatureInitialization):
         return prep_dict
 
 class RandomUniformFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(RandomUniformFeature).__init__()
     def _generate(self, graph, dim_size):
         prep_dict = {}
@@ -41,7 +41,7 @@ class RandomUniformFeature(FeatureInitialization):
         return prep_dict
 
 class IdentityFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(IdentityFeature).__init__()
     def _generate(self, graph, dim_size=None):
         features = np.identity(len(graph.nodes()))
@@ -51,7 +51,7 @@ class IdentityFeature(FeatureInitialization):
         return prep_dict
 
 class NeighborhoodFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(NeighborhoodFeature).__init__()
     def _generate(self, graph, dim_size):
         prep_dict = {}
@@ -68,34 +68,34 @@ class NeighborhoodFeature(FeatureInitialization):
         return prep_dict
 
 class RecursiveFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(RecursiveFeature).__init__()
     def _generate(self, graph, dim_size):
         raise NotImplementedError
 
 class DeepWalkFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(DeepWalkFeature).__init__()
     def _generate(self, graph, dim_size):
         features = deepwalk(graph, dim_size) 
         return features
 
 class Node2VecFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(Node2VecFeature).__init__()
     def _generate(self, graph, dim_size):
         features = node2vec(graph, dim_size)
         return features
 
 class HOPEFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(HOPEFeature).__init__()
     def _generate(self, graph, dim_size):
         features = HOPE(graph, dim_size)
         return features
 
 class TriangleFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(TriangleFeature).__init__()
     def _generate(self, graph, dim_size):
         triangles = nx.triangles(graph)
@@ -105,7 +105,7 @@ class TriangleFeature(FeatureInitialization):
         return prep_dict
 
 class EgonetFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         number of within-egonet edges
         number of external-egonet edges
@@ -125,7 +125,7 @@ class EgonetFeature(FeatureInitialization):
         return prep_dict
 
 class KCoreNumberFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         k-core number
         """
@@ -140,7 +140,7 @@ class KCoreNumberFeature(FeatureInitialization):
         return prep_dict
 
 class PageRankFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(PageRankFeature).__init__()
     def _generate(self, graph, dim_size):
         prep_dict = {}
@@ -152,7 +152,7 @@ class PageRankFeature(FeatureInitialization):
         return prep_dict
 
 class LocalColoringColorFeature(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(LocalColoringColorFeature).__init__()
     def _generate(self, graph, dim_size):
         prep_dict = {}
@@ -164,7 +164,7 @@ class LocalColoringColorFeature(FeatureInitialization):
         return prep_dict
 
 class NodeCliqueNumber(FeatureInitialization):
-    def __init__(self):
+    def __init__(self, **kwargs):
         """ Returns the size of the largest maximal clique containing given node.
         """
         super(NodeCliqueNumber).__init__()
@@ -177,8 +177,27 @@ class NodeCliqueNumber(FeatureInitialization):
             prep_dict[node] = feature
         return prep_dict
 
+class OriginalFeature(FeatureInitialization):
+    def __init__(self, **kwargs):
+        """ Returns the size of the largest maximal clique containing given node.
+        """
+        super(OriginalFeature).__init__()
+        self.label_path = kwargs["label_path"]
+    def read_node_features(self):
+        features = {}
+        fin = open(self.label_path, 'r')
+        for l in fin.readlines():
+            vec = l.split()
+            features[int(vec[0])] = np.array([float(x) for x in vec[1:]])
+        fin.close()
+        return features
+    def _generate(self, graph, dim_size):
+        features = self.read_node_features()
+        return features
+
 
 lookup = {
+    "ori": OriginalFeature,
     "degree": NodeDegreesFeature,
     "uniform": RandomUniformFeature,
     "identity": IdentityFeature,

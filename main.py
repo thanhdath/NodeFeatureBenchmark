@@ -40,15 +40,6 @@ def load_graph(data_dir):
     print("== Done loading graph ")
     return graph, labels
 
-def read_node_features(filename):
-    features = {}
-    fin = open(filename, 'r')
-    for l in fin.readlines():
-        vec = l.split()
-        features[vec[0]] = np.array([float(x) for x in vec[1:]])
-    fin.close()
-    return features
-
 def get_algorithm(args):
     if args.alg == "sgc":
         return SGC
@@ -56,15 +47,12 @@ def get_algorithm(args):
         raise NotImplementedError
 
 def get_feature_initialization(args, graph, inplace = True):
-    if args.init == "ori":
-        features = read_node_features(args.data+'/features.txt')
-        if inplace:
-            for node in graph.nodes():
-                graph.node[node]['feature'] = features[str(node)]
-        return features
     if args.init not in lookup_feature_init:
         raise NotImplementedError
-    init_feature = lookup_feature_init[args.init]()
+    kwargs = {}
+    if args.init == "ori":
+        kwargs = {"label_path": args.data+"/labels.txt"}
+    init_feature = lookup_feature_init[args.init](**kwargs)
     return init_feature.generate(graph, args.feature_size, inplace=inplace)
 
 # def evaluate_by_classification(vectors, X, Y, seed, train_percent=0.5):
