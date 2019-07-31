@@ -78,12 +78,12 @@ class GATAPI():
         indices = np.random.permutation(np.arange(len(self.features)))
         n_train = int(len(self.features)*self.ratio[0])
         n_val = int(len(self.features)*self.ratio[1])
-        # self.idx_train = indices[:n_train]
-        # self.idx_val = indices[n_train:n_train+n_val]
-        # self.idx_test = indices[n_train+n_val:]
-        self.idx_train = list(range(140))
-        self.idx_val = list(range(200, 500))
-        self.idx_test = list(range(500, 1500))
+        self.idx_train = indices[:n_train]
+        self.idx_val = indices[n_train:n_train+n_val]
+        self.idx_test = indices[n_train+n_val:]
+        # self.idx_train = list(range(140))
+        # self.idx_val = list(range(200, 500))
+        # self.idx_test = list(range(500, 1500))
 
     def _convert_labels_to_binary(self, labels):
         labels_arr = []
