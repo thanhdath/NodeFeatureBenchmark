@@ -1,9 +1,12 @@
 from SGC.SGC import SGC
+from pyGAT.GAT import GATAPI
 import argparse 
 import numpy as np
 import networkx as nx
 from features_init import lookup as lookup_feature_init
 from sklearn.linear_model import LogisticRegression
+import torch 
+import random
 
 def parse_args():
     args = argparse.ArgumentParser(description="Node feature initialization benchmark.")
@@ -43,6 +46,8 @@ def load_graph(data_dir):
 def get_algorithm(args):
     if args.alg == "sgc":
         return SGC
+    elif args.alg == "gat":
+        return GATAPI
     else:
         raise NotImplementedError
 
@@ -77,5 +82,7 @@ def main(args):
 if __name__ == '__main__':
     args = parse_args()
     np.random.seed(args.seed)
+    torch.random.manual_seed(args.seed)
+    random.seed(args.seed)
     print(args)
     main(args)

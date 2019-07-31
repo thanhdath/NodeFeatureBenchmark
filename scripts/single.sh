@@ -1,7 +1,7 @@
-alg=sgc
+alg=gat
 seed=40
 data=cora
-init=clique
+init=ori
 
 python -u main.py --data data/${data} \
     --alg ${alg} \
