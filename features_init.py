@@ -182,10 +182,10 @@ class OriginalFeature(FeatureInitialization):
         """ Returns the size of the largest maximal clique containing given node.
         """
         super(OriginalFeature).__init__()
-        self.label_path = kwargs["label_path"]
+        self.feature_path = kwargs["feature_path"]
     def read_node_features(self):
         features = {}
-        fin = open(self.label_path, 'r')
+        fin = open(self.feature_path, 'r')
         for l in fin.readlines():
             vec = l.split()
             features[int(vec[0])] = np.array([float(x) for x in vec[1:]])

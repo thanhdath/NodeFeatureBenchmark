@@ -1,4 +1,4 @@
-alg=gat
+alg=sgc
 seed=40
 data=cora
 init=ori

@@ -15,6 +15,7 @@ from torch.autograd import Variable
 from sklearn.preprocessing import MultiLabelBinarizer
 from .utils import load_data, accuracy
 from .models import GAT, SpGAT
+from SGC.metrics import f1
 import scipy.sparse as sp
 import networkx as nx
 
@@ -40,6 +41,7 @@ class GATAPI():
         sparse=True, epochs=10000, lr=0.005, weight_decay=5e-4,
         hidden=8, nb_heads=8, dropout=.6, alpha=.2, patience=100,
         train_val_ratio=[.7, .1, .2]):
+        print("Warning: GAT currently not support for multiple labels.")
         self.G = G
         self._convert_labels_to_binary(labels)
         self._process_adj()
@@ -59,11 +61,8 @@ class GATAPI():
 
         # 
         self._process_features()
-        # 
         self.split_train_val()
         
-
-
         self.model = SpGAT(self.features.shape[1],
             nhid=self.hidden,
             nclass=self.n_classes,
@@ -79,9 +78,12 @@ class GATAPI():
         indices = np.random.permutation(np.arange(len(self.features)))
         n_train = int(len(self.features)*self.ratio[0])
         n_val = int(len(self.features)*self.ratio[1])
-        self.idx_train = indices[:n_train]
-        self.idx_val = indices[n_train:n_train+n_val]
-        self.idx_test = indices[n_train+n_val:]
+        # self.idx_train = indices[:n_train]
+        # self.idx_val = indices[n_train:n_train+n_val]
+        # self.idx_test = indices[n_train+n_val:]
+        self.idx_train = list(range(140))
+        self.idx_val = list(range(200, 500))
+        self.idx_test = list(range(500, 1500))
 
     def _convert_labels_to_binary(self, labels):
         labels_arr = []
@@ -184,8 +186,5 @@ class GATAPI():
         self.model.eval()
         output = self.model(self.features, self.adj)
         loss_test = F.nll_loss(output[self.idx_test], self.labels[self.idx_test])
-        acc_test = accuracy(output[self.idx_test], self.labels[self.idx_test])
-        print("Test set results:",
-            "loss= {:.4f}".format(loss_test.data[0]),
-            "accuracy= {:.4f}".format(acc_test.data[0]))
-
+        micro, macro = f1(output[self.idx_test], self.labels[self.idx_test])
+        print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))

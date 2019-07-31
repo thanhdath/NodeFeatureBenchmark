@@ -56,7 +56,7 @@ def get_feature_initialization(args, graph, inplace = True):
         raise NotImplementedError
     kwargs = {}
     if args.init == "ori":
-        kwargs = {"label_path": args.data+"/labels.txt"}
+        kwargs = {"feature_path": args.data+"/features.txt"}
     init_feature = lookup_feature_init[args.init](**kwargs)
     return init_feature.generate(graph, args.feature_size, inplace=inplace)
 
