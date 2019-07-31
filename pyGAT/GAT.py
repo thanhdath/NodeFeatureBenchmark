@@ -43,7 +43,6 @@ class GATAPI():
         self.G = G
         self._convert_labels_to_binary(labels)
         self._process_adj()
-        self.n_classes = self.labels.shape[1]
 
         self.cuda=  cuda
         self.fastmode=fastmode
@@ -91,7 +90,8 @@ class GATAPI():
         self.binarizer = MultiLabelBinarizer(sparse_output=False)
         self.binarizer.fit(labels_arr)
         self.labels = self.binarizer.transform(labels_arr)
-        self.labels = torch.FloatTensor(self.labels)
+        self.labels = torch.LongTensor(self.labels).argmax(dim=1)
+        self.n_classes = self.labels.max() + 1
     
     def _process_adj(self):
         self.adj = nx.adjacency_matrix(self.G)
@@ -124,13 +124,13 @@ class GATAPI():
 
         loss_val = F.nll_loss(output[self.idx_val], self.labels[self.idx_val])
         acc_val = accuracy(output[self.idx_val], self.labels[self.idx_val])
-        print('Epoch: {:04d}'.format(epoch+1),
-            'loss_train: {:.4f}'.format(loss_train.data.item()),
-            'acc_train: {:.4f}'.format(acc_train.data.item()),
-            'loss_val: {:.4f}'.format(loss_val.data.item()),
-            'acc_val: {:.4f}'.format(acc_val.data.item()),
-            'time: {:.4f}s'.format(time.time() - t))
-
+        if epoch % 20 == 0:
+            print('Epoch: {:04d}'.format(epoch+1),
+                'loss_train: {:.4f}'.format(loss_train.data.item()),
+                'acc_train: {:.4f}'.format(acc_train.data.item()),
+                'loss_val: {:.4f}'.format(loss_val.data.item()),
+                'acc_val: {:.4f}'.format(acc_val.data.item()),
+                'time: {:.4f}s'.format(time.time() - t))
         return loss_val.data.item()
 
     def train(self):
