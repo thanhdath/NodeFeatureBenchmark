@@ -10,6 +10,15 @@ from .models import DGI, LogReg
 from .utils import process
 from SGC.metrics import f1
 
+def normalize_features(mx):
+    """Row-normalize sparse matrix"""
+    rowsum = np.array(mx.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = sp.diags(r_inv)
+    mx = r_mat_inv.dot(mx)
+    return mx
+
 class DGIAPI():
     def __init__(self, G, labels, batch_size=1,epochs = 10000,
         patience = 20,lr = 0.001,l2_coef = 0.0,drop_prob = 0.0,
@@ -54,7 +63,7 @@ class DGIAPI():
         for node in self.G.nodes():
             features.append(self.G.node[node]['feature'])
         features = np.array(features)
-        features, _ = process.preprocess_features(features)
+        features = normalize_features(features)
         self.features = torch.FloatTensor(features)
 
     def _convert_labels_to_binary(self):
@@ -66,7 +75,7 @@ class DGIAPI():
         self.binarizer.fit(labels_arr)
         self.labels = self.binarizer.transform(labels_arr)
         self.labels = torch.LongTensor(self.labels).argmax(dim=1)
-        self.n_classes = self.labels.max() + 1
+        self.n_classes = int(self.labels.max() + 1)
 
     def _split_train_val(self):
         indices = np.random.permutation(np.arange(len(self.features)))
@@ -99,7 +108,7 @@ class DGIAPI():
             self.optimizer.zero_grad()
 
             idx = np.random.permutation(nb_nodes)
-            shuf_fts = self.features[:, idx, :]
+            shuf_fts = self.features[idx, :]
 
             lbl_1 = torch.ones(self.batch_size, nb_nodes)
             lbl_2 = torch.zeros(self.batch_size, nb_nodes)
@@ -113,7 +122,8 @@ class DGIAPI():
 
             loss = b_xent(logits, lbl)
 
-            print('Loss:', loss)
+            if epoch % 20 == 0:
+                print('Epoch {} - Loss: {}'.format(epoch, loss.item()))
 
             if loss < best:
                 best = loss
@@ -129,27 +139,17 @@ class DGIAPI():
 
             loss.backward()
             self.optimizer.step()
-            files = glob.glob('*.pkl')
-            for file in files:
-                epoch_nb = int(file.split('.')[0])
-                if epoch_nb < best_t:
-                    os.remove(file)
-        files = glob.glob('*.pkl')
-        for file in files:
-            epoch_nb = int(file.split('.')[0])
-            if epoch_nb > best_t:
-                os.remove(file)
 
         print('Loading {}th epoch'.format(best_t))
         self.model.load_state_dict(torch.load('best_dgi.pkl'))
 
         embeds, _ = self.model.embed(self.features, sp_adj if self.sparse else adj, self.sparse, None)
         train_embs = embeds[0, self.idx_train]
-        val_embs = embeds[0, self.idx_val]
+        # val_embs = embeds[0, self.idx_val]
         test_embs = embeds[0, self.idx_test]
 
         train_lbls = self.labels[self.idx_train]
-        val_lbls = self.labels[self.idx_val]
+        # val_lbls = self.labels[self.idx_val]
         test_lbls = self.labels[self.idx_test]
 
         tot = torch.zeros(1)
