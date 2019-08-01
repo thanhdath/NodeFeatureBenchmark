@@ -1,12 +1,12 @@
 init=ori
-input_dim=128
+input_dim=10
 workers=12
 
 PYTHONPATH=diffpool:. python diffpool/train.py \
     --bmname=ENZYMES \
     --assign-ratio=0.1 \
-    --hidden-dim=30 \
-    --output-dim=30 \
+    --hidden-dim=20 \
+    --output-dim=20 \
     --max_nodes=10000000 \
     --epochs 1000 \
     --cuda=1 \

@@ -1,6 +1,6 @@
-input_dim=128
 workers=12
 data=ENZYMES
+feat_dim=128
 mkdir log/diffpool
 for init in ori degree uniform deepwalk node2vec hope triangle egonet kcore pagerank coloring clique
 do 
@@ -10,14 +10,13 @@ PYTHONPATH=diffpool:. python -u diffpool/train.py \
     --assign-ratio=0.1 \
     --hidden-dim=30 \
     --output-dim=30 \
-    --max_nodes=10000000 \
-    --epochs 1000 \
+    --max-nodes 1000 \
+    --epochs 3000 \
     --cuda=1 \
     --num-classes=6 \
-    --num-workers $workers \
+    --num_workers $workers \
     --method=soft-assign \
-    --train-ratio 0.7 \
-    --test-ratio 0.2 \
+    --train-ratio 0.8 \
     --init $init \
-    --input_dim $feat_dim > log/diffpool/$data-$init-seed40
+    --input-dim $feat_dim > log/diffpool/$data-$init-seed40
 done

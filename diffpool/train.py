@@ -290,21 +290,17 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
 
     return model, val_accs
 
-def prepare_data(graphs, args, test_graphs=None, max_nodes=0):
+def prepare_data(graphs, args, max_nodes=0):
 
     random.shuffle(graphs)
-    if test_graphs is None:
-        train_idx = int(len(graphs) * args.train_ratio)
-        test_idx = int(len(graphs) * (1-args.test_ratio))
-        train_graphs = graphs[:train_idx]
-        val_graphs = graphs[train_idx: test_idx]
-        test_graphs = graphs[test_idx:]
-    else:
-        train_idx = int(len(graphs) * args.train_ratio)
-        train_graphs = graphs[:train_idx]
-        val_graphs = graphs[train_idx:]
+    train_idx = int(len(graphs) * args.train_ratio)
+    # test_idx = int(len(graphs) * (1-args.test_ratio))
+    train_graphs = graphs[:train_idx]
+    # val_graphs = graphs[train_idx: test_idx]
+    test_graphs = graphs[train_idx:]
+
     print('Num training graphs: ', len(train_graphs), 
-          '; Num validation graphs: ', len(val_graphs),
+        #   '; Num validation graphs: ', len(val_graphs),
           '; Num testing graphs: ', len(test_graphs))
 
     print('Number of graphs: ', len(graphs))
@@ -323,13 +319,13 @@ def prepare_data(graphs, args, test_graphs=None, max_nodes=0):
             shuffle=True,
             num_workers=args.num_workers)
 
-    dataset_sampler = GraphSampler(val_graphs, normalize=False, max_num_nodes=max_nodes,
-            features=args.feature_type)
-    val_dataset_loader = torch.utils.data.DataLoader(
-            dataset_sampler, 
-            batch_size=args.batch_size, 
-            shuffle=False,
-            num_workers=args.num_workers)
+    # dataset_sampler = GraphSampler(val_graphs, normalize=False, max_num_nodes=max_nodes,
+    #         features=args.feature_type)
+    # val_dataset_loader = torch.utils.data.DataLoader(
+    #         dataset_sampler, 
+    #         batch_size=args.batch_size, 
+    #         shuffle=False,
+    #         num_workers=args.num_workers)
 
     dataset_sampler = GraphSampler(test_graphs, normalize=False, max_num_nodes=max_nodes,
             features=args.feature_type)
@@ -339,8 +335,10 @@ def prepare_data(graphs, args, test_graphs=None, max_nodes=0):
             shuffle=False,
             num_workers=args.num_workers)
 
-    return train_dataset_loader, val_dataset_loader, test_dataset_loader, \
+    return train_dataset_loader, test_dataset_loader,\
             dataset_sampler.max_num_nodes, dataset_sampler.feat_dim, dataset_sampler.assign_feat_dim
+    # return train_dataset_loader, val_dataset_loader, test_dataset_loader, \
+    #         dataset_sampler.max_num_nodes, dataset_sampler.feat_dim, dataset_sampler.assign_feat_dim
 
 def benchmark_task(args, writer=None):
     graphs = load_data.read_graphfile(args.datadir, args.bmname, max_nodes=args.max_nodes)
@@ -362,7 +360,7 @@ def benchmark_task(args, writer=None):
             for node in graph.nodes():
                 graph.node[node]['feat'] = features[node]
 
-    train_dataset, val_dataset, test_dataset, max_num_nodes, input_dim, assign_input_dim = \
+    train_dataset, test_dataset, max_num_nodes, input_dim, assign_input_dim = \
             prepare_data(graphs, args, max_nodes=args.max_nodes)
     if args.method == 'soft-assign':
         print('Method: soft-assign')
@@ -383,7 +381,7 @@ def benchmark_task(args, writer=None):
                 input_dim, args.hidden_dim, args.output_dim, args.num_classes, 
                 args.num_gc_layers, bn=args.bn, dropout=args.dropout, args=args).cuda()
 
-    train(train_dataset, model, args, val_dataset=val_dataset, test_dataset=None, writer=writer)
+    train(train_dataset, model, args, val_dataset=None, test_dataset=None, writer=writer)
     results = evaluate(test_dataset, model, args, 'Test')
     print("Test micro-macro: {:.3f}\t{:.3f}".format(results["micro"], results["macro"]))
 
@@ -427,6 +425,8 @@ def arg_parse():
             help='Number of epochs to train.')
     parser.add_argument('--train-ratio', dest='train_ratio', type=float,
             help='Ratio of number of graphs training set to all graphs.')
+    # parser.add_argument('--test-ratio', dest='test_ratio', type=float,
+    #         help='Ratio of number of graphs training set to all graphs.')
     parser.add_argument('--num_workers', dest='num_workers', type=int,
             help='Number of workers to load data.')
     parser.add_argument('--feature', dest='feature_type',
@@ -470,7 +470,7 @@ def arg_parse():
                         batch_size=20,
                         num_epochs=1000,
                         train_ratio=0.8,
-                        test_ratio=0.1,
+                        # test_ratio=0.1,
                         num_workers=1,
                         input_dim=10,
                         hidden_dim=20,
