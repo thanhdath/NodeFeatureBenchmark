@@ -241,30 +241,30 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
         result = evaluate(dataset, model, args, name='Train', max_num_examples=100)
         train_accs.append(result['acc'])
         train_epochs.append(epoch)
-        if val_dataset is not None:
-            val_result = evaluate(val_dataset, model, args, name='Validation')
-            val_accs.append(val_result['acc'])
-        if val_result['acc'] > best_val_result['acc'] - 1e-7:
-            best_val_result['acc'] = val_result['acc']
-            best_val_result['epoch'] = epoch
-            best_val_result['loss'] = avg_loss
-        if test_dataset is not None:
-            test_result = evaluate(test_dataset, model, args, name='Test')
-            test_result['epoch'] = epoch
-        if writer is not None:
-            writer.add_scalar('acc/train_acc', result['acc'], epoch)
-            writer.add_scalar('acc/val_acc', val_result['acc'], epoch)
-            writer.add_scalar('loss/best_val_loss', best_val_result['loss'], epoch)
-            if test_dataset is not None:
-                writer.add_scalar('acc/test_acc', test_result['acc'], epoch)
+        # if val_dataset is not None:
+        #     val_result = evaluate(val_dataset, model, args, name='Validation')
+        #     val_accs.append(val_result['acc'])
+        #     if val_result['acc'] > best_val_result['acc'] - 1e-7:
+        #         best_val_result['acc'] = val_result['acc']
+        #         best_val_result['epoch'] = epoch
+        #         best_val_result['loss'] = avg_loss
+        # if test_dataset is not None:
+        #     test_result = evaluate(test_dataset, model, args, name='Test')
+        #     test_result['epoch'] = epoch
+        # if writer is not None:
+        #     writer.add_scalar('acc/train_acc', result['acc'], epoch)
+        #     writer.add_scalar('acc/val_acc', val_result['acc'], epoch)
+        #     writer.add_scalar('loss/best_val_loss', best_val_result['loss'], epoch)
+        #     if test_dataset is not None:
+        #         writer.add_scalar('acc/test_acc', test_result['acc'], epoch)
 
-        print('Best val result: ', best_val_result)
-        best_val_epochs.append(best_val_result['epoch'])
-        best_val_accs.append(best_val_result['acc'])
-        if test_dataset is not None:
-            print('Test result: ', test_result)
-            test_epochs.append(test_result['epoch'])
-            test_accs.append(test_result['acc'])
+        # print('Best val result: ', best_val_result)
+        # best_val_epochs.append(best_val_result['epoch'])
+        # best_val_accs.append(best_val_result['acc'])
+        # if test_dataset is not None:
+            # print('Test result: ', test_result)
+            # test_epochs.append(test_result['epoch'])
+            # test_accs.append(test_result['acc'])
         if avg_loss < best_loss:
             best_loss = avg_loss
             cnt_wait = 0

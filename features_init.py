@@ -3,6 +3,7 @@ import numpy as np
 from embed_algs import deepwalk, node2vec, HOPE
 import networkx as nx
 import pdb
+from scipy.sparse.linalg import svds
 
 class FeatureInitialization():
     def __init__(self):
@@ -195,6 +196,19 @@ class OriginalFeature(FeatureInitialization):
         features = self.read_node_features()
         return features
 
+class SymmetricSVD(FeatureInitialization):
+    def __init__(self, **kwargs):
+        """ Returns the size of the largest maximal clique containing given node.
+        """
+        super(SymmetricSVD).__init__()
+        self.alpha = kwargs['alpha']
+    def _generate(self, graph, dim_size):
+        adj = nx.to_scipy_sparse_matrix(graph, dtype=np.float32)
+        U, X,_ = svds(adj, k = dim_size)
+        embedding = U*(X**(self.alpha))
+        features = {node: embedding[i] for i, node in enumerate(graph.nodes())}
+        return features
+
 
 lookup = {
     "ori": OriginalFeature,
@@ -211,6 +225,7 @@ lookup = {
     "kcore": KCoreNumberFeature,
     "pagerank": PageRankFeature,
     "coloring": LocalColoringColorFeature,
-    "clique": NodeCliqueNumber
+    "clique": NodeCliqueNumber,
+    "ssvd": SymmetricSVD
 }
 

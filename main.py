@@ -1,6 +1,7 @@
 from SGC.SGC import SGC
 from pyGAT.GAT import GATAPI
 from DGI.DGI import DGIAPI
+from logistic_regression import LogisticRegressionPytorch
 import argparse 
 import numpy as np
 import networkx as nx
@@ -17,6 +18,9 @@ def parse_args():
     args.add_argument('--epochs', default=100, type=int)
     args.add_argument('--feature_size', default=5, type=int)
     args.add_argument('--seed', type=int, default=40)
+
+    # for ssvd
+    args.add_argument('--alpha', type=float, default=0.5)
     return args.parse_args()
 
 def add_weight(subgraph):
@@ -51,6 +55,8 @@ def get_algorithm(args):
         return GATAPI
     elif args.alg == "dgi":
         return DGIAPI
+    elif args.alg == "logistic":
+        return LogisticRegressionPytorch
     else:
         raise NotImplementedError
 
@@ -60,6 +66,8 @@ def get_feature_initialization(args, graph, inplace = True):
     kwargs = {}
     if args.init == "ori":
         kwargs = {"feature_path": args.data+"/features.txt"}
+    elif args.init == "ssvd":
+        kwargs = {"alpha": args.alpha}
     init_feature = lookup_feature_init[args.init](**kwargs)
     return init_feature.generate(graph, args.feature_size, inplace=inplace)
 

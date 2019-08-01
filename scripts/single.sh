@@ -1,7 +1,7 @@
 alg=sgc
 seed=40
 data=cora
-init=ori
+init=ssvd
 
 python -u main.py --data data/${data} \
     --alg ${alg} \
