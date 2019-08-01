@@ -5,20 +5,24 @@ import networkx as nx
 import pdb
 from scipy.sparse.linalg import svds
 
+def log_verbose(msg, v):
+    if v >= 1:
+        print(msg)
+
 class FeatureInitialization():
     def __init__(self):
         pass 
-    def generate(self, graph, dim_size, inplace=False):
+    def generate(self, graph, dim_size, inplace=False, verbose=1):
         # wrapper function for generate()
-        print('Start generate feature')
+        log_verbose('Start generate feature', verbose)
         stime = time.time()
         features = self._generate(graph, dim_size)
         etime = time.time()
-        print("Time init features: {:.3f}s".format(etime-stime))
+        log_verbose("Time init features: {:.3f}s".format(etime-stime), verbose)
         if inplace:
             for node in graph.nodes():
                 graph.node[node]['feature'] = features[node]
-        print("== Done generate features")
+        log_verbose("== Done generate features", verbose)
         return features
     def _generate(self, graph, dim_size):
         return {}

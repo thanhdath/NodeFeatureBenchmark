@@ -16,7 +16,8 @@ PYTHONPATH=diffpool:. python -u diffpool/train.py \
     --num-classes=6 \
     --num_workers $workers \
     --method=soft-assign \
-    --train-ratio 0.8 \
+    --train-ratio 0.7 \
+    --test-ratio 0.2 \
     --init $init \
     --input-dim $feat_dim > log/diffpool/$data-$init-seed40
 done

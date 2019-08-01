@@ -194,7 +194,7 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
     test_epochs = []
     val_accs = []
     # for early stopping
-    best_loss = 1e9
+    best_val_acc = 0
     cnt_wait = 0
     # 
     
@@ -202,7 +202,7 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
         total_time = 0
         avg_loss = 0.0
         model.train()
-        print('Epoch: ', epoch)
+        # print('Epoch: ', epoch)
         for batch_idx, data in enumerate(dataset):
             begin_time = time.time()
             model.zero_grad()
@@ -237,17 +237,24 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
             writer.add_scalar('loss/avg_loss', avg_loss, epoch)
             if args.linkpred:
                 writer.add_scalar('loss/linkpred_loss', model.link_loss, epoch)
-        print('Avg loss: ', avg_loss, '; epoch time: ', total_time)
-        result = evaluate(dataset, model, args, name='Train', max_num_examples=100)
-        train_accs.append(result['acc'])
-        train_epochs.append(epoch)
-        # if val_dataset is not None:
-        #     val_result = evaluate(val_dataset, model, args, name='Validation')
-        #     val_accs.append(val_result['acc'])
-        #     if val_result['acc'] > best_val_result['acc'] - 1e-7:
-        #         best_val_result['acc'] = val_result['acc']
-        #         best_val_result['epoch'] = epoch
-        #         best_val_result['loss'] = avg_loss
+        if epoch % 10 == 0:
+            print('Epoch', epoch, ' - Avg loss: ', avg_loss.item(), '; epoch time: ', total_time)
+            result = evaluate(dataset, model, args, name='Train', max_num_examples=100)
+            print('train acc: {:.3f}'.format(result['acc']))
+            if val_dataset is not None:
+                val_result = evaluate(val_dataset, model, args, name='Val')
+                print('val acc: {:.3f}'.format(val_result['acc']))
+                if val_result['acc'] > best_val_result['acc'] - 1e-7:
+                    best_val_result['acc'] = val_result['acc']
+                    best_val_result['epoch'] = epoch
+                    best_val_result['loss'] = avg_loss.item()
+                    print('Best val result: ', best_val_result)
+                    cnt_wait = 0
+                else:
+                    cnt_wait += 1
+                if cnt_wait == 5:
+                        print('Early stopping!')
+                        break
         # if test_dataset is not None:
         #     test_result = evaluate(test_dataset, model, args, name='Test')
         #     test_result['epoch'] = epoch
@@ -257,50 +264,25 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
         #     writer.add_scalar('loss/best_val_loss', best_val_result['loss'], epoch)
         #     if test_dataset is not None:
         #         writer.add_scalar('acc/test_acc', test_result['acc'], epoch)
-
-        # print('Best val result: ', best_val_result)
         # best_val_epochs.append(best_val_result['epoch'])
         # best_val_accs.append(best_val_result['acc'])
         # if test_dataset is not None:
             # print('Test result: ', test_result)
             # test_epochs.append(test_result['epoch'])
             # test_accs.append(test_result['acc'])
-        if avg_loss < best_loss:
-            best_loss = avg_loss
-            cnt_wait = 0
-        else:
-            cnt_wait += 1
-        if cnt_wait == 50:
-            print('Early stopping!')
-            break
-
-    # matplotlib.style.use('seaborn')
-    # plt.switch_backend('agg')
-    # plt.figure()
-    # plt.plot(train_epochs, util.exp_moving_avg(train_accs, 0.85), '-', lw=1)
-    # if test_dataset is not None:
-    #     plt.plot(best_val_epochs, best_val_accs, 'bo', test_epochs, test_accs, 'go')
-    #     plt.legend(['train', 'val', 'test'])
-    # else:
-    #     plt.plot(best_val_epochs, best_val_accs, 'bo')
-    #     plt.legend(['train', 'val'])
-    # plt.savefig(gen_train_plt_name(args), dpi=600)
-    # plt.close()
-    # matplotlib.style.use('default')
-
     return model, val_accs
 
 def prepare_data(graphs, args, max_nodes=0):
 
     random.shuffle(graphs)
     train_idx = int(len(graphs) * args.train_ratio)
-    # test_idx = int(len(graphs) * (1-args.test_ratio))
+    test_idx = int(len(graphs) * (1-args.test_ratio))
     train_graphs = graphs[:train_idx]
-    # val_graphs = graphs[train_idx: test_idx]
+    val_graphs = graphs[train_idx: test_idx]
     test_graphs = graphs[train_idx:]
 
     print('Num training graphs: ', len(train_graphs), 
-        #   '; Num validation graphs: ', len(val_graphs),
+          '; Num validation graphs: ', len(val_graphs),
           '; Num testing graphs: ', len(test_graphs))
 
     print('Number of graphs: ', len(graphs))
@@ -319,13 +301,13 @@ def prepare_data(graphs, args, max_nodes=0):
             shuffle=True,
             num_workers=args.num_workers)
 
-    # dataset_sampler = GraphSampler(val_graphs, normalize=False, max_num_nodes=max_nodes,
-    #         features=args.feature_type)
-    # val_dataset_loader = torch.utils.data.DataLoader(
-    #         dataset_sampler, 
-    #         batch_size=args.batch_size, 
-    #         shuffle=False,
-    #         num_workers=args.num_workers)
+    dataset_sampler = GraphSampler(val_graphs, normalize=False, max_num_nodes=max_nodes,
+            features=args.feature_type)
+    val_dataset_loader = torch.utils.data.DataLoader(
+            dataset_sampler, 
+            batch_size=args.batch_size, 
+            shuffle=False,
+            num_workers=args.num_workers)
 
     dataset_sampler = GraphSampler(test_graphs, normalize=False, max_num_nodes=max_nodes,
             features=args.feature_type)
@@ -334,11 +316,8 @@ def prepare_data(graphs, args, max_nodes=0):
             batch_size=args.batch_size, 
             shuffle=False,
             num_workers=args.num_workers)
-
-    return train_dataset_loader, test_dataset_loader,\
+    return train_dataset_loader, val_dataset_loader, test_dataset_loader, \
             dataset_sampler.max_num_nodes, dataset_sampler.feat_dim, dataset_sampler.assign_feat_dim
-    # return train_dataset_loader, val_dataset_loader, test_dataset_loader, \
-    #         dataset_sampler.max_num_nodes, dataset_sampler.feat_dim, dataset_sampler.assign_feat_dim
 
 def benchmark_task(args, writer=None):
     graphs = load_data.read_graphfile(args.datadir, args.bmname, max_nodes=args.max_nodes)
@@ -355,12 +334,14 @@ def benchmark_task(args, writer=None):
     else:
         init_feature = lookup_feature_init[args.init]()
         print("Init node features: ", init_feature)
+        stime = time.time()
         for graph in graphs:
-            features = init_feature.generate(graph, args.input_dim, inplace=False)
+            features = init_feature.generate(graph, args.input_dim, inplace=False, verbose=0)
             for node in graph.nodes():
                 graph.node[node]['feat'] = features[node]
+        print("Time init features: {:.3f}".format(time.time()-stime))
 
-    train_dataset, test_dataset, max_num_nodes, input_dim, assign_input_dim = \
+    train_dataset, val_dataset, test_dataset, max_num_nodes, input_dim, assign_input_dim = \
             prepare_data(graphs, args, max_nodes=args.max_nodes)
     if args.method == 'soft-assign':
         print('Method: soft-assign')
@@ -368,7 +349,7 @@ def benchmark_task(args, writer=None):
                 max_num_nodes, 
                 input_dim, args.hidden_dim, args.output_dim, args.num_classes, args.num_gc_layers,
                 args.hidden_dim, assign_ratio=args.assign_ratio, num_pooling=args.num_pool,
-                bn=args.bn, dropout=args.dropout, linkpred=args.linkpred, args=args,
+                bn=True, dropout=args.dropout, linkpred=args.linkpred, args=args,
                 assign_input_dim=assign_input_dim).cuda()
     elif args.method == 'base-set2set':
         print('Method: base-set2set')
@@ -381,7 +362,7 @@ def benchmark_task(args, writer=None):
                 input_dim, args.hidden_dim, args.output_dim, args.num_classes, 
                 args.num_gc_layers, bn=args.bn, dropout=args.dropout, args=args).cuda()
 
-    train(train_dataset, model, args, val_dataset=None, test_dataset=None, writer=writer)
+    train(train_dataset, model, args, val_dataset=val_dataset, test_dataset=None, writer=writer)
     results = evaluate(test_dataset, model, args, 'Test')
     print("Test micro-macro: {:.3f}\t{:.3f}".format(results["micro"], results["macro"]))
 
@@ -425,8 +406,8 @@ def arg_parse():
             help='Number of epochs to train.')
     parser.add_argument('--train-ratio', dest='train_ratio', type=float,
             help='Ratio of number of graphs training set to all graphs.')
-    # parser.add_argument('--test-ratio', dest='test_ratio', type=float,
-    #         help='Ratio of number of graphs training set to all graphs.')
+    parser.add_argument('--test-ratio', dest='test_ratio', type=float,
+            help='Ratio of number of graphs training set to all graphs.')
     parser.add_argument('--num_workers', dest='num_workers', type=int,
             help='Number of workers to load data.')
     parser.add_argument('--feature', dest='feature_type',
@@ -469,8 +450,8 @@ def arg_parse():
                         clip=2.0,
                         batch_size=20,
                         num_epochs=1000,
-                        train_ratio=0.8,
-                        # test_ratio=0.1,
+                        train_ratio=0.7,
+                        test_ratio=0.2,
                         num_workers=1,
                         input_dim=10,
                         hidden_dim=20,

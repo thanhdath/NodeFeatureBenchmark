@@ -66,8 +66,12 @@ def get_feature_initialization(args, graph, inplace = True):
     kwargs = {}
     if args.init == "ori":
         kwargs = {"feature_path": args.data+"/features.txt"}
-    elif args.init == "ssvd":
-        kwargs = {"alpha": args.alpha}
+    elif args.init == "ssvd0.5":
+        args.init = "ssvd"
+        kwargs = {"alpha": 0.5}
+    elif args.init == "ssvd1":
+        args.init = "ssvd"
+        kwargs = {"alpha": 1}
     init_feature = lookup_feature_init[args.init](**kwargs)
     return init_feature.generate(graph, args.feature_size, inplace=inplace)
 
