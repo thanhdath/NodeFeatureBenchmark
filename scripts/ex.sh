@@ -1,11 +1,13 @@
 mkdir log 
 feat_dim=128
+for feat_dim in 50 100 200 500
+do
 for alg in sgc
 do
     mkdir log/${alg}
-    for seed in $(seq 40 45)
+    for seed in $(seq 40 40)
     do
-        for data in cora bc pubmed
+        for data in cora  pubmed
         do
             for init in ori degree uniform deepwalk node2vec hope triangle egonet kcore pagerank coloring clique
             do
@@ -17,4 +19,5 @@ do
             done
         done
     done
+done
 done

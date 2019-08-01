@@ -1,5 +1,6 @@
 from SGC.SGC import SGC
 from pyGAT.GAT import GATAPI
+from DGI.DGI import DGIAPI
 import argparse 
 import numpy as np
 import networkx as nx
@@ -48,6 +49,8 @@ def get_algorithm(args):
         return SGC
     elif args.alg == "gat":
         return GATAPI
+    elif args.alg == "dgi":
+        return DGIAPI
     else:
         raise NotImplementedError
 
