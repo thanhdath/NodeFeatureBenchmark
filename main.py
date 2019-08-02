@@ -73,10 +73,8 @@ def get_feature_initialization(args, graph, inplace = True):
     elif args.init == "ssvd1":
         args.init = "ssvd"
         kwargs = {"alpha": 1}
-    if args.norm_features:
-        kwargs["normalize"] = True
     init_feature = lookup_feature_init[args.init](**kwargs)
-    return init_feature.generate(graph, args.feature_size, inplace=inplace)
+    return init_feature.generate(graph, args.feature_size, inplace=inplace, normalize=args.norm_features)
 
 # def evaluate_by_classification(vectors, X, Y, seed, train_percent=0.5):
 #     clf = Classifier(vectors=vectors, clf=LogisticRegression(solver="lbfgs"))

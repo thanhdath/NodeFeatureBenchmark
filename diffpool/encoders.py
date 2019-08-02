@@ -371,7 +371,7 @@ class SoftPoolingGcnEncoder(GcnEncoderGraph):
             batch_num_nodes: numpy array of number of nodes in each graph in the minibatch.
         '''
         eps = 1e-7
-        loss = super(SoftPoolingGcnEncoder, self).loss(pred, label)
+        loss = super(SoftPoolingGcnEncoder, self).loss(pred, label) 
         if self.linkpred:
             max_num_nodes = adj.size()[1]
             pred_adj0 = self.assign_tensor @ torch.transpose(self.assign_tensor, 1, 2) 
@@ -380,7 +380,7 @@ class SoftPoolingGcnEncoder(GcnEncoderGraph):
             for adj_pow in range(adj_hop-1):
                 tmp = tmp @ pred_adj0
                 pred_adj = pred_adj + tmp
-            pred_adj = torch.min(pred_adj, torch.Tensor(1).cuda())
+            pred_adj = torch.min(pred_adj, torch.Tensor([1]).cuda())
             #print('adj1', torch.sum(pred_adj0) / torch.numel(pred_adj0))
             #print('adj2', torch.sum(pred_adj) / torch.numel(pred_adj))
             #self.link_loss = F.nll_loss(torch.log(pred_adj), adj)
@@ -395,7 +395,7 @@ class SoftPoolingGcnEncoder(GcnEncoderGraph):
                 self.link_loss[1-adj_mask.byte()] = 0.0
 
             self.link_loss = torch.sum(self.link_loss) / float(num_entries)
-            #print('linkloss: ', self.link_loss)
+            # print('linkloss: ', self.link_loss)
             return loss + self.link_loss
         return loss
 

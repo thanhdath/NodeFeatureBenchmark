@@ -15,7 +15,7 @@ import pdb
 class SGC(nn.Module):
     def __init__(self, G, labels, hidden=0, dropout=0, 
         degree=2, epochs=1, weight_decay=5e-6, lr=0.2, cuda=True,
-        train_ratio=0.8):
+        train_ratio=0.8, trainable_features=False):
         super(SGC, self).__init__()
 
         self.G = G
@@ -40,6 +40,9 @@ class SGC(nn.Module):
         self.adj, self.features = preprocess_citation(self.adj, self.features, "AugNormAdj")
         self.adj = sparse_mx_to_torch_sparse_tensor(self.adj).float()
         self.features = torch.FloatTensor(self.features).float()
+        if trainable_features:
+            self.features = nn.Parameter(self.features)
+        print("Trainable features: ", self.features.requires_grad)
         self.features, precompute_time = sgc_precompute(self.features, self.adj, degree)
         self.W = nn.Linear(self.features.shape[1], self.n_classes)
         if cuda:

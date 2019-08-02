@@ -20,8 +20,10 @@ class FeatureInitialization():
         features = self._generate(graph, dim_size)
         if normalize: # (features - mean) / std
             scaler = StandardScaler()
-            scaler.fit(features)
-            features = scaler.transform(features)
+            features_arr = np.array([features[x] for x in graph.nodes()])
+            scaler.fit(features_arr)
+            features_arr = scaler.transform(features_arr)
+            features = {node: features_arr[i] for i, node in enumerate(graph.nodes())}
         etime = time.time()
         log_verbose("Time init features: {:.3f}s".format(etime-stime), verbose)
         if inplace:
@@ -47,7 +49,7 @@ class RandomUniformFeature(FeatureInitialization):
     def _generate(self, graph, dim_size):
         prep_dict = {}
         for idx, node in enumerate(graph.nodes()):
-            prep_dict[node] = np.random.uniform(0.,1.,size=(dim_size))
+            prep_dict[node] = np.random.uniform(-1.,1.,size=(dim_size))
         return prep_dict
 
 class IdentityFeature(FeatureInitialization):
@@ -235,6 +237,8 @@ lookup = {
     "pagerank": PageRankFeature,
     "coloring": LocalColoringColorFeature,
     "clique": NodeCliqueNumber,
-    "ssvd": SymmetricSVD
+    "ssvd": SymmetricSVD,
+    "ssvd0.5": SymmetricSVD,
+    "ssvd1": SymmetricSVD
 }
 

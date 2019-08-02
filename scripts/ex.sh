@@ -1,20 +1,21 @@
-mkdir "/content/drive/My Drive/log" 
+mkdir "log" 
 feat_dim=128
 
-for alg in dgi
+for alg in sgc
 do
-    mkdir /content/drive/My\ Drive/log/${alg}
+    log/${alg}
     for seed in $(seq 40 40)
     do
-        for data in reddit
+        for data in bc pubmed
         do
-            for init in ori degree uniform deepwalk node2vec svd0.5 svd1 hope triangle egonet kcore pagerank coloring clique identity
+            for init in ori degree uniform deepwalk node2vec ssvd0.5 ssvd1 hope triangle egonet kcore pagerank coloring clique identity
             do
                 python -u main.py --data data/${data} \
                     --alg ${alg} \
                     --init ${init} \
                     --feature_size ${feat_dim} \
-                    --seed ${seed} > /content/drive/My\ Drive/log/${alg}/${data}-${init}-seed${seed}
+                    --seed ${seed} \
+                    --norm_features > log/${alg}/${data}-${init}-seed${seed}
             done
         done
     done

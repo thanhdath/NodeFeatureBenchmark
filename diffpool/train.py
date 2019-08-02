@@ -197,6 +197,7 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
     best_val_acc = 0
     cnt_wait = 0
     # 
+    best_model = None
     
     for epoch in range(args.num_epochs):
         total_time = 0
@@ -232,12 +233,12 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
                 log_assignment(model.assign_tensor, writer, epoch, writer_batch_idx)
                 if args.log_graph:
                     log_graph(adj, batch_num_nodes, writer, epoch, writer_batch_idx, model.assign_tensor)
-        avg_loss /= batch_idx + 1
+        avg_loss /= (batch_idx + 1)
         if writer is not None:
             writer.add_scalar('loss/avg_loss', avg_loss, epoch)
             if args.linkpred:
                 writer.add_scalar('loss/linkpred_loss', model.link_loss, epoch)
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             print('Epoch', epoch, ' - Avg loss: ', avg_loss.item(), '; epoch time: ', total_time)
             result = evaluate(dataset, model, args, name='Train', max_num_examples=100)
             print('train acc: {:.3f}'.format(result['acc']))
@@ -249,10 +250,11 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
                     best_val_result['epoch'] = epoch
                     best_val_result['loss'] = avg_loss.item()
                     print('Best val result: ', best_val_result)
+                    torch.save(self.model.state_dict(), 'diffpool-best_model.pkl')
                     cnt_wait = 0
                 else:
                     cnt_wait += 1
-                if cnt_wait == 5:
+                if cnt_wait == 1000:
                         print('Early stopping!')
                         break
         # if test_dataset is not None:
@@ -270,6 +272,7 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
             # print('Test result: ', test_result)
             # test_epochs.append(test_result['epoch'])
             # test_accs.append(test_result['acc'])
+    model.load_state_dict('diffpool-best_model.pkl')
     return model, val_accs
 
 def prepare_data(graphs, args, max_nodes=0):
@@ -445,23 +448,23 @@ def arg_parse():
                         bmname='ENZYMES',
                         max_nodes=1000,
                         cuda='0',
-                        lr=0.001,
+                        lr=0.1,
                         clip=2.0,
                         batch_size=32,
-                        num_epochs=1000,
+                        num_epochs=700,
                         train_ratio=0.7,
                         test_ratio=0.1,
-                        num_workers=1,
+                        num_workers=2,
                         input_dim=1,
-                        hidden_dim=30,
-                        output_dim=30,
+                        hidden_dim=64,
+                        output_dim=64,
                         num_classes=6,
                         num_gc_layers=3,
-                        dropout=0.0,
+                        dropout=0.1,
                         method='soft-assign',
                         name_suffix='',
-                        assign_ratio=0.25,
-                        num_pool=3
+                        assign_ratio=0.1,
+                        num_pool=1
                        )
     return parser.parse_args()
 

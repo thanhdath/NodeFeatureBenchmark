@@ -20,11 +20,11 @@ try:
 except:
     alg = "sgc"
 
-for init in "ori degree uniform deepwalk node2vec hope triangle egonet kcore pagerank coloring clique".split():
+for init in "degree uniform deepwalk node2vec ssvd0.5 ssvd1 hope triangle kcore egonet pagerank coloring clique identity ori".split():
     micros = []
     macros = []
     times = []
-    for seed in range(40, 51):
+    for seed in range(40, 41):
         try:
             micro, macro, time_init = parse(init, seed)
             micros.append(micro)
