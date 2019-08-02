@@ -16,6 +16,13 @@ assert (major <= 1) and (minor <= 11), "networkx major version > 1.11"
 WALK_LEN=5
 N_WALKS=50
 
+"""
+wget http://snap.stanford.edu/graphsage/reddit.zip && unzip reddit.zip
+!pip install networkx==1.11
+!cd nodefeature/data && python ../tools/reddit.py 
+!pip install networkx
+"""
+
 def load_data(prefix, normalize=True, load_walks=False):
     G_data = json.load(open(prefix + "-G.json"))
     G = json_graph.node_link_graph(G_data)

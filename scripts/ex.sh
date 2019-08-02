@@ -1,22 +1,9 @@
-mkdir log 
+mkdir "/content/drive/My Drive/log" 
 feat_dim=128
-alg=logistic
-mkdir log/${alg}
-seed=40
-data=reddit 
-for init in ori deepwalk hope node2vec 
-do 
-    python -u main.py --data data/${data} \
-                    --alg ${alg} \
-                    --init ${init} \
-                    --feature_size ${feat_dim} \
-                    --seed ${seed} > log/${alg}/${data}-${init}-seed${seed}
-done
 
-
-for alg in sgc
+for alg in dgi
 do
-    mkdir log/${alg}
+    mkdir /content/drive/My\ Drive/log/${alg}
     for seed in $(seq 40 40)
     do
         for data in reddit
@@ -27,7 +14,7 @@ do
                     --alg ${alg} \
                     --init ${init} \
                     --feature_size ${feat_dim} \
-                    --seed ${seed} > log/${alg}/${data}-${init}-seed${seed}
+                    --seed ${seed} > /content/drive/My\ Drive/log/${alg}/${data}-${init}-seed${seed}
             done
         done
     done

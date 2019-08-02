@@ -294,7 +294,7 @@ def prepare_data(graphs, args, max_nodes=0):
 
     # minibatch
     dataset_sampler = GraphSampler(train_graphs, normalize=False, max_num_nodes=max_nodes,
-            features=args.feature_type)
+            features='default')
     train_dataset_loader = torch.utils.data.DataLoader(
             dataset_sampler, 
             batch_size=args.batch_size, 
@@ -302,7 +302,7 @@ def prepare_data(graphs, args, max_nodes=0):
             num_workers=args.num_workers)
 
     dataset_sampler = GraphSampler(val_graphs, normalize=False, max_num_nodes=max_nodes,
-            features=args.feature_type)
+            features='default')
     val_dataset_loader = torch.utils.data.DataLoader(
             dataset_sampler, 
             batch_size=args.batch_size, 
@@ -310,7 +310,7 @@ def prepare_data(graphs, args, max_nodes=0):
             num_workers=args.num_workers)
 
     dataset_sampler = GraphSampler(test_graphs, normalize=False, max_num_nodes=max_nodes,
-            features=args.feature_type)
+            features='default')
     test_dataset_loader = torch.utils.data.DataLoader(
             dataset_sampler, 
             batch_size=args.batch_size, 
@@ -370,13 +370,13 @@ def benchmark_task(args, writer=None):
 def arg_parse():
     parser = argparse.ArgumentParser(description='GraphPool arguments.')
     io_parser = parser.add_mutually_exclusive_group(required=False)
-    io_parser.add_argument('--dataset', dest='dataset', 
-            help='Input dataset.')
+#     io_parser.add_argument('--dataset', dest='dataset', 
+#             help='Input dataset.')
     benchmark_parser = io_parser.add_argument_group()
     benchmark_parser.add_argument('--bmname', dest='bmname',
             help='Name of the benchmark dataset')
-    io_parser.add_argument('--pkl', dest='pkl_fname',
-            help='Name of the pkl data file')
+#     io_parser.add_argument('--pkl', dest='pkl_fname',
+#             help='Name of the pkl data file')
 
     softpool_parser = parser.add_argument_group()
     softpool_parser.add_argument('--assign-ratio', dest='assign_ratio', type=float,
@@ -410,8 +410,8 @@ def arg_parse():
             help='Ratio of number of graphs training set to all graphs.')
     parser.add_argument('--num_workers', dest='num_workers', type=int,
             help='Number of workers to load data.')
-    parser.add_argument('--feature', dest='feature_type',
-            help='Feature used for encoder. Can be: id, deg. ')
+#     parser.add_argument('--feature', dest='feature_type',
+#             help='Feature used for encoder. Can be: id, deg. ')
     parser.add_argument('--input-dim', dest='input_dim', type=int,
             help='Input feature dimension. Equivalent to feature_size in main.py')
     parser.add_argument('--hidden-dim', dest='hidden_dim', type=int,
@@ -442,27 +442,26 @@ def arg_parse():
     parser.add_argument('--init', default="ori", dest='init', help="Init node feature method.")
     parser.set_defaults(datadir='data',
                         logdir='log',
-                        dataset='syn1v2',
+                        bmname='ENZYMES',
                         max_nodes=1000,
-                        cuda='1',
-                        feature_type='default',
+                        cuda='0',
                         lr=0.001,
                         clip=2.0,
-                        batch_size=20,
+                        batch_size=32,
                         num_epochs=1000,
                         train_ratio=0.7,
-                        test_ratio=0.2,
+                        test_ratio=0.1,
                         num_workers=1,
-                        input_dim=10,
-                        hidden_dim=20,
-                        output_dim=20,
-                        num_classes=2,
+                        input_dim=1,
+                        hidden_dim=30,
+                        output_dim=30,
+                        num_classes=6,
                         num_gc_layers=3,
                         dropout=0.0,
-                        method='base',
+                        method='soft-assign',
                         name_suffix='',
-                        assign_ratio=0.1,
-                        num_pool=1
+                        assign_ratio=0.25,
+                        num_pool=3
                        )
     return parser.parse_args()
 
