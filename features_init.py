@@ -4,6 +4,7 @@ from embed_algs import deepwalk, node2vec, HOPE
 import networkx as nx
 import pdb
 from scipy.sparse.linalg import svds
+from sklearn.preprocessing import StandardScaler 
 
 def log_verbose(msg, v):
     if v >= 1:
@@ -12,11 +13,15 @@ def log_verbose(msg, v):
 class FeatureInitialization():
     def __init__(self):
         pass 
-    def generate(self, graph, dim_size, inplace=False, verbose=1):
+    def generate(self, graph, dim_size, inplace=False, verbose=1, normalize=False):
         # wrapper function for generate()
         log_verbose('Start generate feature', verbose)
         stime = time.time()
         features = self._generate(graph, dim_size)
+        if normalize: # (features - mean) / std
+            scaler = StandardScaler()
+            scaler.fit(features)
+            features = scaler.transform(features)
         etime = time.time()
         log_verbose("Time init features: {:.3f}s".format(etime-stime), verbose)
         if inplace:

@@ -17,6 +17,7 @@ def parse_args():
     args.add_argument('--init', default="random")
     args.add_argument('--epochs', default=100, type=int)
     args.add_argument('--feature_size', default=5, type=int)
+    args.add_argument('--norm_features', action='store_true')
     args.add_argument('--seed', type=int, default=40)
 
     # for ssvd
@@ -72,6 +73,8 @@ def get_feature_initialization(args, graph, inplace = True):
     elif args.init == "ssvd1":
         args.init = "ssvd"
         kwargs = {"alpha": 1}
+    if args.norm_features:
+        kwargs["normalize"] = True
     init_feature = lookup_feature_init[args.init](**kwargs)
     return init_feature.generate(graph, args.feature_size, inplace=inplace)
 
