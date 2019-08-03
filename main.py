@@ -20,6 +20,7 @@ def parse_args():
     args.add_argument('--norm_features', action='store_true')
     args.add_argument('--train_features', action='store_true')
     args.add_argument('--seed', type=int, default=40)
+    args.add_argument('--verbose', type=int, default=1)
 
     # for ssvd
     args.add_argument('--alpha', type=float, default=0.5)
@@ -75,7 +76,8 @@ def get_feature_initialization(args, graph, inplace = True):
         args.init = "ssvd"
         kwargs = {"alpha": 1}
     init_feature = lookup_feature_init[args.init](**kwargs)
-    return init_feature.generate(graph, args.feature_size, inplace=inplace, normalize=args.norm_features)
+    return init_feature.generate(graph, args.feature_size, 
+        inplace=inplace, normalize=args.norm_features, verbose=args.verbose)
 
 # def evaluate_by_classification(vectors, X, Y, seed, train_percent=0.5):
 #     clf = Classifier(vectors=vectors, clf=LogisticRegression(solver="lbfgs"))
