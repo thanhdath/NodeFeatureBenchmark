@@ -8,10 +8,9 @@ import torch.optim as optim
 from .models import get_model
 from torch.autograd import Variable
 from .utils import sgc_precompute, preprocess_citation, sparse_mx_to_torch_sparse_tensor
-from .metrics import f1, accuracy
+from .metrics import f1, accuracy, f1_multiple_classes, acc_multiple_classes
 from time import perf_counter
 from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.metrics import accuracy_score
 import pdb
 
 class SGC(nn.Module):
@@ -84,15 +83,14 @@ class SGC(nn.Module):
                 self.W.eval()
                 output = self.W(val_features)
                 output = F.sigmoid(output)
-                output = torch.round(output)
-                acc = accuracy_score(output.cpu().numpy(), val_labels.cpu().numpy())
+                acc = acc_multiple_classes(output, val_labels)
                 if acc > best_val_acc:
                     best_val_acc = acc
-                    torch.save(self.W.state_dict(), 'sgc-best-model.pkl')
+                    torch.save(self.W.state_dict(), 'sgci-best-model.pkl')
                     print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc.item()))
         train_time = perf_counter()-t
         print('Train time: {:.3f}'.format(train_time))
-        self.W.load_state_dict(torch.load('sgc-best-model.pkl'))
+        self.W.load_state_dict(torch.load('sgci-best-model.pkl'))
         if self.cuda:
             train_labels = train_labels.cpu()
             train_features = train_features.cpu()
@@ -110,9 +108,7 @@ class SGC(nn.Module):
             self.W.eval()
             output = self.W(test_features)
             output = F.sigmoid(output)
-            output = torch.round(output)
-            acc = accuracy_score(output.cpu().numpy(), val_labels.cpu().numpy())
-            print('Test acc: {:.3f}'.format(acc))
-            # micro, macro = f1(output, test_labels)
-            # print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))
+            micro, macro = f1_multiple_classes(output, val_labels)
+            micro, macro = f1(output, test_labels)
+            print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))
         
