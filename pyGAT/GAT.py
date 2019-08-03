@@ -14,6 +14,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from sklearn.preprocessing import MultiLabelBinarizer
 from .utils import load_data, accuracy
+from SGC.utils import sparse_mx_to_torch_sparse_tensor
 from .models import GAT, SpGAT
 from SGC.metrics import f1
 import scipy.sparse as sp
@@ -38,10 +39,11 @@ def normalize_features(mx):
 
 class GATAPI():
     def __init__(self, G, labels, cuda=False, fastmode=False,
-        sparse=True, epochs=10000, lr=0.005, weight_decay=5e-4,
+        sparse=True, epochs=10, lr=0.005, weight_decay=5e-4,
         hidden=8, nb_heads=8, dropout=.6, alpha=.2, patience=100,
         train_val_ratio=[.7, .1, .2]):
         print("Warning: GAT currently not support for multiple labels.")
+        print("Warning: Sparse version is not working. https://github.com/Diego999/pyGAT/issues/11")
         self.G = G
         self._convert_labels_to_binary(labels)
         self._process_adj()
@@ -96,10 +98,11 @@ class GATAPI():
         self.n_classes = self.labels.max() + 1
     
     def _process_adj(self):
-        self.adj = nx.adjacency_matrix(self.G)
+        self.adj = nx.to_scipy_sparse_matrix(self.G)
         self.adj = self.adj + self.adj.T.multiply(self.adj.T > self.adj) - self.adj.multiply(self.adj.T > self.adj)
         self.adj = normalize_adj(self.adj + sp.eye(self.adj.shape[0]))
-        self.adj = torch.FloatTensor(np.array(self.adj.todense()))
+        # self.adj = torch.FloatTensor(np.array(self.adj.todense()))
+        self.adj = sparse_mx_to_torch_sparse_tensor(self.adj)
 
     def _process_features(self):
         features = []

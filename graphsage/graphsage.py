@@ -1,214 +1,345 @@
-from __future__ import division
-from __future__ import print_function
-
-import os
+"""
+Inductive Representation Learning on Large Graphs
+Paper: http://papers.nips.cc/paper/6703-inductive-representation-learning-on-large-graphs.pdf
+Code: https://github.com/williamleif/graphsage-simple
+Simple reference implementation of GraphSAGE.
+"""
+import argparse
 import time
-import tensorflow as tf
+import networkx as nx
+import abc
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from dgl import DGLGraph
+from dgl.data import register_data_args
+import dgl.function as fn
+from features_init import lookup as lookup_feature_init
+from SGC.normalization import row_normalize
+from sklearn.preprocessing import MultiLabelBinarizer
+import random
+from SGC.metrics import f1
 
-from graphsage.models import SampleAndAggregate, SAGEInfo, Node2VecModel
-from graphsage.minibatch import EdgeMinibatchIterator
-from graphsage.neigh_samplers import UniformNeighborSampler
-from graphsage.utils import load_data
-from openne.walker import BasicWalker
+def read_node_label(filename):
+    fin = open(filename, 'r')
+    labels = {}
+    while 1:
+        l = fin.readline()
+        if l == '':
+            break
+        vec = l.strip().split(' ')
+        labels[vec[0]] = vec[1:]
+    fin.close()
+    return labels
 
-def construct_placeholders():
-    # Define placeholders
-    placeholders = {
-        'batch1' : tf.placeholder(tf.int32, shape=(None), name='batch1'),
-        'batch2' : tf.placeholder(tf.int32, shape=(None), name='batch2'),
-        # negative samples for all nodes in the batch
-        'neg_samples': tf.placeholder(tf.int32, shape=(None,),
-            name='neg_sample_size'),
-        'dropout': tf.placeholder_with_default(0., shape=(), name='dropout'),
-        'batch_size' : tf.placeholder(tf.int32, name='batch_size'),
-    }
-    return placeholders
+class Dataset(object):
+    def __init__(self, datadir):
+        self.datadir = datadir
+        self._load()
+    def _load(self):
+        # edgelist
+        edgelist_file = self.datadir+'/edgelist.txt'
+        self.graph = nx.read_edgelist(edgelist_file, nodetype=int)
+        # adj = nx.to_scipy_sparse_matrix(graph)
+        # adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+        # self.graph = nx.from_scipy_sparse_matrix(adj, create_using=nx.DiGraph())
+        # labels
+        labels_path = self.datadir + '/labels.txt'
+        self.labels = read_node_label(labels_path)
+        self.labels = self._convert_labels_to_binary(self.labels)
+        self.n_classes = int(self.labels.max()) + 1
+        
+    def _convert_labels_to_binary(self, labels):
+        labels_arr = []
+        for node in sorted(self.graph.nodes()):
+            labels_arr.append(labels[str(node)])
+        binarizer = MultiLabelBinarizer(sparse_output=False)
+        binarizer.fit(labels_arr)
+        labels = binarizer.transform(labels_arr)
+        labels = torch.LongTensor(labels).argmax(dim=1)
+        return labels
+    
 
-def evaluate(sess, model, minibatch_iter, size=None):
-    t_test = time.time()
-    feed_dict_val = minibatch_iter.val_feed_dict(size)
-    outs_val = sess.run([model.loss, model.ranks, model.mrr],
-                        feed_dict=feed_dict_val)
-    return outs_val[0], outs_val[1], outs_val[2], (time.time() - t_test)
+class Aggregator(nn.Module):
+    def __init__(self, g, in_feats, out_feats, activation=None, bias=True):
+        super(Aggregator, self).__init__()
+        self.g = g
+        self.linear = nn.Linear(in_feats, out_feats, bias=bias)  # (F, EF) or (2F, EF)
+        self.activation = activation
+        nn.init.xavier_uniform_(self.linear.weight, gain=nn.init.calculate_gain('relu'))
 
-class GraphSAGE():
-    def __init__(self, graph, learning_rate=0.01, epochs=10, dropout=0.0, weight_decay=0.0, max_degree=25,
-        samples=25, dim=128, neg_sample_size=20, batch_size=512,
-        validate_iter=50, max_total_steps=1000000000,
-        num_walks=20, walk_length=10, clf=0.8, prep_weight=None):
-        self.G = graph.G
-        self.graph = graph
-        self.learning_rate = learning_rate
-        self.epochs = epochs
-        self.dropout = dropout
-        self.weight_decay = weight_decay
-        self.max_degree = max_degree
-        self.samples = samples
-        self.dim = dim // 2
-        self.neg_sample_size = neg_sample_size
-        self.batch_size = batch_size
-        self.num_walks = num_walks
-        self.walk_length = walk_length
-        self.clf = clf
-        self.validate_iter = validate_iter
-        self.max_total_steps = max_total_steps
-        self.prep_weight = prep_weight
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=config)
-        self.train()
-        tf.reset_default_graph()
-        self.sess.close()
+    def forward(self, node):
+        nei = node.mailbox['m']  # (B, N, F)
+        h = node.data['h']  # (B, F)
+        h = self.concat(h, nei, node)  # (B, F) or (B, 2F)
+        h = self.linear(h)   # (B, EF)
+        if self.activation:
+            h = self.activation(h)
+        norm = torch.pow(h, 2)
+        norm = torch.sum(norm, 1, keepdim=True)
+        norm = torch.pow(norm, -0.5)
+        norm[torch.isinf(norm)] = 0
+        # h = h * norm
+        return {'h': h}
 
-    def _run_random_walks(self):
-        nodes = self.G.nodes()
-        pairs = []
-        print_every = len(nodes) // 2
-        for count, node in enumerate(nodes):
-            if self.G.degree(node) == 0:
-                continue
-            for i in range(self.num_walks):
-                curr_node = node
-                for j in range(self.walk_length):
-                    next_node = np.random.choice([x for x in self.G.neighbors(curr_node)])
-                    # self co-occurrences are useless
-                    if curr_node != node:
-                        pairs.append((node,curr_node))
-                    curr_node = next_node
-            if count % print_every == 0:
-                print("Done walks for", count, "nodes")
-        return pairs
+    @abc.abstractmethod
+    def concat(self, h, nei, nodes):
+        raise NotImplementedError
 
-    def build_features(self):
-        # check whether graph has features
-        features = None
-        if 'feature' in self.G.node[list(self.G.nodes())[0]]:
-            features = np.array([self.G.node[x]['feature'] for x in self.G.nodes()])
-            features = np.vstack([features, np.zeros((features.shape[1],))])
+
+class MeanAggregator(Aggregator):
+    def __init__(self, g, in_feats, out_feats, activation, bias):
+        super(MeanAggregator, self).__init__(g, in_feats, out_feats, activation, bias)
+
+    def concat(self, h, nei, nodes):
+        degs = self.g.in_degrees(nodes.nodes()).float()
+        if h.is_cuda:
+            degs = degs.cuda(h.device)
+        concatenate = torch.cat((nei, h.unsqueeze(1)), 1)
+        concatenate = torch.sum(concatenate, 1) / degs.unsqueeze(1)
+        return concatenate  # (B, F)
+
+
+class PoolingAggregator(Aggregator):
+    def __init__(self, g, in_feats, out_feats, activation, bias):  # (2F, F)
+        super(PoolingAggregator, self).__init__(g, in_feats*2, out_feats, activation, bias)
+        self.mlp = PoolingAggregator.MLP(in_feats, in_feats, F.relu, False, True)
+
+    def concat(self, h, nei, nodes):
+        nei = self.mlp(nei)  # (B, F)
+        concatenate = torch.cat((nei, h), 1)  # (B, 2F)
+        return concatenate
+
+    class MLP(nn.Module):
+        def __init__(self, in_feats, out_feats, activation, dropout, bias):  # (F, F)
+            super(PoolingAggregator.MLP, self).__init__()
+            self.linear = nn.Linear(in_feats, out_feats, bias=bias)  # (F, F)
+            self.dropout = nn.Dropout(p=dropout)
+            self.activation = activation
+            nn.init.xavier_uniform_(self.linear.weight, gain=nn.init.calculate_gain('relu'))
+
+        def forward(self, nei):
+            nei = self.dropout(nei)  # (B, N, F)
+            nei = self.linear(nei)
+            if self.activation:
+                nei = self.activation(nei)
+            max_value = torch.max(nei, dim=1)[0]  # (B, F)
+            return max_value
+
+
+class GraphSAGELayer(nn.Module):
+    def __init__(self,
+                 g,
+                 in_feats,
+                 out_feats,
+                 activation,
+                 dropout,
+                 aggregator_type,
+                 bias=True,
+                 ):
+        super(GraphSAGELayer, self).__init__()
+        self.g = g
+        self.dropout = nn.Dropout(p=dropout)
+        if aggregator_type == "pooling":
+            self.aggregator = PoolingAggregator(g, in_feats, out_feats, activation, bias)
         else:
-            if self.prep_weight is None:
-                raise Exception("If feature is None, prep must be given")
-        return features
+            self.aggregator = MeanAggregator(g, in_feats, out_feats, activation, bias)
 
-    def train(self):
-        G = self.G
-        features = self.build_features()
-        context_pairs = self._run_random_walks()
-        placeholders = construct_placeholders()
-        minibatch = EdgeMinibatchIterator(G,
-                placeholders,
-                batch_size=self.batch_size,
-                max_degree=self.max_degree,
-                context_pairs=context_pairs,
-                clf=self.clf)
+    def forward(self, h):
+        h = self.dropout(h)
+        self.g.ndata['h'] = h
+        self.g.update_all(fn.copy_src(src='h', out='m'), self.aggregator)
+        h = self.g.ndata.pop('h')
+        return h
 
-        adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
-        adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 
-        # self model GCN
-        # Create model
-        sampler = UniformNeighborSampler(adj_info)
-        layer_infos = [SAGEInfo("node", sampler, self.samples, 2*self.dim)]
+class GraphSAGE(nn.Module):
+    def __init__(self,
+                 g,
+                 in_feats,
+                 n_hidden,
+                 n_classes,
+                 n_layers,
+                 activation,
+                 dropout,
+                 aggregator_type):
+        super(GraphSAGE, self).__init__()
+        self.layers = nn.ModuleList()
 
-        model = SampleAndAggregate(placeholders,
-            features,
-            adj_info,
-            minibatch.deg,
-            layer_infos=layer_infos,
-            aggregator_type="gcn",
-            model_size='small',
-            prep_weight=self.prep_weight,
-            concat=False,
-            logging=True)
+        # input layer
+        self.layers.append(GraphSAGELayer(g, in_feats, n_hidden, activation, dropout, aggregator_type))
+        # hidden layers
+        for i in range(n_layers - 1):
+            self.layers.append(GraphSAGELayer(g, n_hidden, n_hidden, activation, dropout, aggregator_type))
+        # output layer
+        self.layers.append(GraphSAGELayer(g, n_hidden, n_classes, None, dropout, aggregator_type))
 
-        # Initialize session
-        sess = self.sess
-        # Init variables
-        sess.run(tf.global_variables_initializer(), feed_dict={adj_info_ph: minibatch.adj})
+    def forward(self, features):
+        h = features
+        for layer in self.layers:
+            h = layer(h)
+        return h
 
-        # Train model
 
-        train_shadow_mrr = None
-        shadow_mrr = None
+def evaluate(model, features, labels, mask):
+    model.eval()
+    with torch.no_grad():
+        logits = model(features)
+        logits = logits[mask]
+        labels = labels[mask]
+        _, indices = torch.max(logits, dim=1)
+        correct = torch.sum(indices == labels)
+        return correct.item() * 1.0 / len(labels)
 
-        total_steps = 0
-        avg_time = 0.0
-        epoch_val_costs = []
+def sample_mask(idx, length):
+    mask = np.zeros((length))
+    mask[idx] = 1
+    return torch.ByteTensor(mask)
 
-        train_adj_info = tf.assign(adj_info, minibatch.adj)
-        val_adj_info = tf.assign(adj_info, minibatch.test_adj)
+def split_train_test(length, ratio=[.7, .1, .2]):
+    n_train = int(length*ratio[0])
+    n_val = int(length*ratio[1])
+    indices = np.random.permutation(np.arange(length))
+    train_mask = sample_mask(indices[:n_train], length)
+    val_mask = sample_mask(indices[n_train:n_train+n_val], length)
+    test_mask = sample_mask(indices[n_train+n_val:], length)
+    return train_mask, val_mask, test_mask
 
-        val_costs = []
-        for epoch in range(self.epochs):
-            minibatch.shuffle()
 
-            iter = 0
-            print('Epoch: %04d' % (epoch + 1))
-            while not minibatch.end():
-                # Construct feed dictionary
-                feed_dict = minibatch.next_minibatch_feed_dict()
-                feed_dict.update({placeholders['dropout']: self.dropout})
+def get_feature_initialization(args, graph, inplace = True):
+    if args.init not in lookup_feature_init:
+        raise NotImplementedError
+    kwargs = {}
+    if args.init == "ori":
+        kwargs = {"feature_path": args.dataset+"/features.txt"}
+    elif args.init == "ssvd0.5":
+        args.init = "ssvd"
+        kwargs = {"alpha": 0.5}
+    elif args.init == "ssvd1":
+        args.init = "ssvd"
+        kwargs = {"alpha": 1}
+    init_feature = lookup_feature_init[args.init](**kwargs)
+    return init_feature.generate(graph, args.feature_size, inplace=inplace, 
+        normalize=args.norm_features)
 
-                t = time.time()
-                # Training step
-                outs = sess.run([model.opt_op, model.loss, model.ranks, model.aff_all,
-                        model.mrr, model.outputs1], feed_dict=feed_dict)
-                train_cost = outs[1]
-                train_mrr = outs[4]
-                if train_shadow_mrr is None:
-                    train_shadow_mrr = train_mrr#
-                else:
-                    train_shadow_mrr -= (1-0.99) * (train_shadow_mrr - train_mrr)
+def main(args):
+    data = Dataset(args.dataset)
+    labels = data.labels
+    # features
+    features = get_feature_initialization(args, data.graph, inplace=False)
+    features = np.array([features[node] for node in sorted(data.graph.nodes())])
+    features = row_normalize(features)
+    features = torch.FloatTensor(features)
+    # print(labels)
+    # print(features.sum())
+    # print(list(sorted(data.graph.nodes()))[:10])
+    # import sys; sys.exit()
+    # 
+    train_mask, val_mask, test_mask = split_train_test(len(labels))
 
-                if iter % self.validate_iter == 0:
-                    # Validation
-                    sess.run(val_adj_info.op)
-                    val_cost, ranks, val_mrr, duration  = evaluate(sess, model, minibatch, size=self.batch_size)
-                    sess.run(train_adj_info.op)
-                    val_costs.append(val_cost)
+    in_feats = features.shape[1]
+    n_classes = data.n_classes
+    n_edges = data.graph.number_of_edges()
+    print("""----Data statistics------'
+      #Edges %d
+      #Classes %d
+      #Train samples %d
+      #Val samples %d
+      #Test samples %d""" %
+          (n_edges, n_classes,
+           train_mask.sum().item(),
+           val_mask.sum().item(),
+           test_mask.sum().item()))
 
-                if shadow_mrr is None:
-                    shadow_mrr = val_mrr
-                else:
-                    shadow_mrr -= (1-0.99) * (shadow_mrr - val_mrr)
+    if args.gpu < 0:
+        cuda = False
+    else:
+        cuda = True
+        torch.cuda.set_device(args.gpu)
+        features = features.cuda()
+        labels = labels.cuda()
+        train_mask = train_mask.cuda()
+        val_mask = val_mask.cuda()
+        test_mask = test_mask.cuda()
+        print("use cuda:", args.gpu)
 
-                # Print results
-                avg_time = (avg_time * total_steps + time.time() - t) / (total_steps + 1)
+    # graph preprocess and calculate normalization factor
+    g = DGLGraph(data.graph)
+    n_edges = g.number_of_edges()
 
-                if minibatch.end():
-                    print("Iter:", '%04d' % iter,
-                          "train_loss=", "{:.5f}".format(train_cost),
-                          "train_mrr=", "{:.5f}".format(train_mrr),
-                          "train_mrr_ema=", "{:.5f}".format(train_shadow_mrr), # exponential moving average
-                          "val_loss=", "{:.5f}".format(val_cost),
-                          "val_mrr=", "{:.5f}".format(val_mrr),
-                          "val_mrr_ema=", "{:.5f}".format(shadow_mrr), # exponential moving average
-                          "time=", "{:.5f}".format(avg_time))
+    # create GraphSAGE model
+    model = GraphSAGE(g,
+                      in_feats,
+                      args.n_hidden,
+                      n_classes,
+                      args.n_layers,
+                      F.relu,
+                      args.dropout,
+                      args.aggregator_type
+                      )
+    if cuda:
+        model.cuda()
+    loss_fcn = torch.nn.CrossEntropyLoss()
 
-                iter += 1
-                total_steps += 1
+    # use optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    best_val_acc = 0
+    stime = time.time()
+    for epoch in range(args.n_epochs):
+        model.train()
+        # forward
+        logits = model(features)
+        loss = loss_fcn(logits[train_mask], labels[train_mask])
 
-                if total_steps > self.max_total_steps:
-                    break
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        etime = time.time() - stime
+        if epoch % 20 == 0:
+            print('Epoch {} - loss {} - time: {}'.format(epoch, loss.item(), etime))
+        stime = etime
+        acc = evaluate(model, features, labels, val_mask)
+        if acc > best_val_acc:
+            best_val_acc = acc
+            torch.save(model.state_dict(), 'graphsage-best-model.pkl')
+            print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc))
+    model.load_state_dict(torch.load('graphsage-best-model.pkl'))
+    with torch.no_grad():
+        model.eval()
+        output = model(features)
+        output = output[test_mask]
+        labels = labels[test_mask]
+        micro, macro = f1(output, labels)
+        print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))
 
-            # if epoch > self.early_stopping and val_costs[-1] > np.mean(val_costs[-(self.early_stopping+1):-1]):
-            #     print("Early stopping...")
-            #     break
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='GCN')
+    register_data_args(parser)
+    parser.add_argument("--dropout", type=float, default=0.5,
+                        help="dropout probability")
+    parser.add_argument("--gpu", type=int, default=-1,
+                        help="gpu")
+    parser.add_argument("--lr", type=float, default=1e-2,
+                        help="learning rate")
+    parser.add_argument("--n-epochs", type=int, default=200,
+                        help="number of training epochs")
+    parser.add_argument("--n-hidden", type=int, default=64,
+                        help="number of hidden gcn units")
+    parser.add_argument("--n-layers", type=int, default=2,
+                        help="number of hidden gcn layers")
+    parser.add_argument("--weight-decay", type=float, default=5e-4,
+                        help="Weight for L2 loss")
+    parser.add_argument("--aggregator-type", type=str, default="mean",
+                        help="mean or pool")
+    parser.add_argument('--init', type=str, default="ori", help="Features initialization method")
+    parser.add_argument('--feature_size', type=int, default=5, help="Features dimension")
+    parser.add_argument('--norm_features', action='store_true', help="norm features by standard scaler.")
+    parser.add_argument('--seed', type=int, default=40)
+    args = parser.parse_args()
+    print(args)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
-            if total_steps > self.max_total_steps:
-                break
-
-        self.get_embedding(sess, model, minibatch)
-
-    def get_embedding(self, sess, model, minibatch):
-        vectors = {}
-        finished = False
-        iter_num = 0
-        while not finished:
-            feed_dict_val, finished, edges = minibatch.incremental_embed_feed_dict(self.batch_size, iter_num)
-            iter_num += 1
-            outs_val = sess.run([model.loss, model.mrr, model.outputs1], feed_dict=feed_dict_val)
-            for i, edge in enumerate(edges):
-                vectors[str(edge[0])] = outs_val[-1][i,:]
-        self.vectors = vectors
+    main(args)

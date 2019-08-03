@@ -13,12 +13,13 @@ def log_verbose(msg, v):
 class FeatureInitialization():
     def __init__(self):
         pass 
-    def generate(self, graph, dim_size, inplace=False, verbose=1, normalize=False):
+    def generate(self, graph, dim_size, inplace=False, verbose=1, normalize=True):
         # wrapper function for generate()
         log_verbose('Start generate feature', verbose)
         stime = time.time()
         features = self._generate(graph, dim_size)
         if normalize: # (features - mean) / std
+            print("Normalize features using standard scaler.")
             scaler = StandardScaler()
             features_arr = np.array([features[x] for x in graph.nodes()])
             scaler.fit(features_arr)

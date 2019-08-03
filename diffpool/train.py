@@ -239,18 +239,20 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
             if args.linkpred:
                 writer.add_scalar('loss/linkpred_loss', model.link_loss, epoch)
         if epoch % 1 == 0:
-            print('Epoch', epoch, ' - Avg loss: ', avg_loss.item(), '; epoch time: ', total_time)
             result = evaluate(dataset, model, args, name='Train', max_num_examples=100)
-            print('train acc: {:.3f}'.format(result['acc']))
+            if epoch % 50 == 0:
+                print('Epoch', epoch, ' - Avg loss: ', avg_loss.item(), '; epoch time: ', total_time)
+                print('train acc: {:.3f}'.format(result['acc']))
             if val_dataset is not None:
                 val_result = evaluate(val_dataset, model, args, name='Val')
-                print('val acc: {:.3f}'.format(val_result['acc']))
+                if epoch % 50 == 0:
+                    print('val acc: {:.3f}'.format(val_result['acc']))
                 if val_result['acc'] > best_val_result['acc'] - 1e-7:
                     best_val_result['acc'] = val_result['acc']
                     best_val_result['epoch'] = epoch
                     best_val_result['loss'] = avg_loss.item()
                     print('Best val result: ', best_val_result)
-                    torch.save(self.model.state_dict(), 'diffpool-best_model.pkl')
+                    torch.save(model.state_dict(), 'diffpool-best_model.pkl')
                     cnt_wait = 0
                 else:
                     cnt_wait += 1
@@ -272,7 +274,7 @@ def train(dataset, model, args, same_feat=True, val_dataset=None, test_dataset=N
             # print('Test result: ', test_result)
             # test_epochs.append(test_result['epoch'])
             # test_accs.append(test_result['acc'])
-    model.load_state_dict('diffpool-best_model.pkl')
+    model.load_state_dict(torch.load('diffpool-best_model.pkl'))
     return model, val_accs
 
 def prepare_data(graphs, args, max_nodes=0):
@@ -453,7 +455,7 @@ def arg_parse():
                         batch_size=32,
                         num_epochs=700,
                         train_ratio=0.7,
-                        test_ratio=0.1,
+                        test_ratio=0.2,
                         num_workers=2,
                         input_dim=1,
                         hidden_dim=64,

@@ -15,9 +15,10 @@ def parse_args():
     args.add_argument('--data', default="data/cora")
     args.add_argument('--alg', default="sgc")
     args.add_argument('--init', default="random")
-    args.add_argument('--epochs', default=100, type=int)
+    # args.add_argument('--epochs', default=100, type=int)
     args.add_argument('--feature_size', default=5, type=int)
     args.add_argument('--norm_features', action='store_true')
+    args.add_argument('--train_features', action='store_true')
     args.add_argument('--seed', type=int, default=40)
 
     # for ssvd
@@ -92,7 +93,10 @@ def main(args):
     get_feature_initialization(args, graph)
 
     # embed
-    alg = alg(graph, labels, epochs=args.epochs)
+    if args.alg == "sgc":
+        alg = alg(graph, labels, trainable_features=args.train_features)
+    else:
+        alg = alg(graph, labels)
     # vectors = alg.get_vectors()
 
 if __name__ == '__main__':
