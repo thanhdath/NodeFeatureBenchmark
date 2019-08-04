@@ -9,9 +9,9 @@ def parse(init, seed):
     f1 = f1.replace("micro-macro: ", "")
     micro, macro = [float(x) for x in f1.split()]
 
-    time_init = re.findall("Time init features: [0-9\.]+", content)[0]
-    time_init = time_init.replace("Time init features: ", "")
-    time_init = float(time_init)
+    time_inits = re.findall("Time init features: [0-9\.]+", content)   
+    time_inits = [x.replace("Time init features: ", "") for x in time_inits]
+    time_init = sum(map(float, time_inits))
     return micro, macro, time_init
 
 data = sys.argv[1]

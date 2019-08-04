@@ -1,7 +1,7 @@
 alg=sgc
 seed=40
-data=cora
-init=uniform
+data=reddit
+init=node2vec
 
 python -u main.py --data data/${data} \
     --alg ${alg} \
@@ -9,4 +9,4 @@ python -u main.py --data data/${data} \
     --feature_size 128 \
     --train_features \
     --norm_features \
-    --seed ${seed} > log/$alg/$data-$init-seed$seed
+    --seed ${seed} > log/$alg/$data-$init-seed$seed 

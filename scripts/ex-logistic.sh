@@ -3,7 +3,7 @@ alg=logistic
 log/${alg}
 for seed in $(seq 40 40)
 do
-    for data in cora bc pubmed reddit
+    for data in reddit
     do
         for init in ori deepwalk hope node2vec
         do

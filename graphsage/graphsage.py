@@ -15,51 +15,13 @@ import torch.nn.functional as F
 from dgl import DGLGraph
 from dgl.data import register_data_args
 import dgl.function as fn
-from features_init import lookup as lookup_feature_init
 from SGC.normalization import row_normalize
 from sklearn.preprocessing import MultiLabelBinarizer
 import random
 from SGC.metrics import f1
-
-def read_node_label(filename):
-    fin = open(filename, 'r')
-    labels = {}
-    while 1:
-        l = fin.readline()
-        if l == '':
-            break
-        vec = l.strip().split(' ')
-        labels[vec[0]] = vec[1:]
-    fin.close()
-    return labels
-
-class Dataset(object):
-    def __init__(self, datadir):
-        self.datadir = datadir
-        self._load()
-    def _load(self):
-        # edgelist
-        edgelist_file = self.datadir+'/edgelist.txt'
-        self.graph = nx.read_edgelist(edgelist_file, nodetype=int)
-        # adj = nx.to_scipy_sparse_matrix(graph)
-        # adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
-        # self.graph = nx.from_scipy_sparse_matrix(adj, create_using=nx.DiGraph())
-        # labels
-        labels_path = self.datadir + '/labels.txt'
-        self.labels = read_node_label(labels_path)
-        self.labels = self._convert_labels_to_binary(self.labels)
-        self.n_classes = int(self.labels.max()) + 1
-        
-    def _convert_labels_to_binary(self, labels):
-        labels_arr = []
-        for node in sorted(self.graph.nodes()):
-            labels_arr.append(labels[str(node)])
-        binarizer = MultiLabelBinarizer(sparse_output=False)
-        binarizer.fit(labels_arr)
-        labels = binarizer.transform(labels_arr)
-        labels = torch.LongTensor(labels).argmax(dim=1)
-        return labels
-    
+from dataset import Dataset
+from main import get_feature_initialization
+from utils import split_train_test
 
 class Aggregator(nn.Module):
     def __init__(self, g, in_feats, out_feats, activation=None, bias=True):
@@ -192,50 +154,18 @@ def evaluate(model, features, labels, mask):
         correct = torch.sum(indices == labels)
         return correct.item() * 1.0 / len(labels)
 
-def sample_mask(idx, length):
-    mask = np.zeros((length))
-    mask[idx] = 1
-    return torch.ByteTensor(mask)
-
-def split_train_test(length, ratio=[.7, .1, .2]):
-    n_train = int(length*ratio[0])
-    n_val = int(length*ratio[1])
-    indices = np.random.permutation(np.arange(length))
-    train_mask = sample_mask(indices[:n_train], length)
-    val_mask = sample_mask(indices[n_train:n_train+n_val], length)
-    test_mask = sample_mask(indices[n_train+n_val:], length)
-    return train_mask, val_mask, test_mask
-
-
-def get_feature_initialization(args, graph, inplace = True):
-    if args.init not in lookup_feature_init:
-        raise NotImplementedError
-    kwargs = {}
-    if args.init == "ori":
-        kwargs = {"feature_path": args.dataset+"/features.txt"}
-    elif args.init == "ssvd0.5":
-        args.init = "ssvd"
-        kwargs = {"alpha": 0.5}
-    elif args.init == "ssvd1":
-        args.init = "ssvd"
-        kwargs = {"alpha": 1}
-    init_feature = lookup_feature_init[args.init](**kwargs)
-    return init_feature.generate(graph, args.feature_size, inplace=inplace, 
-        normalize=args.norm_features)
-
 def main(args):
-    data = Dataset(args.dataset)
+    data = Dataset(args.data)
     labels = data.labels
     # features
     features = get_feature_initialization(args, data.graph, inplace=False)
-    features = np.array([features[node] for node in sorted(data.graph.nodes())])
+    if args.init == "ori":
+        features = np.array([features[data.idx2id[node]] for node in sorted(data.graph.nodes())])
+    else:
+        features = np.array([features[node] for node in sorted(data.graph.nodes())])
     features = row_normalize(features)
     features = torch.FloatTensor(features)
-    # print(labels)
-    # print(features.sum())
-    # print(list(sorted(data.graph.nodes()))[:10])
-    # import sys; sys.exit()
-    # 
+
     train_mask, val_mask, test_mask = split_train_test(len(labels))
 
     in_feats = features.shape[1]
@@ -265,6 +195,7 @@ def main(args):
         print("use cuda:", args.gpu)
 
     # graph preprocess and calculate normalization factor
+    # data.graph.remove_edges_from(data.graph.selfloop_edges())
     g = DGLGraph(data.graph)
     n_edges = g.number_of_edges()
 
@@ -315,7 +246,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='GCN')
-    register_data_args(parser)
+    # register_data_args(parser)
     parser.add_argument("--dropout", type=float, default=0.5,
                         help="dropout probability")
     parser.add_argument("--gpu", type=int, default=-1,
@@ -332,10 +263,13 @@ if __name__ == '__main__':
                         help="Weight for L2 loss")
     parser.add_argument("--aggregator-type", type=str, default="mean",
                         help="mean or pool")
+
+    parser.add_argument('--data', type=str)
     parser.add_argument('--init', type=str, default="ori", help="Features initialization method")
     parser.add_argument('--feature_size', type=int, default=5, help="Features dimension")
     parser.add_argument('--norm_features', action='store_true', help="norm features by standard scaler.")
     parser.add_argument('--seed', type=int, default=40)
+    parser.add_argument('--verbose', type=int, default=1)
     args = parser.parse_args()
     print(args)
     random.seed(args.seed)

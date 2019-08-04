@@ -67,15 +67,16 @@ def get_feature_initialization(args, graph, inplace = True):
     if args.init not in lookup_feature_init:
         raise NotImplementedError
     kwargs = {}
+    init = args.init
     if args.init == "ori":
         kwargs = {"feature_path": args.data+"/features.txt"}
     elif args.init == "ssvd0.5":
-        args.init = "ssvd"
+        init = "ssvd"
         kwargs = {"alpha": 0.5}
     elif args.init == "ssvd1":
-        args.init = "ssvd"
+        init = "ssvd"
         kwargs = {"alpha": 1}
-    init_feature = lookup_feature_init[args.init](**kwargs)
+    init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size, 
         inplace=inplace, normalize=args.norm_features, verbose=args.verbose)
 

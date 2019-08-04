@@ -84,6 +84,7 @@ class SGC(nn.Module):
                 output = self.W(val_features)
                 output = F.sigmoid(output)
                 acc = acc_multiple_classes(output, val_labels)
+                # acc, macro = f1_multiple_classes(output, val_labels)
                 if acc > best_val_acc:
                     best_val_acc = acc
                     torch.save(self.W.state_dict(), 'sgci-best-model.pkl')
@@ -108,7 +109,6 @@ class SGC(nn.Module):
             self.W.eval()
             output = self.W(test_features)
             output = F.sigmoid(output)
-            micro, macro = f1_multiple_classes(output, val_labels)
-            micro, macro = f1(output, test_labels)
+            micro, macro = f1_multiple_classes(output, test_labels)
             print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))
         

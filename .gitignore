@@ -4,3 +4,5 @@ log
 refs
 temp
 *.pkl
+TODO.txt
+DGI/*

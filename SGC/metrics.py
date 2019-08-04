@@ -18,6 +18,8 @@ def f1(output, labels):
 def f1_multiple_classes(preds, labels):
     preds[preds > 0.5] = 1
     preds[preds <= 0.5] = 0
+    preds = preds.cpu().detach().numpy().astype(np.int32)
+    labels = labels.cpu().detach().numpy().astype(np.int32)
     micro = f1_score(labels, preds, average='micro')
     macro = f1_score(labels, preds, average='macro')
     return micro, macro

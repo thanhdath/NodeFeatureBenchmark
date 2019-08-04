@@ -1,6 +1,5 @@
 mkdir "log" 
 feat_dim=128
-
 for alg in logistic sgc
 do
     log/${alg}

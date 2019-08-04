@@ -19,15 +19,18 @@ def parse_args():
     args.add_argument('--train_features', action='store_true')
     args.add_argument('--seed', type=int, default=40)
     args.add_argument('--verbose', type=int, default=1)
-
-    # for ssvd
-    args.add_argument('--alpha', type=float, default=0.5)
     return args.parse_args()
+
+def add_weight(subgraph):
+    for n1, n2 in subgraph.edges():
+        subgraph[n1][n2]['weight'] = 1
+    return subgraph
 
 def load_multiple_graphs(args, data_dir):
     big_graph = nx.Graph()
     for file in glob.glob(data_dir+'/edgelist*.txt'):
         graph = nx.read_edgelist(file, nodetype=int)
+        add_weight(graph)
         get_feature_initialization(args, graph)
         big_graph = nx.compose(big_graph, graph)
     return big_graph
