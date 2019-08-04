@@ -1,6 +1,6 @@
 from SGC.SGC import SGC
 from pyGAT.GAT import GATAPI
-from DGI.DGI import DGIAPI
+# from DGI.DGI import DGIAPI
 from logistic_regression import LogisticRegressionPytorch
 import argparse 
 import numpy as np
@@ -46,7 +46,7 @@ def read_node_label(filename):
 def load_graph(data_dir):
     print("Loading graph ...")
     graph = nx.read_edgelist(data_dir+'/edgelist.txt', nodetype=int)
-    add_weight(graph)
+    # add_weight(graph)
     labels = read_node_label(data_dir+'/labels.txt')
     print("== Done loading graph ")
     return graph, labels
@@ -56,8 +56,8 @@ def get_algorithm(args):
         return SGC
     elif args.alg == "gat":
         return GATAPI
-    elif args.alg == "dgi":
-        return DGIAPI
+    # elif args.alg == "dgi":
+    #     return DGIAPI
     elif args.alg == "logistic":
         return LogisticRegressionPytorch
     else:
@@ -76,6 +76,8 @@ def get_feature_initialization(args, graph, inplace = True):
     elif args.init == "ssvd1":
         init = "ssvd"
         kwargs = {"alpha": 1}
+    elif args.init == "node2vec":
+        add_weight(graph)
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size, 
         inplace=inplace, normalize=args.norm_features, verbose=args.verbose)

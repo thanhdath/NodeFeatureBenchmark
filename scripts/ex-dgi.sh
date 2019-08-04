@@ -10,7 +10,8 @@ do
         do
             python -u -m dgi.train \
                 --data data/$data \
-                --gpu 0 \
+                --gpu 1 \
+                --feature_size $feat_dim \
                 --init $init \
                 --norm_features \
                 --seed $seed > log/${alg}/${data}-${init}-seed${seed}

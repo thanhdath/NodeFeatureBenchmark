@@ -14,7 +14,7 @@ def parse_args():
     args.add_argument('--alg', default="sgc")
     args.add_argument('--init', default="random")
     # args.add_argument('--epochs', default=100, type=int)
-    args.add_argument('--feature_size', default=5, type=int)
+    args.add_argument('--feature_size', default=128, type=int)
     args.add_argument('--norm_features', action='store_true')
     args.add_argument('--train_features', action='store_true')
     args.add_argument('--seed', type=int, default=40)

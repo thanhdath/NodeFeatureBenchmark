@@ -184,7 +184,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--data', type=str)
     parser.add_argument('--init', type=str, default="ori", help="Features initialization method")
-    parser.add_argument('--feature_size', type=int, default=5, help="Features dimension")
+    parser.add_argument('--feature_size', type=int, default=128, help="Features dimension")
     parser.add_argument('--norm_features', action='store_true', help="norm features by standard scaler.")
     parser.add_argument('--seed', type=int, default=40)
     parser.add_argument('--verbose', type=int, default=1)
