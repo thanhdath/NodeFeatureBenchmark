@@ -6,3 +6,4 @@ temp
 *.pkl
 TODO.txt
 DGI/*
+data/dataset*

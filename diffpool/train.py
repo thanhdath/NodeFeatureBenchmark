@@ -19,6 +19,7 @@ from data_utils import pre_process
 import torch
 from main import get_feature_initialization
 from SGC.metrics import f1
+from utils import split_train_test
 
 from dgl.data.utils import download, extract_archive, get_download_dir
 class TUDataset(object):
@@ -268,8 +269,13 @@ def graph_classify_task(prog_args):
     test_size = int(prog_args.test_ratio * len(dataset))
     val_size = int(len(dataset) - train_size - test_size)
 
-    dataset_train, dataset_val, dataset_test = torch.utils.data.random_split(
-        dataset, (train_size, val_size, test_size))
+    # split train test
+    train_mask, val_mask, test_mask = split_train_test(len(dataset), seed=args.seed)
+    dataset_train = dataset[np.argwhere(train_mask==1).flatten()]
+    dataset_val = dataset[np.argwhere(val_mask == 1).flatten()]
+    dataset_test = dataset[np.argwhere(test_mask == 1).flatten()]
+    # 
+
     train_dataloader = prepare_data(dataset_train, prog_args, train=True,
                                     pre_process=pre_process)
     val_dataloader = prepare_data(dataset_val, prog_args, train=False,
@@ -408,7 +414,7 @@ def train(dataset, model, prog_args, same_feat=True, val_dataset=None):
                 npt = 0
             else:
                 npt += 1
-            if npt > 250:
+            if npt > 150:
                 break
             print("best epoch is EPOCH {}, val_acc is {}%".format(early_stopping_logger['best_epoch'],
                                                                   early_stopping_logger['val_acc'] * 100))
@@ -421,9 +427,9 @@ def evaluate(dataloader, model, prog_args, logger=None):
     '''
     evaluate function
     '''
-    if logger is not None and prog_args.save_dir is not None:
-        model.load_state_dict(torch.load(prog_args.save_dir + "/" + prog_args.dataset
-                                         + "/model.iter-" + str(logger['best_epoch'])))
+    # if logger is not None and prog_args.save_dir is not None:
+    #     model.load_state_dict(torch.load(prog_args.save_dir + "/" + prog_args.dataset
+    #                                      + "/model.iter-" + str(logger['best_epoch'])))
     model.eval()
     correct_label = 0
     ypreds = []

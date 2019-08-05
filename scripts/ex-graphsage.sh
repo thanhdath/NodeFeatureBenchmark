@@ -18,3 +18,24 @@ do
         done
     done
 done
+
+
+mkdir "log" 
+feat_dim=128
+alg=graphsage
+mkdir log/${alg}-nonorm
+for seed in $(seq 40 40)
+do
+    for data in cora pubmed
+    do
+        for init in ori
+        do
+            python -u -m graphsage.graphsage \
+                --data data/$data --aggregator-type pool \
+                --feature_size $feat_dim \
+                --gpu 0 \
+                --init $init \
+                --seed $seed > log/${alg}-nonorm/${data}-${init}-seed${seed}
+        done
+    done
+done

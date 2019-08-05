@@ -1,9 +1,9 @@
 feat_dim=128
 alg=logistic
-log/${alg}
+mkdir log/${alg}
 for seed in $(seq 40 40)
 do
-    for data in reddit
+    for data in cora pubmed
     do
         for init in ori deepwalk hope node2vec
         do

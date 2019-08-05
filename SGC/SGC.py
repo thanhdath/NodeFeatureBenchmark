@@ -12,6 +12,7 @@ from .metrics import f1, accuracy
 from time import perf_counter
 from sklearn.preprocessing import MultiLabelBinarizer
 import pdb
+from utils import split_train_test
 
 
 class SGC(nn.Module):

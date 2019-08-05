@@ -1,14 +1,20 @@
-alg=logistic
-seed=40
-mkdir log/$alg
-for data in cora
+mkdir "log" 
+feat_dim=128
+for alg in sgc logistic
 do
-for init in ori deepwalk hope node2vec
-do
-python -u main.py --data data/${data} \
-    --alg ${alg} \
-    --init ${init} \
-    --feature_size 128 \
-    --seed ${seed} > log/$alg/$data-$init-seed$seed
+    mkdir log/${alg}-nonorm
+    for seed in $(seq 40 40)
+    do
+        for data in reddit
+        do
+            for init in ori
+            do
+                python -u main.py --data data/${data} \
+                    --alg ${alg} \
+                    --init ${init} \
+                    --feature_size ${feat_dim} \
+                    --seed ${seed}  > log/${alg}-nonorm/${data}-${init}-seed${seed}
+            done
+        done
+    done
 done
-done 

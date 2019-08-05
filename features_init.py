@@ -22,6 +22,8 @@ class FeatureInitialization():
             print("Normalize features using standard scaler.")
             scaler = StandardScaler()
             features_arr = np.array([features[x] for x in graph.nodes()])
+            # features_arr = (features_arr - features_arr.mean(axis=0)) / features_arr.std(axis=0)
+            # features_arr[np.isnan(features_arr)] = 0
             scaler.fit(features_arr)
             features_arr = scaler.transform(features_arr)
             features = {node: features_arr[i] for i, node in enumerate(graph.nodes())}

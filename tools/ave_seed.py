@@ -20,7 +20,7 @@ try:
 except:
     alg = "sgc"
 
-for init in "degree uniform deepwalk node2vec ssvd0.5 ssvd1 hope triangle kcore egonet pagerank coloring clique identity ori".split():
+for init in "degree uniform deepwalk node2vec ssvd0.5 ssvd1 hope triangle kcore egonet pagerank coloring clique identity ori label".split():
     micros = []
     macros = []
     times = []

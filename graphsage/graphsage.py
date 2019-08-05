@@ -166,7 +166,7 @@ def main(args):
     features = row_normalize(features)
     features = torch.FloatTensor(features)
 
-    train_mask, val_mask, test_mask = split_train_test(len(labels))
+    train_mask, val_mask, test_mask = split_train_test(len(labels), seed=args.seed)
 
     in_feats = features.shape[1]
     n_classes = data.n_classes
