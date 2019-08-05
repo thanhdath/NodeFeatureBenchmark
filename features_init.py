@@ -5,6 +5,7 @@ import networkx as nx
 import pdb
 from scipy.sparse.linalg import svds
 from sklearn.preprocessing import StandardScaler 
+from normalization import lookup as lookup_normalizer
 
 def log_verbose(msg, v):
     if v >= 1:
@@ -13,20 +14,21 @@ def log_verbose(msg, v):
 class FeatureInitialization():
     def __init__(self):
         pass 
-    def generate(self, graph, dim_size, inplace=False, verbose=1, normalize=True):
+    def generate(self, graph, dim_size, inplace=False, normalizer="pass", verbose=1):
         # wrapper function for generate()
         log_verbose('Start generate feature', verbose)
         stime = time.time()
         features = self._generate(graph, dim_size)
-        if normalize: # (features - mean) / std
-            print("Normalize features using standard scaler.")
-            scaler = StandardScaler()
-            features_arr = np.array([features[x] for x in graph.nodes()])
-            # features_arr = (features_arr - features_arr.mean(axis=0)) / features_arr.std(axis=0)
-            # features_arr[np.isnan(features_arr)] = 0
-            scaler.fit(features_arr)
-            features_arr = scaler.transform(features_arr)
-            features = {node: features_arr[i] for i, node in enumerate(graph.nodes())}
+        features = lookup_normalizer[normalizer].norm(features, graph)
+        # if normalize: # (features - mean) / std
+        #     print("Normalize features using standard scaler.")
+        #     scaler = StandardScaler()
+        #     features_arr = np.array([features[x] for x in graph.nodes()])
+        #     # features_arr = (features_arr - features_arr.mean(axis=0)) / features_arr.std(axis=0)
+        #     # features_arr[np.isnan(features_arr)] = 0
+        #     scaler.fit(features_arr)
+        #     features_arr = scaler.transform(features_arr)
+        #     features = {node: features_arr[i] for i, node in enumerate(graph.nodes())}
         etime = time.time()
         log_verbose("Time init features: {:.3f}s".format(etime-stime), verbose)
         if inplace:

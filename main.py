@@ -2,34 +2,36 @@ from SGC.SGC import SGC
 from pyGAT.GAT import GATAPI
 # from DGI.DGI import DGIAPI
 from logistic_regression import LogisticRegressionPytorch
-import argparse 
+import argparse
 import numpy as np
 import networkx as nx
 from features_init import lookup as lookup_feature_init
 from sklearn.linear_model import LogisticRegression
-import torch 
+import torch
 import random
+
 
 def parse_args():
     args = argparse.ArgumentParser(description="Node feature initialization benchmark.")
     args.add_argument('--data', default="data/cora")
     args.add_argument('--alg', default="sgc")
-    args.add_argument('--init', default="random")
+    args.add_argument('--init', default="ori-pass")
     # args.add_argument('--epochs', default=100, type=int)
-    args.add_argument('--feature_size', default=5, type=int)
-    args.add_argument('--norm_features', action='store_true')
+    args.add_argument('--feature_size', default=128, type=int)
+    # args.add_argument('--norm_features', action='store_true')
     args.add_argument('--train_features', action='store_true')
     args.add_argument('--seed', type=int, default=40)
     args.add_argument('--verbose', type=int, default=1)
-
     # for ssvd
     args.add_argument('--alpha', type=float, default=0.5)
     return args.parse_args()
+
 
 def add_weight(subgraph):
     for n1, n2 in subgraph.edges():
         subgraph[n1][n2]['weight'] = 1
     return subgraph
+
 
 def read_node_label(filename):
     fin = open(filename, 'r')
@@ -43,6 +45,7 @@ def read_node_label(filename):
     fin.close()
     return labels
 
+
 def load_graph(data_dir):
     print("Loading graph ...")
     graph = nx.read_edgelist(data_dir+'/edgelist.txt', nodetype=int)
@@ -50,6 +53,7 @@ def load_graph(data_dir):
     labels = read_node_label(data_dir+'/labels.txt')
     print("== Done loading graph ")
     return graph, labels
+
 
 def get_algorithm(args):
     if args.alg == "sgc":
@@ -63,38 +67,41 @@ def get_algorithm(args):
     else:
         raise NotImplementedError
 
-def get_feature_initialization(args, graph, inplace = True):
-    if args.init not in lookup_feature_init:
+
+def get_feature_initialization(args, graph, inplace=True):
+    init, normalier = args.init.split("-")
+    if init not in lookup_feature_init:
         raise NotImplementedError
     kwargs = {}
-    init = args.init
-    if args.init == "ori":
+    if init == "ori":
         kwargs = {"feature_path": args.data+"/features.txt"}
-    elif args.init == "ssvd0.5":
+    elif init == "ssvd0.5":
         init = "ssvd"
         kwargs = {"alpha": 0.5}
-    elif args.init == "ssvd1":
+    elif init == "ssvd1":
         init = "ssvd"
         kwargs = {"alpha": 1}
-    elif args.init == "node2vec":
+    elif init == "node2vec":
         add_weight(graph)
     init_feature = lookup_feature_init[init](**kwargs)
-    return init_feature.generate(graph, args.feature_size, 
-        inplace=inplace, normalize=args.norm_features, verbose=args.verbose)
+    return init_feature.generate(graph, args.feature_size,
+                                 inplace=inplace, normalizer=normalier, verbose=args.verbose)
 
 # def evaluate_by_classification(vectors, X, Y, seed, train_percent=0.5):
 #     clf = Classifier(vectors=vectors, clf=LogisticRegression(solver="lbfgs"))
 #     scores = clf.split_train_evaluate(X, Y, train_percent, seed=seed)
 #     return scores
 
+
 def print_classify(dictt):
     for k in sorted(dictt.keys()):
         print("{0}: {1:.3f}".format(k, dictt[k]))
 
+
 def main(args):
     alg = get_algorithm(args)
     graph, labels = load_graph(args.data)
-    # 
+    #
     get_feature_initialization(args, graph)
 
     # embed
@@ -103,6 +110,7 @@ def main(args):
     else:
         alg = alg(graph, labels)
     # vectors = alg.get_vectors()
+
 
 if __name__ == '__main__':
     args = parse_args()

@@ -24,7 +24,7 @@ for init in "degree uniform deepwalk node2vec ssvd0.5 ssvd1 hope triangle kcore 
     micros = []
     macros = []
     times = []
-    for seed in range(40, 41):
+    for seed in range(40, 51):
         try:
             micro, macro, time_init = parse(init, seed)
             micros.append(micro)

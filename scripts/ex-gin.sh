@@ -12,6 +12,7 @@ PYTHONPATH=gin:. python -u gin/train.py \
     --init $init \
     --device 0 \
     --feature_size 128 \
-    --seed 40 > log/diffpool/$data-$init-seed40
+    --norm_features \
+    --seed 40 > log/$alg/$data-$init-seed40
 done
 done

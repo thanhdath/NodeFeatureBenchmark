@@ -1,11 +1,12 @@
+mkdir "log" 
 feat_dim=128
-alg=logistic
+alg=sgc
 mkdir log/${alg}
-for seed in $(seq 40 40)
+for seed in $(seq 40 45)
 do
     for data in cora pubmed
     do
-        for init in ori-pass ori-standard ori-rowsum deepwalk-pass hope-pass node2vec-pass
+        for init in ori-pass ori-rowsum ori-standard degree-standard uniform-pass deepwalk-pass ssvd0.5-pass ssvd1-pass hope-pass triangle-standard egonet-standard kcore-standard pagerank-standard coloring-standard clique-standard identity-pass node2vec-pass
         do
             python -u main.py --data data/${data} \
                 --alg ${alg} \
