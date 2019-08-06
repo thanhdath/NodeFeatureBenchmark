@@ -25,7 +25,8 @@ class StandardNormalizer(Normalizer):
 
 class RowSumNormalizer(Normalizer):
     @staticmethod
-    def norm(mx, **kwargs):
+    def norm(features, graph):
+        mx = np.array([features[x] for x in graph.nodes()])
         print("Feature Normalizer: RowSum = 1")
         """Row-normalize sparse matrix"""
         rowsum = np.array(mx.sum(1))
@@ -33,12 +34,13 @@ class RowSumNormalizer(Normalizer):
         r_inv[np.isinf(r_inv)] = 0.
         r_mat_inv = sp.diags(r_inv)
         mx = r_mat_inv.dot(mx)
-        return mx
+        features = {node: mx[i] for i, node in enumerate(graph.nodes())}
+        return features
 
 
 class PassNormalizer(Normalizer):
     @staticmethod
-    def norm(features, **kwargs):
+    def norm(features, graph):
         print("Feature Normalizer: No")
         return features
 

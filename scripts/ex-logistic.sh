@@ -1,7 +1,7 @@
 feat_dim=128
 alg=logistic
 mkdir log/${alg}
-for seed in $(seq 40 40)
+for seed in $(seq 40 50)
 do
     for data in cora pubmed
     do

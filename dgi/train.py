@@ -188,6 +188,7 @@ if __name__ == '__main__':
     parser.add_argument('--norm_features', action='store_true', help="norm features by standard scaler.")
     parser.add_argument('--seed', type=int, default=40)
     parser.add_argument('--verbose', type=int, default=1)
+    parser.add_argument('--shuffle', action='store_true', help="Whether shuffle features or not.")
 
     parser.set_defaults(self_loop=False)
     args = parser.parse_args()

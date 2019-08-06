@@ -12,6 +12,7 @@ from .metrics import f1, accuracy
 from time import perf_counter
 from sklearn.preprocessing import MultiLabelBinarizer
 import pdb
+from .normalization import fetch_normalization
 from utils import split_train_test
 
 
@@ -38,9 +39,10 @@ class SGC(nn.Module):
         self.cuda = cuda
         self.ratio = ratio
 
-        # precompute features
-        self.adj, self.features = preprocess_citation(
-            self.adj, self.features, "AugNormAdj")
+        # precompute features and adj
+        adj_normalizer = fetch_normalization("AugNormAdj")
+        self.adj = adj_normalizer(adj)
+
         self.adj = sparse_mx_to_torch_sparse_tensor(self.adj).float()
         self.features = torch.FloatTensor(self.features).float()
         self.features, _ = sgc_precompute(self.features, self.adj, degree)
@@ -92,7 +94,7 @@ class SGC(nn.Module):
             val_features = val_features.cuda()
             self.W.cuda()
         best_val_acc = 0
-        for epoch in range(self.epochs):
+        for epoch in range(self.epochs): 
             self.W.train()
             optimizer.zero_grad()
             output = self.W(train_features)

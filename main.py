@@ -22,6 +22,7 @@ def parse_args():
     args.add_argument('--train_features', action='store_true')
     args.add_argument('--seed', type=int, default=40)
     args.add_argument('--verbose', type=int, default=1)
+    args.add_argument('--shuffle', action='store_true', help="Whether shuffle features or not.")
     # for ssvd
     args.add_argument('--alpha', type=float, default=0.5)
     return args.parse_args()
@@ -85,7 +86,8 @@ def get_feature_initialization(args, graph, inplace=True):
         add_weight(graph)
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size,
-                                 inplace=inplace, normalizer=normalier, verbose=args.verbose)
+        inplace=inplace, normalizer=normalier, verbose=args.verbose,
+        shuffle=args.shuffle)
 
 # def evaluate_by_classification(vectors, X, Y, seed, train_percent=0.5):
 #     clf = Classifier(vectors=vectors, clf=LogisticRegression(solver="lbfgs"))
