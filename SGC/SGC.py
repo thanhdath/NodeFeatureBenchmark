@@ -41,7 +41,7 @@ class SGC(nn.Module):
 
         # precompute features and adj
         adj_normalizer = fetch_normalization("AugNormAdj")
-        self.adj = adj_normalizer(adj)
+        self.adj = adj_normalizer(self.adj)
 
         self.adj = sparse_mx_to_torch_sparse_tensor(self.adj).float()
         self.features = torch.FloatTensor(self.features).float()
@@ -62,7 +62,7 @@ class SGC(nn.Module):
         self.n_classes = int(self.labels.max()) + 1
 
     def _process_adj(self):
-        self.adj = nx.adjacency_matrix(self.G)
+        self.adj = nx.to_scipy_sparse_matrix(self.G)
         self.degrees = np.asarray(self.adj.sum(axis=0))[0]
         self.adj = self.adj + \
             self.adj.T.multiply(self.adj.T > self.adj) - \

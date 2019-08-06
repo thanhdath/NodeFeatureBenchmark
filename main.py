@@ -1,5 +1,4 @@
 from SGC.SGC import SGC
-from pyGAT.GAT import GATAPI
 # from DGI.DGI import DGIAPI
 from logistic_regression import LogisticRegressionPytorch
 import argparse
@@ -70,7 +69,12 @@ def get_algorithm(args):
 
 
 def get_feature_initialization(args, graph, inplace=True):
-    init, normalier = args.init.split("-")
+    elms = args.init.split("-")
+    if len(elms) < 2:
+        init = elms[0]
+        normalier = "pass"
+    else:
+        init, normalier = elms[:2]
     if init not in lookup_feature_init:
         raise NotImplementedError
     kwargs = {}
