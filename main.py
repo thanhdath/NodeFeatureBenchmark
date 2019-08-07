@@ -1,69 +1,44 @@
-from SGC.SGC import SGC
-# from DGI.DGI import DGIAPI
-from logistic_regression import LogisticRegressionPytorch
 import argparse
 import numpy as np
 import networkx as nx
+from dataloader import DefaultDataloader, CitationDataloader
 from features_init import lookup as lookup_feature_init
-from sklearn.linear_model import LogisticRegression
 import torch
 import random
-
+from dgl.data import citation_graph as citegrh
+from parser import *
+from algorithms.node_embedding import SGC, Nope
+from algorithms.logistic_regression import LogisticRegressionPytorch
 
 def parse_args():
-    args = argparse.ArgumentParser(description="Node feature initialization benchmark.")
-    args.add_argument('--data', default="data/cora")
-    args.add_argument('--alg', default="sgc")
-    args.add_argument('--init', default="ori-pass")
-    # args.add_argument('--epochs', default=100, type=int)
-    args.add_argument('--feature_size', default=128, type=int)
-    # args.add_argument('--norm_features', action='store_true')
-    args.add_argument('--train_features', action='store_true')
-    args.add_argument('--seed', type=int, default=40)
-    args.add_argument('--verbose', type=int, default=1)
-    args.add_argument('--shuffle', action='store_true', help="Whether shuffle features or not.")
-    # for ssvd
-    args.add_argument('--alpha', type=float, default=0.5)
-    return args.parse_args()
+    parser = argparse.ArgumentParser(description="Node feature initialization benchmark.")
+    parser.add_argument('--dataset', default="data/cora")
+    parser.add_argument('--init', default="ori-pass")
+    parser.add_argument('--feature_size', default=128, type=int)
+    # args.add_argument('--train_features', action='store_true')
+    parser.add_argument('--shuffle', action='store_true', help="Whether shuffle features or not.")
+    parser.add_argument('--seed', type=int, default=40)
+    parser.add_argument('--verbose', type=int, default=1)
+    parser.add_argument('--cuda', action='store_true')
 
+    # for logistic regression
+    parser.add_argument('--logreg-bias', action='store_true',
+        dest='logreg_bias', help="Whether use bias in logistic regression or not.")
+    parser.add_argument('--logreg-wc', dest='logreg_weight_decay', type=float,
+        default=5e-6, help="Weight decay for logistic regression.")
+    parser.add_argument('--logreg-epochs', dest='logreg_epochs', default=200, type=int)
 
-def add_weight(subgraph):
-    for n1, n2 in subgraph.edges():
-        subgraph[n1][n2]['weight'] = 1
-    return subgraph
+    subparsers = parser.add_subparsers(dest="alg", 
+        help='Choose 1 of the GNN algorithm from: sgc, dgi, graphsage, nope.')
+    add_sgc_parser(subparsers)
+    add_nope_parser(subparsers)
+    return parser.parse_args()
 
-
-def read_node_label(filename):
-    fin = open(filename, 'r')
-    labels = {}
-    while 1:
-        l = fin.readline()
-        if l == '':
-            break
-        vec = l.strip().split(' ')
-        labels[vec[0]] = vec[1:]
-    fin.close()
-    return labels
-
-
-def load_graph(data_dir):
-    print("Loading graph ...")
-    graph = nx.read_edgelist(data_dir+'/edgelist.txt', nodetype=int)
-    # add_weight(graph)
-    labels = read_node_label(data_dir+'/labels.txt')
-    print("== Done loading graph ")
-    return graph, labels
-
-
-def get_algorithm(args):
+def get_algorithm(args, data, features):
     if args.alg == "sgc":
-        return SGC
-    elif args.alg == "gat":
-        return GATAPI
-    # elif args.alg == "dgi":
-    #     return DGIAPI
-    elif args.alg == "logistic":
-        return LogisticRegressionPytorch
+        return SGC(data, features, degree=args.degree, cuda=args.cuda)
+    elif args.alg == "nope":
+        return Nope(features)
     else:
         raise NotImplementedError
 
@@ -79,49 +54,54 @@ def get_feature_initialization(args, graph, inplace=True):
         raise NotImplementedError
     kwargs = {}
     if init == "ori":
-        kwargs = {"feature_path": args.data+"/features.txt"}
+        kwargs = {"feature_path": args.dataset+"/features.txt"}
     elif init == "ssvd0.5":
         init = "ssvd"
         kwargs = {"alpha": 0.5}
     elif init == "ssvd1":
         init = "ssvd"
         kwargs = {"alpha": 1}
-    elif init == "node2vec":
-        add_weight(graph)
+    # elif init == "node2vec":
+    #     add_weight(graph)
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size,
         inplace=inplace, normalizer=normalier, verbose=args.verbose,
         shuffle=args.shuffle)
 
-# def evaluate_by_classification(vectors, X, Y, seed, train_percent=0.5):
-#     clf = Classifier(vectors=vectors, clf=LogisticRegression(solver="lbfgs"))
-#     scores = clf.split_train_evaluate(X, Y, train_percent, seed=seed)
-#     return scores
+def dict2arr(dictt, graph):
+    """
+    Note: always sort graph nodes
+    """
+    dict_arr = np.array([dictt[x] for x in graph.nodes()])
+    return dict_arr
 
-
-def print_classify(dictt):
-    for k in sorted(dictt.keys()):
-        print("{0}: {1:.3f}".format(k, dictt[k]))
-
+def load_data(dataset):
+    if dataset == "data/cora":
+        return DefaultDataloader(dataset, add_self_loop=True)
+    elif dataset in ["data/citeseer", "data/pubmed"]:
+        return CitationDataloader(dataset, add_self_loop=True)
 
 def main(args):
-    alg = get_algorithm(args)
-    graph, labels = load_graph(args.data)
-    #
-    get_feature_initialization(args, graph)
+    data = load_data(args.dataset)
+    features = get_feature_initialization(args, data.graph)
+    features = dict2arr(features, data.graph)
+    alg = get_algorithm(args, data, features)
+    
+    embeds = alg.train()
 
-    # embed
-    if args.alg == "sgc":
-        alg = alg(graph, labels, trainable_features=args.train_features)
-    else:
-        alg = alg(graph, labels)
-    # vectors = alg.get_vectors()
+    classifier = LogisticRegressionPytorch(embeds,
+        data.labels, data.train_mask, data.val_mask, data.test_mask,
+        epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
+        bias=args.logreg_bias)
 
 
-if __name__ == '__main__':
-    args = parse_args()
+def init_environment(args):
     np.random.seed(args.seed)
     torch.random.manual_seed(args.seed)
     random.seed(args.seed)
+
+if __name__ == '__main__':
+    args = parse_args()
+    init_environment(args)
     print(args)
     main(args)

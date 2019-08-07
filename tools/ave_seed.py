@@ -33,7 +33,10 @@ for init in "degree uniform deepwalk node2vec ssvd0.5 ssvd1 hope triangle kcore 
         except:
             pass
     micro = np.mean(micros)
+    micro_std = np.std(micros)
     macro = np.mean(macros)
+    macro_std = np.std(macros)
     time_init = np.mean(times)
     print("Data: {} - Init: {}".format(data, init))
-    print("\tMicro-Macro-Time: {:.3f}\t{:.3f}\t{:.3f}".format(micro, macro, time_init))
+    print("\tMicro-Macro-Time: {:.3f}+-{:.3f}\t{:.3f}+={:.3f}\t{:.3f}+-{:.3f}".format(
+        micro, micro_std, macro, macro_std, time_init))

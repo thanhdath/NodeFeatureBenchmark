@@ -32,7 +32,6 @@ class FeatureInitialization():
         if inplace:
             for node in graph.nodes():
                 graph.node[node]['feature'] = features[node]
-        log_verbose("== Done generate features", verbose)
         return features
     def _generate(self, graph, dim_size):
         return {}

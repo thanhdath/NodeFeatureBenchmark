@@ -1,57 +1,39 @@
 import time
 from sklearn.preprocessing import MultiLabelBinarizer
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F 
 import torch.optim as optim
 import numpy as np
-from SGC.metrics import f1, accuracy
+from utils import f1, accuracy
 import torch
 
 class LogisticRegressionPytorch():
-    def __init__(self, G, labels, epochs=100, ratio=[.7, .1, .2], lr=0.2, cuda=True):
-        self.G = G
-        self.labels = labels
-        self.ratio = ratio
+    def __init__(self, embs, labels, train_mask, val_mask, test_mask, 
+        epochs=200, lr=0.2, weight_decay=5e-6, bias=True, cuda=True):
+        """
+        embs: np array, embedding of nodes
+        labels: np array, eg: [1, 2, 1, 2, ...]
+        """
+        self.embs = torch.FloatTensor(embs)
+        self.labels = torch.LongTensor(labels)
+        
+        self.n_classes = int(self.labels.max() + 1)
         self.epochs = epochs
         self.cuda = cuda
-        self._process_features()
-        self._convert_labels_to_binary()
-        self._split_train_test()
-        self.model = nn.Linear(self.features.shape[1], self.n_classes)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        self.train_indices = np.argwhere(train_mask).flatten()
+        self.val_indices = np.argwhere(val_mask).flatten()
+        self.test_indices = np.argwhere(test_mask).flatten()
+
+        self.model = nn.Linear(self.embs.shape[1], self.n_classes, bias=bias)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
         self.train()
 
-    def _process_features(self):
-        features = []
-        for node in self.G.nodes():
-            features.append(self.G.node[node]['feature'])
-        features = np.array(features)
-        self.features = torch.FloatTensor(features)
-    
-    def _convert_labels_to_binary(self):
-        labels_arr = []
-        for node in self.G.nodes():
-            labels_arr.append(self.labels[str(node)])
-        self.binarizer = MultiLabelBinarizer(sparse_output=False)
-        self.binarizer.fit(labels_arr)
-        self.labels = self.binarizer.transform(labels_arr)
-        self.labels = torch.LongTensor(self.labels).argmax(dim=1)
-        self.n_classes = int(self.labels.max() + 1)
-
-    def _split_train_test(self):
-        n_train = int(len(self.features)*self.ratio[0])
-        n_val = int(len(self.features)*self.ratio[1])
-        indices = np.random.permutation(np.arange(len(self.features)))
-        self.train_indices = indices[:n_train]
-        self.val_indices = indices[n_train:n_val+n_train]
-        self.test_indices = indices[n_train+n_val:]
-
     def train(self):
-        train_features = self.features[self.train_indices]
+        train_features = self.embs[self.train_indices]
         train_labels = self.labels[self.train_indices]
-        val_features = self.features[self.val_indices]
+        val_features = self.embs[self.val_indices]
         val_labels = self.labels[self.val_indices]
-        test_features = self.features[self.test_indices]
+        test_features = self.embs[self.test_indices]
         test_labels = self.labels[self.test_indices]
 
         stime = time.time()
@@ -82,7 +64,7 @@ class LogisticRegressionPytorch():
                     print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc.item()))
         train_time = time.time() - stime
         print('Train time: {:.3f}'.format(train_time))
-        self.model.load_state_dict(torch.load('logistic-best-model.pkl'))
+        # self.model.load_state_dict(torch.load('logistic-best-model.pkl'))
         if self.cuda:
             train_labels = train_labels.cpu()
             train_features = train_features.cpu()
@@ -96,3 +78,4 @@ class LogisticRegressionPytorch():
             output = self.model(test_features)
             micro, macro = f1(output, test_labels)
             print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))
+            
