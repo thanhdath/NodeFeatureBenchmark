@@ -14,7 +14,7 @@ class LogisticRegressionPytorch():
         embs: np array, embedding of nodes
         labels: np array, eg: [1, 2, 1, 2, ...]
         """
-        self.embs = torch.FloatTensor(embs)
+        self.embs = embs
         self.labels = torch.LongTensor(labels)
         
         self.n_classes = int(self.labels.max() + 1)

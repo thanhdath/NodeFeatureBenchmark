@@ -51,9 +51,9 @@ class DefaultDataloader():
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
         self.graph = nx.from_scipy_sparse_matrix(adj, create_using=nx.DiGraph())
         
-        if add_self_loop:
-            print("Add self loop to graph")
-            self.graph.add_edges_from(list(zip(self.graph.nodes(), self.graph.nodes())))
+        # if add_self_loop:
+        #     print("Add self loop to graph")
+        #     self.graph.add_edges_from(list(zip(self.graph.nodes(), self.graph.nodes())))
 
         labels = convert_labels_to_binary(labels, self.graph)
         self.labels = labels.argmax(axis=1)

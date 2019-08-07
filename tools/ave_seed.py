@@ -20,7 +20,12 @@ try:
 except:
     alg = "sgc"
 
-for init in "degree uniform deepwalk node2vec ssvd0.5 ssvd1 hope triangle kcore egonet pagerank coloring clique identity ori label".split():
+inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope \
+        triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
+        clique-standard graphlet identity ori ori-rowsum ori-standard label".split()
+print("Check ordered init methods:"+'\n'.join(inits))
+
+for init in inits:
     micros = []
     macros = []
     times = []
@@ -37,6 +42,6 @@ for init in "degree uniform deepwalk node2vec ssvd0.5 ssvd1 hope triangle kcore 
     macro = np.mean(macros)
     macro_std = np.std(macros)
     time_init = np.mean(times)
-    print("Data: {} - Init: {}".format(data, init))
-    print("\tMicro-Macro-Time: {:.3f}+-{:.3f}\t{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}".format(
+    # print("Data: {} - Init: {}".format(data, init))
+    print("\t{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}\t{:.3f}".format(
         micro, micro_std, macro, macro_std, time_init))

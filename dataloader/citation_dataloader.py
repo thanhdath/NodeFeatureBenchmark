@@ -80,9 +80,9 @@ class CitationDataloader(object):
         features = sp.vstack((allx, tx)).tolil()
         features[test_idx_reorder, :] = features[test_idx_range, :]
         graph = nx.DiGraph(nx.from_dict_of_lists(graph))
-        if self.add_self_loop:
-            print("Add self loop to graph")
-            graph.add_edges_from(list(zip(graph.nodes(), graph.nodes())))
+        # if self.add_self_loop:
+        #     print("Add self loop to graph")
+        #     graph.add_edges_from(list(zip(graph.nodes(), graph.nodes())))
 
         onehot_labels = np.vstack((ally, ty))
         onehot_labels[test_idx_reorder, :] = onehot_labels[test_idx_range, :]

@@ -12,7 +12,7 @@ python -u main.py --dataset data/$data  \
     --init $init \
     --seed $seed \
     --cuda \
-    --logreg-wc 5e-5 --bias \
+    --logreg-wc 5e-5 --logreg-bias \
     $alg > log/$alg/$data-$init-seed$seed
 done
 
@@ -27,7 +27,7 @@ python -u main.py --dataset data/$data  \
     --init $init \
     --seed $seed \
     --cuda \
-    --logreg-wc 5e-5 --bias \
+    --logreg-wc 5e-5 --logreg-bias \
     $alg > log/$alg/$data-$init-seed$seed
 done # init
 done # alg
