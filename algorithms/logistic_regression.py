@@ -64,7 +64,7 @@ class LogisticRegressionPytorch():
                     print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc.item()))
         train_time = time.time() - stime
         print('Train time: {:.3f}'.format(train_time))
-        # self.model.load_state_dict(torch.load('logistic-best-model.pkl'))
+        self.model.load_state_dict(torch.load('logistic-best-model.pkl'))
         if self.cuda:
             train_labels = train_labels.cpu()
             train_features = train_features.cpu()

@@ -13,7 +13,7 @@ from algorithms.logistic_regression import LogisticRegressionPytorch
 def parse_args():
     parser = argparse.ArgumentParser(description="Node feature initialization benchmark.")
     parser.add_argument('--dataset', default="data/cora")
-    parser.add_argument('--init', default="ori-pass")
+    parser.add_argument('--init', default="ori")
     parser.add_argument('--feature_size', default=128, type=int)
     # args.add_argument('--train_features', action='store_true')
     parser.add_argument('--shuffle', action='store_true', help="Whether shuffle features or not.")
@@ -92,7 +92,7 @@ def main(args):
     classifier = LogisticRegressionPytorch(embeds,
         data.labels, data.train_mask, data.val_mask, data.test_mask,
         epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
-        bias=args.logreg_bias)
+        bias=args.logreg_bias, cuda=args.cuda)
 
 
 def init_environment(args):
