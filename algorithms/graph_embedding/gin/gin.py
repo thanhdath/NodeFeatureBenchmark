@@ -197,7 +197,7 @@ class GIN(nn.Module):
                     nn.Linear(hidden_dim, output_dim))
 
     def forward(self, g):
-        h = g.ndata['attr']
+        h = g.ndata['feat']
         h = h.to(self.device)
 
         # list of hidden representation at each layer (including input)

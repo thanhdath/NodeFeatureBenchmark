@@ -24,10 +24,13 @@ except:
 
 if alg != "nope":
     inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope \
+            line gf deepwalk-standard node2vec-standard ssvd0.5-standard ssvd1-standard hope-standard line-standard \
+            gf-standard \
             triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
             clique-standard graphlet identity ori ori-rowsum ori-standard label".split()
 else:
-    inits = "ori ori-rowsum ori-standard deepwalk hope node2vec".split()
+    inits = "ori ori-rowsum ori-standard deepwalk hope node2vec line gf \
+        deepwalk-standard hope-standard node2vec-standard line-standard gf-standard".split()
 print("Check ordered init methods:")
 for i, init in enumerate(inits):
     print(i+1, init)
@@ -36,7 +39,7 @@ for init in inits:
     micros = []
     macros = []
     times = []
-    for seed in range(40, 51):
+    for seed in range(40, 50):
         try:
             micro, macro, time_init = parse(init, seed)
             micros.append(micro)

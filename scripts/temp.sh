@@ -1,20 +1,58 @@
-mkdir "log" 
-feat_dim=128
-for alg in sgc logistic
+data=cora
+feat_size=128
+mkdir log
+for seed in $(seq 40 49)
 do
-    mkdir log/${alg}-nonorm
-    for seed in $(seq 40 40)
-    do
-        for data in reddit
-        do
-            for init in ori
-            do
-                python -u main.py --data data/${data} \
-                    --alg ${alg} \
-                    --init ${init} \
-                    --feature_size ${feat_dim} \
-                    --seed ${seed}  > log/${alg}-nonorm/${data}-${init}-seed${seed}
-            done
-        done
-    done
-done
+alg=nope
+for init in line gf line-standard gf-standard
+do
+echo $alg-$init
+python -u main.py --dataset data/$data  \
+    --feature_size $feat_size \
+    --init $init \
+    --seed $seed \
+    --cuda \
+    $alg > log/$alg/$data-$init-seed$seed
+done # init
+
+alg=sgc
+mkdir log/$alg
+for init in line gf line-standard gf-standard
+do
+echo $alg-$init
+python -u main.py --dataset data/$data  \
+    --feature_size $feat_size \
+    --init $init \
+    --seed $seed \
+    --cuda \
+    $alg > log/$alg/$data-$init-seed$seed
+done # init
+
+alg=dgi
+mkdir log/$alg
+for init in line gf line-standard gf-standard
+do
+echo $alg-$init
+python -u main.py --dataset data/$data  \
+    --feature_size $feat_size \
+    --init $init \
+    --seed $seed \
+    --cuda \
+    $alg --self-loop > log/$alg/$data-$init-seed$seed
+done # init
+
+
+alg=graphsage
+mkdir log/$alg
+for init in line gf line-standard gf-standard
+do
+echo $alg-$init
+python -u main.py --dataset data/$data  \
+    --feature_size $feat_size \
+    --init $init \
+    --seed $seed \
+    --cuda \
+    $alg --aggregator pool > log/$alg/$data-$init-seed$seed
+done # init
+
+done # seed

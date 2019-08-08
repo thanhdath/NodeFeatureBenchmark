@@ -53,9 +53,9 @@ def get_feature_initialization(args, graph, inplace=True):
     elms = args.init.split("-")
     if len(elms) < 2:
         init = elms[0]
-        normalier = "pass"
+        normalizer = "pass"
     else:
-        init, normalier = elms[:2]
+        init, normalizer = elms[:2]
     if init not in lookup_feature_init:
         raise NotImplementedError
     kwargs = {}
@@ -71,7 +71,7 @@ def get_feature_initialization(args, graph, inplace=True):
     #     add_weight(graph)
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size,
-        inplace=inplace, normalizer=normalier, verbose=args.verbose,
+        inplace=inplace, normalizer=normalizer, verbose=args.verbose,
         shuffle=args.shuffle)
 
 def dict2arr(dictt, graph):

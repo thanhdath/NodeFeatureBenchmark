@@ -8,7 +8,7 @@ import dgl.function as fn
 from .aggregator import MaxPoolAggregator, MeanAggregator, LSTMAggregator
 from .bundler import Bundler
 from ..model_utils import masked_softmax
-from model.loss import EntropyLoss
+from ..loss import EntropyLoss
 
 
 class GraphSageLayer(nn.Module):

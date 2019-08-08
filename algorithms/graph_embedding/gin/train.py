@@ -4,12 +4,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from dataloader import GraphDataLoader, collate
-from parser import Parser
-from gin import GIN
+from .dataloader import GraphDataLoader, collate
+from .parser import Parser
+from .gin import GIN
 import random
-from SGC.metrics import f1
-from dataloader import TUDataset
+from utils import f1
 
 
 def train(args, net, trainloader, optimizer, criterion, epoch):
@@ -82,27 +81,18 @@ def eval_net_f1(args, net, dataloader):
     micro, macro = f1(outputss, labelss)
     print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))
 
-def main(args):
-
-    # set up seeds, args.seed supported
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
-    random.seed(args.seed)
-
-    is_cuda = not args.disable_cuda and torch.cuda.is_available()
-
-    if is_cuda:
+def gin_api(args):
+    if args.cuda:
         args.device = torch.device("cuda:" + str(args.device))
-        torch.cuda.manual_seed_all(seed=0)
     else:
         args.device = torch.device("cpu")
 
     # dataset = GINDataset(args.data, not args.learn_eps)
-    dataset = TUDataset(args.data, args)
-
+    # dataset = TUDataset(args.data, args)
+    dataset = args.dataset
     trainloader, validloader, testloader = GraphDataLoader(
         dataset, batch_size=args.batch_size, device=args.device,
-        collate_fn=collate, seed=args.seed).train_valid_loader()
+        collate_fn=collate).train_valid_loader()
 
     input_dim, label_dim, max_num_nodes = dataset.statistics()
     model = GIN(
@@ -137,8 +127,14 @@ def main(args):
     model.load_state_dict(torch.load('gin-best-model.pkl'))
     eval_net_f1(args, model, testloader)
 
+
+
 if __name__ == '__main__':
     args = Parser(description='GIN').args
     print('show all arguments configuration...')
     print(args)
-    main(args)
+    # set up seeds, args.seed supported
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    random.seed(args.seed)
+    gin_api(args)

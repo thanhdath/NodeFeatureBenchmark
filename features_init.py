@@ -20,7 +20,7 @@ class FeatureInitialization():
         log_verbose('Start generate feature', verbose)
         stime = time.time()
         features = self._generate(graph, dim_size)
-        features = lookup_normalizer[normalizer].norm(features, graph)
+        features = lookup_normalizer[normalizer].norm(features, graph, verbose=verbose)
         if shuffle:
             print("Shuffle features")
             features_arr = np.array([features[x] for x in graph.nodes()])

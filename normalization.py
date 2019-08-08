@@ -13,8 +13,9 @@ class Normalizer():
 
 class StandardNormalizer(Normalizer):
     @staticmethod
-    def norm(features, graph):
-        print("Feature Normalizer: ")
+    def norm(features, graph, verbose=1):
+        if verbose > 0:
+            print("Feature Normalizer: Standard")
         scaler = StandardScaler()
         features_arr = np.array([features[x] for x in graph.nodes()])
         scaler.fit(features_arr)
@@ -25,9 +26,10 @@ class StandardNormalizer(Normalizer):
 
 class RowSumNormalizer(Normalizer):
     @staticmethod
-    def norm(features, graph):
+    def norm(features, graph, verbose=1):
         mx = np.array([features[x] for x in graph.nodes()])
-        print("Feature Normalizer: RowSum = 1")
+        if verbose > 0:
+            print("Feature Normalizer: RowSum = 1")
         """Row-normalize sparse matrix"""
         rowsum = np.array(mx.sum(1))
         r_inv = np.power(rowsum, -1).flatten()
@@ -40,8 +42,9 @@ class RowSumNormalizer(Normalizer):
 
 class PassNormalizer(Normalizer):
     @staticmethod
-    def norm(features, graph):
-        print("Feature Normalizer: No")
+    def norm(features, graph, verbose=1):
+        if verbose > 0:
+            print("Feature Normalizer: No")
         return features
 
 
