@@ -7,7 +7,7 @@ import torch
 import random
 from dgl.data import citation_graph as citegrh
 from parser import *
-from algorithms.node_embedding import SGC, Nope, DGIAPI
+from algorithms.node_embedding import SGC, Nope, DGIAPI, GraphsageAPI
 from algorithms.logistic_regression import LogisticRegressionPytorch
 
 def parse_args():
@@ -33,6 +33,7 @@ def parse_args():
     add_sgc_parser(subparsers)
     add_nope_parser(subparsers)
     add_dgi_parser(subparsers)
+    add_graphsage_parser(subparsers)
     return parser.parse_args()
 
 def get_algorithm(args, data, features):
@@ -42,6 +43,8 @@ def get_algorithm(args, data, features):
         return Nope(features)
     elif args.alg == "dgi":
         return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda)
+    elif args.alg == "graphsage":
+        return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator)
     else:
         raise NotImplementedError
 
@@ -75,14 +78,14 @@ def dict2arr(dictt, graph):
     """
     Note: always sort graph nodes
     """
-    dict_arr = np.array([dictt[x] for x in graph.nodes()])
+    dict_arr = torch.FloatTensor([dictt[x] for x in graph.nodes()])
     return dict_arr
 
 def load_data(dataset):
     if dataset == "data/cora":
-        return DefaultDataloader(dataset, add_self_loop=True)
+        return DefaultDataloader(dataset)
     elif dataset in ["data/citeseer", "data/pubmed"]:
-        return CitationDataloader(dataset, add_self_loop=True)
+        return CitationDataloader(dataset)
 
 def main(args):
     data = load_data(args.dataset)
@@ -92,10 +95,12 @@ def main(args):
     
     embeds = alg.train()
 
-    classifier = LogisticRegressionPytorch(embeds,
-        data.labels, data.train_mask, data.val_mask, data.test_mask,
-        epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
-        bias=args.logreg_bias, cuda=args.cuda)
+    if args.alg in ["sgc", "dgi", "nope"]:
+        print("Using default logistic regression")
+        classifier = LogisticRegressionPytorch(embeds,
+            data.labels, data.train_mask, data.val_mask, data.test_mask,
+            epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
+            bias=args.logreg_bias, cuda=args.cuda)
 
 
 def init_environment(args):

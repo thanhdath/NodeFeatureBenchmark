@@ -8,6 +8,7 @@ import dgl
 from dgl.data.utils import download, extract_archive, get_download_dir, _get_dgl_url
 from .default_dataloader import _sample_mask
 from dgl.data.citation_graph import _parse_index_file, _preprocess_features
+import torch
 
 _urls = {
     'cora' : 'dataset/cora_raw.zip',
@@ -23,11 +24,10 @@ def _pickle_load(pkl_file):
         return pkl.load(pkl_file)
 
 class CitationDataloader(object):
-    def __init__(self, datadir, add_self_loop=False):
+    def __init__(self, datadir):
         elms = datadir.split('/')
         self.name = elms[-1]
         self.dir = '/'.join(elms[:-1])
-        self.add_self_loop = add_self_loop
         self.zip_file_path='{}/{}.zip'.format(self.dir, self.name)
         if not os.path.isfile(self.zip_file_path):
             download(_get_dgl_url(_urls[self.name]), path=self.zip_file_path)
@@ -80,9 +80,6 @@ class CitationDataloader(object):
         features = sp.vstack((allx, tx)).tolil()
         features[test_idx_reorder, :] = features[test_idx_range, :]
         graph = nx.DiGraph(nx.from_dict_of_lists(graph))
-        # if self.add_self_loop:
-        #     print("Add self loop to graph")
-        #     graph.add_edges_from(list(zip(graph.nodes(), graph.nodes())))
 
         onehot_labels = np.vstack((ally, ty))
         onehot_labels[test_idx_reorder, :] = onehot_labels[test_idx_range, :]
@@ -98,13 +95,12 @@ class CitationDataloader(object):
 
         self.graph = graph
         self.features = features
-        self.features = _preprocess_features(features)
-        self.labels = labels
+        self.labels = torch.LongTensor(labels)
         self.onehot_labels = onehot_labels
         self.num_labels = onehot_labels.shape[1]
-        self.train_mask = train_mask
-        self.val_mask = val_mask
-        self.test_mask = test_mask
+        self.train_mask = torch.ByteTensor(train_mask)
+        self.val_mask = torch.ByteTensor(val_mask)
+        self.test_mask = torch.ByteTensor(test_mask)
 
         if first_time:
             features = np.asarray(features.todense())
