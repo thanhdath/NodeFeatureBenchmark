@@ -10,7 +10,7 @@ Author's code: https://github.com/PetarV-/DGI
 import torch
 import torch.nn as nn
 import math
-from dgi.gcn import GCN
+from .gcn import GCN
 
 class Encoder(nn.Module):
     def __init__(self, g, in_feats, n_hidden, n_layers, activation, dropout):

@@ -1,6 +1,7 @@
 from .sgc.sgc import SGC
+from .dgi.train import DGIAPI
 
-__all__ = ['SGC']
+__all__ = ['SGC', 'DGIAPI']
 
 import torch
 class Nope():

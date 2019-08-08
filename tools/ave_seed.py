@@ -1,6 +1,8 @@
 import re 
 import sys
 import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 
 def parse(init, seed):
     logfile = "log/{}/{}-{}-seed{}".format(alg, data, init, seed)
@@ -20,10 +22,15 @@ try:
 except:
     alg = "sgc"
 
-inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope \
-        triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
-        clique-standard graphlet identity ori ori-rowsum ori-standard label".split()
-print("Check ordered init methods:"+'\n'.join(inits))
+if alg != "nope":
+    inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope \
+            triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
+            clique-standard graphlet identity ori ori-rowsum ori-standard label".split()
+else:
+    inits = "ori ori-rowsum ori-standard deepwalk hope node2vec".split()
+print("Check ordered init methods:")
+for i, init in enumerate(inits):
+    print(i+1, init)
 
 for init in inits:
     micros = []
@@ -43,5 +50,5 @@ for init in inits:
     macro_std = np.std(macros)
     time_init = np.mean(times)
     # print("Data: {} - Init: {}".format(data, init))
-    print("\t{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}\t{:.3f}".format(
+    print("{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}\t{:.3f}".format(
         micro, micro_std, macro, macro_std, time_init))

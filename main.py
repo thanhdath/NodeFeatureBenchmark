@@ -7,7 +7,7 @@ import torch
 import random
 from dgl.data import citation_graph as citegrh
 from parser import *
-from algorithms.node_embedding import SGC, Nope
+from algorithms.node_embedding import SGC, Nope, DGIAPI
 from algorithms.logistic_regression import LogisticRegressionPytorch
 
 def parse_args():
@@ -32,6 +32,7 @@ def parse_args():
         help='Choose 1 of the GNN algorithm from: sgc, dgi, graphsage, nope.')
     add_sgc_parser(subparsers)
     add_nope_parser(subparsers)
+    add_dgi_parser(subparsers)
     return parser.parse_args()
 
 def get_algorithm(args, data, features):
@@ -39,6 +40,8 @@ def get_algorithm(args, data, features):
         return SGC(data, features, degree=args.degree, cuda=args.cuda)
     elif args.alg == "nope":
         return Nope(features)
+    elif args.alg == "dgi":
+        return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda)
     else:
         raise NotImplementedError
 

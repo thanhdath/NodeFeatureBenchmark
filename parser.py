@@ -7,3 +7,9 @@ def add_sgc_parser(subparsers):
 def add_nope_parser(subparsers):
     parser = subparsers.add_parser('nope', help='Raw features only.')
     return parser
+
+def add_dgi_parser(subparsers):
+    parser = subparsers.add_parser('dgi', help='DGI algorithm.')
+    parser.add_argument('--self-loop', dest='self_loop', action='store_true',
+        help="Whether add self loop or not.")
+    return parser
