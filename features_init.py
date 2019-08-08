@@ -1,6 +1,6 @@
 import time
 import numpy as np
-from embed_algs import deepwalk, node2vec, HOPE
+from embed_algs import *
 import networkx as nx
 import pdb
 from scipy.sparse.linalg import svds
@@ -211,8 +211,6 @@ class OriginalFeature(FeatureInitialization):
 
 class SymmetricSVD(FeatureInitialization):
     def __init__(self, **kwargs):
-        """ Returns the size of the largest maximal clique containing given node.
-        """
         super(SymmetricSVD).__init__()
         self.alpha = kwargs['alpha']
     def _generate(self, graph, dim_size):
@@ -222,6 +220,19 @@ class SymmetricSVD(FeatureInitialization):
         features = {node: embedding[i] for i, node in enumerate(graph.nodes())}
         return features
 
+class LINEFeature(FeatureInitialization):
+    def __init__(self, **kwargs):
+        super(LINEFeature).__init__()
+    def _generate(self, graph, dim_size):
+        features = LINE(graph, dim_size)
+        return features
+
+class GraphFactorizationFeature(FeatureInitialization):
+    def __init__(self, **kwargs):
+        super(GraphFactorizationFeature).__init__()
+    def _generate(self, graph, dim_size):
+        features = graph_factorization(graph, dim_size)
+        return features
 
 lookup = {
     "ori": OriginalFeature,
@@ -241,6 +252,8 @@ lookup = {
     "clique": NodeCliqueNumber,
     "ssvd": SymmetricSVD,
     "ssvd0.5": SymmetricSVD,
-    "ssvd1": SymmetricSVD
+    "ssvd1": SymmetricSVD,
+    "line": LINEFeature,
+    "gf": GraphFactorizationFeature
 }
 

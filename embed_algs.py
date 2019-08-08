@@ -3,6 +3,8 @@ from gensim.models import Word2Vec
 from openne.walker import BasicWalker
 from openne.node2vec import Node2vec
 from openne.hope import HOPE as HOPE_Openne
+from openne.line import LINE as LINE_Openne
+from openne.gf import GraphFactorization
 from openne.graph import Graph
 
 def deepwalk(G, dim_size, number_walks=20, walk_length=10, 
@@ -32,3 +34,15 @@ def HOPE(G, dim_size):
     graph.read_g(G)
     hh = HOPE_Openne(graph, dim_size)
     return hh.vectors
+
+def LINE(G, dim_size):
+    graph = Graph()
+    graph.read_g(G)
+    line = LINE_Openne(graph, rep_size=dim_size, order=3)
+    return line.vectors
+
+def graph_factorization(G, dim_size):
+    graph = Graph()
+    graph.read_g(G)
+    gf = GraphFactorization(graph, rep_size=dim_size)
+    return gf.vectors
