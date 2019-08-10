@@ -1,58 +1,29 @@
-data=cora
 feat_size=128
+data=ENZYMES
 mkdir log
-for seed in $(seq 40 49)
+
+for seed in $(seq 40 44)
 do
-alg=nope
-for init in line gf line-standard gf-standard
+alg=diffpool
+for init in ori-rowsum ori-standard label-standard
 do
-echo $alg-$init
-python -u main.py --dataset data/$data  \
+python graph_classify.py --dataset data/$data \
+    --feature_size $feat_size \
+    --init $init \
+    --seed $seed \
+    --cuda \
+    $alg --pool_ratio 0.1 --num_pool 1 > log/$alg/$data-$init-seed$seed
+done
+
+
+alg=gin
+for init in ori-rowsum ori-standard label-standard
+do
+python graph_classify.py --dataset data/$data \
     --feature_size $feat_size \
     --init $init \
     --seed $seed \
     --cuda \
     $alg > log/$alg/$data-$init-seed$seed
-done # init
-
-alg=sgc
-mkdir log/$alg
-for init in line gf line-standard gf-standard
-do
-echo $alg-$init
-python -u main.py --dataset data/$data  \
-    --feature_size $feat_size \
-    --init $init \
-    --seed $seed \
-    --cuda \
-    $alg > log/$alg/$data-$init-seed$seed
-done # init
-
-alg=dgi
-mkdir log/$alg
-for init in line gf line-standard gf-standard
-do
-echo $alg-$init
-python -u main.py --dataset data/$data  \
-    --feature_size $feat_size \
-    --init $init \
-    --seed $seed \
-    --cuda \
-    $alg --self-loop > log/$alg/$data-$init-seed$seed
-done # init
-
-
-alg=graphsage
-mkdir log/$alg
-for init in line gf line-standard gf-standard
-do
-echo $alg-$init
-python -u main.py --dataset data/$data  \
-    --feature_size $feat_size \
-    --init $init \
-    --seed $seed \
-    --cuda \
-    $alg --aggregator pool > log/$alg/$data-$init-seed$seed
-done # init
-
-done # seed
+done
+done

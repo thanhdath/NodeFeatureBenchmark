@@ -83,7 +83,7 @@ def eval_net_f1(args, net, dataloader):
 
 def gin_api(args):
     if args.cuda:
-        args.device = torch.device("cuda:" + str(args.device))
+        args.device = torch.device("cuda:0")
     else:
         args.device = torch.device("cpu")
 

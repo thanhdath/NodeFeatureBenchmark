@@ -67,8 +67,8 @@ def graph_classify_task(prog_args):
     print("number of graphs is", len(dataset))
     # assert len(dataset) % prog_args.batch_size == 0, "training set not divisible by batch size"
 
-    hidden_dim = 64  # used to be 64
-    embedding_dim = 64
+    hidden_dim = prog_args.hidden_dim  # used to be 64
+    embedding_dim = prog_args.output_dim
 
     # calculate assignment dimension: pool_ratio * largest graph's maximum
     # number of nodes  in the dataset
@@ -224,7 +224,6 @@ def diffpool_api(params):
     params: types.SimpleNamespace
     """
     graph_classify_task(params)
-
 
 if __name__ == "__main__":
     prog_args = arg_parse()

@@ -52,11 +52,14 @@ class TUDataset(object):
         self.graph_labels = DS_graph_labels
 
         # load node attributes
-        try:
-            self.node_attr = np.loadtxt(self._file_path("node_attributes"), delimiter=",")
-        except:
-            print("Graph does not has node attributes.")
-        
+        # try:
+        #     self.node_attr = np.loadtxt(self._file_path("node_attributes"), delimiter=",")
+        # except:
+        #     print("Graph does not has node attributes.")
+        DS_node_attr = np.loadtxt(self._file_path("node_attributes"), delimiter=",")
+        for idxs, g in zip(node_idx_list, self.graph_lists):
+            g.ndata['feat'] = DS_node_attr[idxs, :]
+
         # load node labels
         try:
             DS_node_labels = self._idx_from_zero(np.loadtxt(self._file_path("node_labels"), dtype=int))
@@ -115,6 +118,6 @@ class TUDataset(object):
             return self.download_dir
         zip_file_path = os.path.join(self.download_dir, "tu_{}.zip".format(self.name))
         download(self._url.format(self.name), path=zip_file_path)
-        extract_dir = os.path.join(download_dir, "tu_{}".format(self.name))
+        extract_dir = os.path.join(self.download_dir, "tu_{}".format(self.name))
         extract_archive(zip_file_path, extract_dir)
         return extract_dir

@@ -43,7 +43,9 @@ def build_diffpool_params(args, data):
         gc_per_block=3,
         bn=True,
         dropout=0.0,
-        bias=True
+        bias=True,
+        hidden_dim=20,
+        output_dim=20
     )
     return params
 
@@ -85,18 +87,25 @@ def init_features(args, data: TUDataset):
         init, normalizer = elms[:2]
     print("Normalizer: ", normalizer)
     stime = time.time()
-    if args.init == "ori": # use node attributes
+    if init == "ori": # use node attributes
         print("Init features: Original , node attributes")
+        return
         for g in data.graph_lists:
             idxs = list(g.nodes())
             features = data.node_attr[idxs, :]
-            g.ndata['feat'] = lookup_normalizer[normalizer].norm(features, g, verbose=args.verbose)
-    elif args.init == "label": # use node label as node features
+            nodes = [x.item() for x in g.nodes()]
+            features_dict = {x: features[i] for i, x in enumerate(nodes)}
+            features_dict = lookup_normalizer[normalizer].norm(features_dict, g.to_networkx(), verbose=args.verbose)
+            g.ndata['feat'] = np.array([features_dict[x] for x in nodes])
+    elif init == "label": # use node label as node features
         print("Init features: node labels")
         for g in data.graph_lists:
             idxs = list(g.nodes())
             features = data.one_hot_node_labels[idxs, :]
-            g.ndata['feat'] = lookup_normalizer[normalizer].norm(features, g, verbose=args.verbose)
+            nodes = [x.item() for x in g.nodes()]
+            features_dict = {x: features[i] for i, x in enumerate(nodes)}
+            features_dict = lookup_normalizer[normalizer].norm(features_dict, g.to_networkx(), verbose=args.verbose)
+            g.ndata['feat'] = np.array([features_dict[x] for x in nodes])
     else:
         print("Init features:", init)
         for graph in data.graph_lists:
