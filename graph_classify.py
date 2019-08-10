@@ -89,7 +89,6 @@ def init_features(args, data: TUDataset):
     stime = time.time()
     if init == "ori": # use node attributes
         print("Init features: Original , node attributes")
-        return
         for g in data.graph_lists:
             idxs = list(g.nodes())
             features = data.node_attr[idxs, :]

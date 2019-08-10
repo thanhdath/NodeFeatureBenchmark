@@ -19,8 +19,7 @@ class TUDataset(object):
         Use constant node features initialization instead, with hidden size as `hidden_size`.
 
     """
-
-    _url = r"https://ls11-www.cs.uni-dortmund.de/people/morris/graphkerneldatasets/{}.zip"
+    _url = r"https://ls11-www.cs.tu-dortmund.de/people/morris/graphkerneldatasets/{}.zip"
 
     def __init__(self, datadir, use_pandas=False, ratio=[.7, .1, .2]):
         elms = datadir.split('/')
@@ -52,13 +51,10 @@ class TUDataset(object):
         self.graph_labels = DS_graph_labels
 
         # load node attributes
-        # try:
-        #     self.node_attr = np.loadtxt(self._file_path("node_attributes"), delimiter=",")
-        # except:
-        #     print("Graph does not has node attributes.")
-        DS_node_attr = np.loadtxt(self._file_path("node_attributes"), delimiter=",")
-        for idxs, g in zip(node_idx_list, self.graph_lists):
-            g.ndata['feat'] = DS_node_attr[idxs, :]
+        try:
+            self.node_attr = np.loadtxt(self._file_path("node_attributes"), delimiter=",")
+        except:
+            print("Graph does not has node attributes.")
 
         # load node labels
         try:
