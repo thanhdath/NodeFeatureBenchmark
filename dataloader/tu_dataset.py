@@ -1,9 +1,11 @@
 import time
-from dgl.data.utils import download, extract_archive, get_download_dir
+from dgl.data.utils import download, get_download_dir
 import dgl 
 import numpy as np
 import os
 import torch
+import tarfile 
+import zipfile
 
 class TUDataset(object):
     """
@@ -114,6 +116,16 @@ class TUDataset(object):
             return self.download_dir
         zip_file_path = os.path.join(self.download_dir, "tu_{}.zip".format(self.name))
         download(self._url.format(self.name), path=zip_file_path)
-        extract_dir = os.path.join(self.download_dir, "tu_{}".format(self.name))
-        extract_archive(zip_file_path, extract_dir)
-        return extract_dir
+        self.extract_archive(zip_file_path, self.download_dir)
+        return self.download_dir
+
+    def extract_archive(self, file, target_dir):
+        if file.endswith('.gz') or file.endswith('.tar') or file.endswith('.tgz'):
+            archive = tarfile.open(file, 'r')
+        elif file.endswith('.zip'):
+            archive = zipfile.ZipFile(file, 'r')
+        else:
+            raise Exception('Unrecognized file type: ' + file)
+        print('Extracting file to {}'.format(target_dir))
+        archive.extractall(path=target_dir)
+        archive.close()
