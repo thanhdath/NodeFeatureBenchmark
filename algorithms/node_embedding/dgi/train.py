@@ -25,11 +25,13 @@ class DGIAPI():
 
     def preprocess_graph(self, data):
         # graph preprocess and calculate normalization factor
-        if self.self_loop:
-            data.graph.remove_edges_from(data.graph.selfloop_edges())
-            data.graph.add_edges_from(zip(data.graph.nodes(), data.graph.nodes()))
-        g = DGLGraph(data.graph)
-        return g
+        if data.graph.__class__.__name__ != "DGLGraph":
+            if self.self_loop:
+                data.graph.remove_edges_from(data.graph.selfloop_edges())
+                data.graph.add_edges_from(zip(data.graph.nodes(), data.graph.nodes()))
+            g = DGLGraph(data.graph)
+            return g
+        return data.graph
 
     def train(self):
         features = self.features 

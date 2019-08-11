@@ -27,9 +27,11 @@ class SGC():
     
     def preprocess_graph(self, data):
         # graph preprocess and calculate normalization factor
-        data.graph.add_edges_from(list(zip(data.graph.nodes(), data.graph.nodes())))
-        g = DGLGraph(data.graph)
-        return g
+        if data.graph.__class__.__name__ != "DGLGraph":
+            data.graph.add_edges_from(list(zip(data.graph.nodes(), data.graph.nodes())))
+            g = DGLGraph(data.graph)
+            return g
+        return data.graph
  
     def sgc_compute(self):
         h = self.features

@@ -160,8 +160,10 @@ class GraphsageAPI():
         self.aggregator = aggregator
 
     def preprocess_graph(self, data):
-        g = DGLGraph(data.graph)
-        return g
+        if data.graph.__class__.__name__ != "DGLGraph":
+            g = DGLGraph(data.graph)
+            return g
+        return data.graph
 
     def train(self):
         features = self.features

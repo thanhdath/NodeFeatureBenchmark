@@ -42,15 +42,6 @@ def graph_classify_task(prog_args):
     '''
     perform graph classification task
     '''
-
-    # dataset = tu.TUDataset(name=prog_args.dataset)
-    # dataset = TUDataset(prog_args.dataset, prog_args)
-    # train_size = int(prog_args.train_ratio * len(dataset))
-    # test_size = int(prog_args.test_ratio * len(dataset))
-    # val_size = int(len(dataset) - train_size - test_size)
-
-    # split train test
-    # train_mask, val_mask, test_mask = split_train_test(len(dataset), seed=args.seed)
     dataset = prog_args.dataset
     dataset_train = dataset.dataset_train
     dataset_val = dataset.dataset_val

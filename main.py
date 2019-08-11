@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 import networkx as nx
-from dataloader import DefaultDataloader, CitationDataloader
+from dataloader import DefaultDataloader, CitationDataloader, RedditDataset
 from features_init import lookup as lookup_feature_init
 import torch
 import random
@@ -86,6 +86,10 @@ def load_data(dataset):
         return DefaultDataloader(dataset)
     elif dataset in ["data/citeseer", "data/pubmed"]:
         return CitationDataloader(dataset)
+    elif dataset == "data/reddit":
+        return RedditDataset(self_loop=False)
+    elif dataset == "data/reddit_self_loop":
+        return RedditDataset(self_loop=True)
 
 def main(args):
     data = load_data(args.dataset)
