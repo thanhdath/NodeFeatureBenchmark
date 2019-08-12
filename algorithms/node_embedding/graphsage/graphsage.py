@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dgl import DGLGraph
 import dgl.function as fn
-from utils import f1
+from utils import f1, accuracy
 
 class Aggregator(nn.Module):
     def __init__(self, g, in_feats, out_feats, activation=None, bias=True):
@@ -134,15 +134,13 @@ class GraphSAGE(nn.Module):
             h = layer(h)
         return h
 
-def evaluate(model, features, labels, mask):
+def evaluate(model, features, labels, mask, multiclass=False):
     model.eval()
     with torch.no_grad():
         logits = model(features)
         logits = logits[mask]
         labels = labels[mask]
-        _, indices = torch.max(logits, dim=1)
-        correct = torch.sum(indices == labels)
-        return correct.item() * 1.0 / len(labels)
+        return accuracy(logits, labels, multiclass=multiclass)
 
 class GraphsageAPI():
     def __init__(self, data, features, dropout=0.5, cuda=True, lr=1e-2,
@@ -158,6 +156,9 @@ class GraphsageAPI():
         self.layers = layers 
         self.weight_decay = weight_decay
         self.aggregator = aggregator
+        self.multiclass = data.multiclass
+        if self.multiclass:
+            print("Train graphsage with multiclass")
 
     def preprocess_graph(self, data):
         if data.graph.__class__.__name__ != "DGLGraph":
@@ -173,7 +174,7 @@ class GraphsageAPI():
         test_mask = self.data.test_mask
 
         in_feats = features.shape[1]
-        n_classes = int(self.data.labels.max() + 1)
+        n_classes = self.data.n_classes
 
         if self.cuda:
             features = features.cuda()
@@ -194,7 +195,10 @@ class GraphsageAPI():
                         )
         if self.cuda:
             model.cuda()
-        loss_fcn = torch.nn.CrossEntropyLoss()
+        if self.multiclass:
+            loss_fcn = torch.nn.BCEWithLogitsLoss()
+        else:
+            loss_fcn = torch.nn.CrossEntropyLoss()
 
         # use optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
@@ -213,7 +217,7 @@ class GraphsageAPI():
             if epoch % 20 == 0:
                 print('Epoch {} - loss {} - time: {}'.format(epoch, loss.item(), etime))
             stime = etime
-            acc = evaluate(model, features, labels, val_mask)
+            acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
             if acc > best_val_acc:
                 best_val_acc = acc
                 torch.save(model.state_dict(), 'graphsage-best-model.pkl')
@@ -224,5 +228,5 @@ class GraphsageAPI():
             output = model(features)
             output = output[test_mask]
             labels = labels[test_mask]
-            micro, macro = f1(output, labels)
+            micro, macro = f1(output, labels, multiclass=self.multiclass)
             print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))

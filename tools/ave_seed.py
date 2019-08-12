@@ -22,19 +22,25 @@ try:
 except:
     alg = "sgc"
 
-if alg == "nope":
-    inits = "ori ori-rowsum ori-standard deepwalk hope node2vec line gf \
-        deepwalk-standard hope-standard node2vec-standard line-standard gf-standard".split()
-elif alg in ["diffpool", "gin"]:
-    inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope line \
-        gf triangles-standard kcore-standard egonet-standard pagerank-standard coloring-standar \
-        clique-standard graphlet identity ori ori-rowsum ori-standard label label-standard".split()
+if data in "bc flickr".split():
+    if alg == "nope":
+        inits = "deepwalk hope line gf"
+    else:
+        inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangles-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard identity".split()
 else:
-    inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope \
-            line gf deepwalk-standard node2vec-standard ssvd0.5-standard ssvd1-standard hope-standard line-standard \
-            gf-standard \
-            triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
-            clique-standard graphlet identity ori ori-rowsum ori-standard label".split()
+    if alg == "nope":
+        inits = "ori ori-rowsum ori-standard deepwalk hope node2vec line gf \
+            deepwalk-standard hope-standard node2vec-standard line-standard gf-standard".split()
+    elif alg in ["diffpool", "gin"]:
+        inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope line \
+            gf triangles-standard kcore-standard egonet-standard pagerank-standard coloring-standar \
+            clique-standard graphlet identity ori ori-rowsum ori-standard label label-standard".split()
+    else:
+        inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope \
+                line gf deepwalk-standard node2vec-standard ssvd0.5-standard ssvd1-standard hope-standard line-standard \
+                gf-standard \
+                triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
+                clique-standard graphlet identity ori ori-rowsum ori-standard label".split()
     
 print("Check ordered init methods:")
 for i, init in enumerate(inits):

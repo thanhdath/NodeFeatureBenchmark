@@ -53,6 +53,10 @@ def get_algorithm(args, data, features):
     else:
         raise NotImplementedError
 
+def add_weight(subgraph):
+    for n1, n2 in subgraph.edges():
+        subgraph[n1][n2]['weight'] = 1
+    return subgraph
 
 def get_feature_initialization(args, graph, inplace=True):
     elms = args.init.split("-")
@@ -75,8 +79,14 @@ def get_feature_initialization(args, graph, inplace=True):
     elif init == "ssvd1":
         init = "ssvd"
         kwargs = {"alpha": 1}
-    # elif init == "node2vec":
-    #     add_weight(graph)
+    elif init in ["line", "gf", "node2vec"]:
+        add_weight(graph)
+
+    # super slow feature initialization method
+    # walk_file = "{}-seed{}.npy".format(args.dataset.split('/')[-1], args.seed)
+    # if init == "node2vec" and os.path.isfile(walk_file):
+    #     features = np.load(walk_file)
+    
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size,
                                  inplace=inplace, normalizer=normalizer, verbose=args.verbose,
@@ -92,7 +102,7 @@ def dict2arr(dictt, graph):
 
 
 def load_data(dataset):
-    if dataset == "data/cora":
+    if dataset in "data/cora data/bc".split():
         return DefaultDataloader(dataset)
     elif dataset in ["data/citeseer", "data/pubmed"]:
         return CitationDataloader(dataset)
@@ -116,7 +126,8 @@ def main(args):
         classifier = LogisticRegressionPytorch(embeds,
                                                data.labels, data.train_mask, data.val_mask, data.test_mask,
                                                epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
-                                               bias=args.logreg_bias, cuda=args.cuda)
+                                               bias=args.logreg_bias, cuda=args.cuda, 
+                                               multiclass=data.multiclass)
 
 
 def init_environment(args):

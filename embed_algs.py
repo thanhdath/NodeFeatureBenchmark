@@ -21,7 +21,7 @@ def deepwalk(G, dim_size, number_walks=20, walk_length=10,
     return vectors
 
 def node2vec(G, dim_size, number_walks=20, walk_length=10, 
-    workers=multiprocessing.cpu_count(), p=1.0, q=1.0):
+    workers=multiprocessing.cpu_count(), p=4.0, q=1.0):
     graph = Graph()
     graph.read_g(G)
     n2v = Node2vec(graph, walk_length, number_walks, dim_size, p, q, workers=workers)

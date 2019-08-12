@@ -21,7 +21,6 @@ class DGIAPI():
         self.data = data
         self.graph = self.preprocess_graph(data)
         self.features = torch.FloatTensor(features)
-        self.labels = torch.LongTensor(data.labels)
 
     def preprocess_graph(self, data):
         # graph preprocess and calculate normalization factor

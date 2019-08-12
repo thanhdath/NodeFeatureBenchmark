@@ -8,14 +8,16 @@ import scipy.sparse as sp
 def read_node_label(filename):
     fin = open(filename, 'r')
     labels = {}
+    multiclass = False
     while 1:
         l = fin.readline()
         if l == '':
             break
         vec = l.strip().split(' ')
+        if len(vec[1:]) > 1: multiclass = True
         labels[vec[0]] = vec[1:]
     fin.close()
-    return labels
+    return labels, multiclass
 
 
 def convert_labels_to_binary(labels, graph):
@@ -38,7 +40,7 @@ class DefaultDataloader():
 
     def __init__(self, datadir):
         self.datadir = datadir
-        labels = read_node_label(datadir+'/labels.txt')
+        labels, self.multiclass = read_node_label(datadir+'/labels.txt')
         # build graph
         edges = []
         with open(datadir+'/edgelist.txt') as fp:
@@ -53,20 +55,33 @@ class DefaultDataloader():
         self.graph = nx.from_scipy_sparse_matrix(adj, create_using=nx.DiGraph())
         
         labels = convert_labels_to_binary(labels, self.graph)
-        self.labels = torch.LongTensor(labels.argmax(axis=1))
+        if self.multiclass:
+            self.labels = torch.FloatTensor(labels)
+            self.n_classes = self.labels.shape[1]
+        else:
+            self.labels = torch.LongTensor(labels.argmax(axis=1))
+            self.n_classes = int(self.labels.max() + 1)
 
-        self.train_mask = torch.ByteTensor(_sample_mask(range(140), self.labels.shape[0]))
-        self.val_mask = torch.ByteTensor(_sample_mask(range(200, 500), self.labels.shape[0]))
-        self.test_mask = torch.ByteTensor(_sample_mask(range(500, 1500), self.labels.shape[0]))
+        if "cora" in datadir:
+            self.train_mask = torch.ByteTensor(_sample_mask(range(140), self.labels.shape[0]))
+            self.val_mask = torch.ByteTensor(_sample_mask(range(200, 500), self.labels.shape[0]))
+            self.test_mask = torch.ByteTensor(_sample_mask(range(500, 1500), self.labels.shape[0]))
+        else:
+            indices = np.random.permutation(np.arange(self.labels.shape[0]))
+            n_train = int(len(indices) * 0.7)
+            n_val = int(len(indices) * 0.1)
+            self.train_mask = torch.ByteTensor(_sample_mask(indices[:n_train], self.labels.shape[0]))
+            self.val_mask = torch.ByteTensor(_sample_mask(indices[n_train:n_train+n_val], self.labels.shape[0]))
+            self.test_mask = torch.ByteTensor(_sample_mask(indices[n_train+n_val:], self.labels.shape[0]))
         print("""Graph info: 
             - Number of nodes: {}
             - Number of edges: {}
-            - Number of classes: {}
+            - Number of classes: {} - multiclass: {}
             - Train samples: {}
             - Val   samples: {}
             - Test  samples: {}""".format(self.graph.number_of_nodes(),
                                           len(self.graph.edges()), 
-                                          self.labels.max() + 1,
+                                          self.n_classes, self.multiclass,
                                           self.train_mask.sum(), 
                                           self.val_mask.sum(), 
                                           self.test_mask.sum()))
