@@ -172,10 +172,11 @@ def train(dataset, model, prog_args, same_feat=True, val_dataset=None):
                     train_accu:
                 early_stopping_logger.update(best_epoch=epoch, val_acc=result)
                 torch.save(model.state_dict(), 'diffpool-best-model.pkl')
+            if result > early_stopping_logger['val_acc']:
                 npt = 0
             else:
                 npt += 1
-            if npt > 150:
+            if npt > 100:
                 break
             print("best epoch is EPOCH {}, val_acc is {}%".format(early_stopping_logger['best_epoch'],
                                                                   early_stopping_logger['val_acc'] * 100))
