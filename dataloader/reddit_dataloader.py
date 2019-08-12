@@ -66,20 +66,18 @@ class RedditDataset(object):
         # features and labels
         reddit_data = np.load(os.path.join(extract_dir, "reddit_data.npz"))
         self.features = reddit_data["feature"]
-        if first_time:
-            features = self.features
-            with open(extract_dir + '/features.txt', 'w+') as fp:
-                for i, node in enumerate(self.graph.nodes()):
-                    fp.write("{} {}\n".format(node, ' '.join(map(str, features[i]))))
-
         self.labels = reddit_data["label"]
         self.num_labels = 41
         # tarin/val/test indices
-        node_ids = reddit_data["node_ids"]
+        self.node_ids = reddit_data["node_ids"]
         node_types = reddit_data["node_types"]
         self.train_mask = (node_types == 1)
         self.val_mask = (node_types == 2)
         self.test_mask = (node_types == 3)
+
+        if first_time:
+            features_dict = {int(node): self.features[i] for i, node in enumerate(self.node_ids)}
+            np.save(extract_dir + '/features.npy', features_dict)
  
         print('Finished data loading.')
         print('  NumNodes: {}'.format(self.graph.number_of_nodes()))

@@ -27,7 +27,7 @@ class StandardNormalizer(Normalizer):
 class RowSumNormalizer(Normalizer):
     @staticmethod
     def norm(features, graph, verbose=1):
-        mx = np.array([features[x] for x in graph.nodes()])
+        mx = np.array([features[int(x)] for x in graph.nodes()])
         if verbose > 0:
             print("Feature Normalizer: RowSum = 1")
         """Row-normalize sparse matrix"""

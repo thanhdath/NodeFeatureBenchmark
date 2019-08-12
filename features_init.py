@@ -6,6 +6,7 @@ import pdb
 from scipy.sparse.linalg import svds
 from sklearn.preprocessing import StandardScaler 
 from normalization import lookup as lookup_normalizer
+import json
 
 def log_verbose(msg, v):
     if v >= 1:
@@ -198,12 +199,15 @@ class OriginalFeature(FeatureInitialization):
         super(OriginalFeature).__init__()
         self.feature_path = kwargs["feature_path"]
     def read_node_features(self):
-        features = {}
-        fin = open(self.feature_path, 'r')
-        for l in fin.readlines():
-            vec = l.split()
-            features[int(vec[0])] = np.array([float(x) for x in vec[1:]])
-        fin.close()
+        if self.feature_path.endswith(".npy"):
+            features = np.load(self.feature_path, allow_pickle=True)[()]
+        else:
+            features = {}
+            fin = open(self.feature_path, 'r')
+            for l in fin.readlines():
+                vec = l.split()
+                features[int(vec[0])] = np.array([float(x) for x in vec[1:]])
+            fin.close()
         return features
     def _generate(self, graph, dim_size):
         features = self.read_node_features()

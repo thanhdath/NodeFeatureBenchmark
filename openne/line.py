@@ -19,7 +19,9 @@ class _LINE(object):
         self.negative_ratio = negative_ratio
 
         self.gen_sampling_table()
-        self.sess = tf.Session()
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth=True
+        self.sess = tf.Session(config=config)
         cur_seed = random.getrandbits(32)
         initializer = tf.contrib.layers.xavier_initializer(
             uniform=False, seed=cur_seed)

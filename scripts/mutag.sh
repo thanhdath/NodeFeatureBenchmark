@@ -1,6 +1,6 @@
 feat_size=128
 mkdir log
-for data in MUTAG DD FIRSTMM_DB
+for data in FIRSTMM_DB
 do
 
 for seed in $(seq 40 44)
@@ -13,7 +13,7 @@ python graph_classify.py --dataset data/$data \
     --init $init \
     --seed $seed \
     --cuda \
-    $alg --pool_ratio 0.1 --num_pool 1 > log/$alg/$data-$init-seed$seed
+    $alg --pool_ratio 0.15 --num_pool 1 > log/$alg/$data-$init-seed$seed
 done
 
 

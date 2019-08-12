@@ -65,7 +65,10 @@ def get_feature_initialization(args, graph, inplace=True):
         raise NotImplementedError
     kwargs = {}
     if init == "ori":
-        kwargs = {"feature_path": args.dataset+"/features.txt"}
+        if "reddit" in args.dataset:
+            kwargs = {"feature_path": args.dataset+"/features.npy"}
+        else:
+            kwargs = {"feature_path": args.dataset+"/features.txt"}
     elif init == "ssvd0.5":
         init = "ssvd"
         kwargs = {"alpha": 0.5}

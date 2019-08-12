@@ -17,7 +17,9 @@ class GraphFactorization(object):
         self.max_iter = epoch
         self.lr = learning_rate
         self.lamb = weight_decay
-        self.sess = tf.Session()
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth=True
+        self.sess = tf.Session(config=config)
         self.adj_mat = self.getAdj()
         self.vectors = {}
 
