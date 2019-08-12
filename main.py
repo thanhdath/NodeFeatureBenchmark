@@ -10,31 +10,36 @@ from parser import *
 from algorithms.node_embedding import SGC, Nope, DGIAPI, GraphsageAPI
 from algorithms.logistic_regression import LogisticRegressionPytorch
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="Node feature initialization benchmark.")
+    parser = argparse.ArgumentParser(
+        description="Node feature initialization benchmark.")
     parser.add_argument('--dataset', default="data/cora")
     parser.add_argument('--init', default="ori")
     parser.add_argument('--feature_size', default=128, type=int)
     # args.add_argument('--train_features', action='store_true')
-    parser.add_argument('--shuffle', action='store_true', help="Whether shuffle features or not.")
+    parser.add_argument('--shuffle', action='store_true',
+                        help="Whether shuffle features or not.")
     parser.add_argument('--seed', type=int, default=40)
     parser.add_argument('--verbose', type=int, default=1)
     parser.add_argument('--cuda', action='store_true')
 
     # for logistic regression
     parser.add_argument('--logreg-bias', action='store_true',
-        dest='logreg_bias', help="Whether use bias in logistic regression or not.")
+                        dest='logreg_bias', help="Whether use bias in logistic regression or not.")
     parser.add_argument('--logreg-wc', dest='logreg_weight_decay', type=float,
-        default=5e-6, help="Weight decay for logistic regression.")
-    parser.add_argument('--logreg-epochs', dest='logreg_epochs', default=200, type=int)
+                        default=5e-6, help="Weight decay for logistic regression.")
+    parser.add_argument('--logreg-epochs',
+                        dest='logreg_epochs', default=200, type=int)
 
-    subparsers = parser.add_subparsers(dest="alg", 
-        help='Choose 1 of the GNN algorithm from: sgc, dgi, graphsage, nope.')
+    subparsers = parser.add_subparsers(dest="alg",
+                                       help='Choose 1 of the GNN algorithm from: sgc, dgi, graphsage, nope.')
     add_sgc_parser(subparsers)
     add_nope_parser(subparsers)
     add_dgi_parser(subparsers)
     add_graphsage_parser(subparsers)
     return parser.parse_args()
+
 
 def get_algorithm(args, data, features):
     if args.alg == "sgc":
@@ -71,15 +76,17 @@ def get_feature_initialization(args, graph, inplace=True):
     #     add_weight(graph)
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size,
-        inplace=inplace, normalizer=normalizer, verbose=args.verbose,
-        shuffle=args.shuffle)
+                                 inplace=inplace, normalizer=normalizer, verbose=args.verbose,
+                                 shuffle=args.shuffle)
+
 
 def dict2arr(dictt, graph):
     """
     Note: always sort graph nodes
     """
-    dict_arr = torch.FloatTensor([dictt[x] for x in graph.nodes()])
+    dict_arr = torch.FloatTensor([dictt[int(x)] for x in graph.nodes()])
     return dict_arr
+
 
 def load_data(dataset):
     if dataset == "data/cora":
@@ -91,26 +98,29 @@ def load_data(dataset):
     elif dataset == "data/reddit_self_loop":
         return RedditDataset(self_loop=True)
 
+
 def main(args):
     data = load_data(args.dataset)
-    features = get_feature_initialization(args, data.graph)
+    inplace = "reddit" not in args.dataset 
+    features = get_feature_initialization(args, data.graph, inplace=inplace)
     features = dict2arr(features, data.graph)
     alg = get_algorithm(args, data, features)
-    
+
     embeds = alg.train()
 
     if args.alg in ["sgc", "dgi", "nope"]:
         print("Using default logistic regression")
         classifier = LogisticRegressionPytorch(embeds,
-            data.labels, data.train_mask, data.val_mask, data.test_mask,
-            epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
-            bias=args.logreg_bias, cuda=args.cuda)
+                                               data.labels, data.train_mask, data.val_mask, data.test_mask,
+                                               epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
+                                               bias=args.logreg_bias, cuda=args.cuda)
 
 
 def init_environment(args):
     np.random.seed(args.seed)
     torch.random.manual_seed(args.seed)
     random.seed(args.seed)
+
 
 if __name__ == '__main__':
     args = parse_args()

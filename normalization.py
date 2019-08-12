@@ -17,10 +17,10 @@ class StandardNormalizer(Normalizer):
         if verbose > 0:
             print("Feature Normalizer: Standard")
         scaler = StandardScaler()
-        features_arr = np.array([features[x] for x in graph.nodes()])
+        features_arr = np.array([features[int(x)] for x in graph.nodes()])
         scaler.fit(features_arr)
         features_arr = scaler.transform(features_arr)
-        features = {node: features_arr[i] for i, node in enumerate(graph.nodes())}
+        features = {int(node): features_arr[i] for i, node in enumerate(graph.nodes())}
         return features
 
 
@@ -36,7 +36,7 @@ class RowSumNormalizer(Normalizer):
         r_inv[np.isinf(r_inv)] = 0.
         r_mat_inv = sp.diags(r_inv)
         mx = r_mat_inv.dot(mx)
-        features = {node: mx[i] for i, node in enumerate(graph.nodes())}
+        features = {int(node): mx[i] for i, node in enumerate(graph.nodes())}
         return features
 
 

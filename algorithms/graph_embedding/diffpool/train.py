@@ -96,6 +96,7 @@ def graph_classify_task(prog_args):
         model,
         prog_args,
         val_dataset=val_dataloader)
+    torch.cuda.empty_cache()
     micro, macro, _ = evaluate(test_dataloader, model, prog_args, logger)
     print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))
 
