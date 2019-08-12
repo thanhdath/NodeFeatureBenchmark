@@ -82,6 +82,9 @@ def get_feature_initialization(args, graph, inplace=True):
     elif init in ["line", "gf", "node2vec"]:
         add_weight(graph)
 
+    if "reddit" in args.dataset and init == "deepwalk":
+        graph.build_neibs_dict()
+
     # super slow feature initialization method
     # walk_file = "{}-seed{}.npy".format(args.dataset.split('/')[-1], args.seed)
     # if init == "node2vec" and os.path.isfile(walk_file):

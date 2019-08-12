@@ -63,10 +63,12 @@ class DefaultDataloader():
             self.n_classes = int(self.labels.max() + 1)
 
         if "cora" in datadir:
+            print("Split train-val-test by default for cora dataset.")
             self.train_mask = torch.ByteTensor(_sample_mask(range(140), self.labels.shape[0]))
             self.val_mask = torch.ByteTensor(_sample_mask(range(200, 500), self.labels.shape[0]))
             self.test_mask = torch.ByteTensor(_sample_mask(range(500, 1500), self.labels.shape[0]))
         else:
+            print("Split train-val-test 0.7-0.1-0.2.")
             indices = np.random.permutation(np.arange(self.labels.shape[0]))
             n_train = int(len(indices) * 0.7)
             n_val = int(len(indices) * 0.1)

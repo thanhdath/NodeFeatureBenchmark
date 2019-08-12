@@ -54,7 +54,10 @@ class HOPE(object):
 
     def learn_embedding(self):
         graph = self.g.G
-        A = nx.to_scipy_sparse_matrix(graph, dtype=np.float32)
+        if "DGLGraph" in graph.__class__.__name__:
+            A = graph.adj 
+        else:
+            A = nx.to_scipy_sparse_matrix(graph, dtype=np.float32)
         #M_l = beta*A
         #M_g = sp.eye(graph.number_of_nodes(), dtype=np.float32) - M_l
 

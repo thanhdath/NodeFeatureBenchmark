@@ -34,7 +34,10 @@ def deepwalk_walk(args):
 class BasicWalker:
     def __init__(self, G, workers):
         self.G = G
-        self.build_neibs_dict()
+        if hasattr(G, 'neibs'):
+            self.neibs = G.neibs
+        else:
+            self.build_neibs_dict()
 
 
     def build_neibs_dict(self):
