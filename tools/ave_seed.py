@@ -22,7 +22,7 @@ try:
 except:
     alg = "sgc"
 
-if data in "bc flickr".split():
+if data in "bc flickr wiki".split():
     if alg == "nope":
         inits = "deepwalk hope line gf"
     else:

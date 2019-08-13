@@ -1,5 +1,4 @@
-for data in bc flickr 
-do
+data=wiki
 feat_size=128
 mkdir log
 for seed in $(seq 40 44)
@@ -60,5 +59,3 @@ python -u main.py --dataset data/$data  \
 done # init
 
 done # seed
-
-done

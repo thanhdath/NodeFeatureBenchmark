@@ -33,6 +33,7 @@ class RedditDataset(object):
         self.train_mask = (node_types == 1)
         self.val_mask = (node_types == 2)
         self.test_mask = (node_types == 3)
+        self.multiclass = False
 
         if first_time:
             features_dict = {int(node): self.features[i] for i, node in enumerate(self.node_ids)}

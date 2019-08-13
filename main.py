@@ -105,7 +105,7 @@ def dict2arr(dictt, graph):
 
 
 def load_data(dataset):
-    if dataset in "data/cora data/bc".split():
+    if dataset in "data/cora data/bc data/flickr data/wiki".split():
         return DefaultDataloader(dataset)
     elif dataset in ["data/citeseer", "data/pubmed"]:
         return CitationDataloader(dataset)

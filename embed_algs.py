@@ -6,7 +6,7 @@ from openne.hope import HOPE as HOPE_Openne
 from openne.graph import Graph
 
 def deepwalk(G, dim_size, number_walks=20, walk_length=10, 
-    workers=multiprocessing.cpu_count()):
+    workers=multiprocessing.cpu_count()//3):
     walk = BasicWalker(G, workers=workers)
     sentences = walk.simulate_walks(num_walks=number_walks, walk_length=walk_length, num_workers=workers)
     for idx in range(len(sentences)):
