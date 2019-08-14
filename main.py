@@ -79,7 +79,7 @@ def get_feature_initialization(args, graph, inplace=True):
     elif init == "ssvd1":
         init = "ssvd"
         kwargs = {"alpha": 1}
-    elif init in ["line", "gf", "node2vec"]:
+    elif init in ["gf", "node2vec"]:
         add_weight(graph)
 
     if "reddit" in args.dataset and init == "deepwalk":

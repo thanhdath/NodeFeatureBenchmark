@@ -24,14 +24,14 @@ class Graph(object):
             look_up[node] = self.node_size
             look_back.append(node)
             self.node_size += 1
-            self.G.nodes[node]['status'] = ''
+            try:
+                self.G.nodes[node]['status'] = ''
+            except:
+                pass
 
     def read_g(self, g):
         self.G = g
-        try:
-            self.encode_node()
-        except:
-            pass
+        self.encode_node()
 
     def read_adjlist(self, filename):
         """ Read graph from adjacency file in which the edge must be unweighted

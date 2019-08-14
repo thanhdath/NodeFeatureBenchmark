@@ -6,7 +6,8 @@ import numpy as np
 from dgl.base import DGLError, ALL
 from dgl.view import NodeDataView, NodeSpace
 
-def add_to_dict(neibs, nodes, adj):
+def add_to_dict(com):
+    neibs, nodes, adj = com
     for i, node in enumerate(nodes):
         neibs[node] = adj[i].nonzero()[1]
 
@@ -44,7 +45,7 @@ class NodeView(object):
 class DGLGraph(dgl.DGLGraph):
     def __init__(self, adj, readonly=False):
         super(DGLGraph, self).__init__(adj, readonly=readonly)
-        self.adj = adj
+        self.adj = adj.tocsr()
         # self.nodes_ = [int(x) for x in super(DGLGraph, self).nodes()] 
 
     def build_neibs_dict(self):
@@ -64,3 +65,7 @@ class DGLGraph(dgl.DGLGraph):
     @property
     def nodes(self):
         return NodeView(self)
+
+    def degree(self, node):
+        return self.adj[node].sum()
+

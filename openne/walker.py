@@ -24,9 +24,9 @@ def deepwalk_walk(args):
             walks.append(walk)
             continue
         while len(walk) < walk_length:
-            cur = walk[-1]
+            cur = int(walk[-1])
             cur_nbrs = neibs[cur]
-            walk.append(np.random.choice(cur_nbrs))
+            walk.append(str(np.random.choice(cur_nbrs)))
         walks.append(walk)
     return walks
 

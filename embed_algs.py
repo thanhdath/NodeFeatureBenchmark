@@ -9,8 +9,8 @@ def deepwalk(G, dim_size, number_walks=20, walk_length=10,
     workers=multiprocessing.cpu_count()//3):
     walk = BasicWalker(G, workers=workers)
     sentences = walk.simulate_walks(num_walks=number_walks, walk_length=walk_length, num_workers=workers)
-    for idx in range(len(sentences)):
-        sentences[idx] = [str(x) for x in sentences[idx]]
+    # for idx in range(len(sentences)):
+    #     sentences[idx] = [str(x) for x in sentences[idx]]
 
     print("Learning representation...")
     word2vec = Word2Vec(sentences=sentences, min_count=0, workers=workers,

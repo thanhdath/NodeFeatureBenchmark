@@ -1,7 +1,7 @@
 alias python="python3"
 feat_size=128
 mkdir log
-for seed in $(seq 40 44)
+for seed in $(seq 40 43)
 do
 # alg=nope
 # data=reddit
@@ -33,7 +33,7 @@ do
 alg=dgi
 data=reddit_self_loop
 mkdir log/$alg
-for init in ori ori-rowsum ori-standard deepwalk hope ssvd0.5 ssvd1
+for init in deepwalk degree
 do
 echo $alg-$init
 python -u main.py --dataset data/$data  \
