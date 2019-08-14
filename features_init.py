@@ -218,7 +218,10 @@ class SymmetricSVD(FeatureInitialization):
         super(SymmetricSVD).__init__()
         self.alpha = kwargs['alpha']
     def _generate(self, graph, dim_size):
-        adj = nx.to_scipy_sparse_matrix(graph, dtype=np.float32)
+        if "DGLGraph" in graph.__class__.__name__:
+            adj = graph.adj 
+        else:
+            adj = nx.to_scipy_sparse_matrix(graph, dtype=np.float32)
         U, X,_ = svds(adj, k = dim_size)
         embedding = U*(X**(self.alpha))
         features = {node: embedding[i] for i, node in enumerate(graph.nodes())}

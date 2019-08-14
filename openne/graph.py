@@ -28,7 +28,10 @@ class Graph(object):
 
     def read_g(self, g):
         self.G = g
-        self.encode_node()
+        try:
+            self.encode_node()
+        except:
+            pass
 
     def read_adjlist(self, filename):
         """ Read graph from adjacency file in which the edge must be unweighted

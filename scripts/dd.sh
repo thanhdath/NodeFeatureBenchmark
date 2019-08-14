@@ -3,10 +3,10 @@ mkdir log
 for data in DD
 do
 
-for seed in $(seq 40 44)
+for seed in $(seq 42 44)
 do
 alg=diffpool
-for init in degree-standard uniform deepwalk kcore-standard egonet-standard pagerank-standard ori ori-rowsum ori-standard label label-standard
+for init in degree-standard uniform deepwalk kcore-standardegonet-standard pagerank-standard label label-standard 
 do
 python graph_classify.py --dataset data/$data \
     --feature_size $feat_size \

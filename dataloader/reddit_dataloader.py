@@ -4,6 +4,7 @@ import dgl
 import os, sys
 from dgl.data.utils import download, extract_archive, get_download_dir, _get_dgl_url
 import networkx as nx
+import torch
 from .custom_dgl_graph import DGLGraph
 
 class RedditDataset(object):
@@ -24,19 +25,21 @@ class RedditDataset(object):
         self.graph = DGLGraph(coo_adj, readonly=True)
         # features and labels
         reddit_data = np.load(os.path.join(extract_dir, "reddit_data.npz"))
-        self.features = reddit_data["feature"]
-        self.labels = reddit_data["label"]
+        self.features = torch.FloatTensor(reddit_data["feature"])
+        self.labels = torch.LongTensor(reddit_data["label"])
         self.num_labels = 41
         # tarin/val/test indices
         self.node_ids = reddit_data["node_ids"]
         node_types = reddit_data["node_types"]
-        self.train_mask = (node_types == 1)
-        self.val_mask = (node_types == 2)
-        self.test_mask = (node_types == 3)
+        self.train_mask = torch.ByteTensor(node_types == 1)
+        self.val_mask = torch.ByteTensor(node_types == 2)
+        self.test_mask = torch.ByteTensor(node_types == 3)
         self.multiclass = False
+        self.n_classes = self.num_labels
 
         if first_time:
-            features_dict = {int(node): self.features[i] for i, node in enumerate(self.node_ids)}
+            features = self.features.numpy()
+            features_dict = {int(node): features[i] for i, node in enumerate(self.node_ids)}
             np.save(extract_dir + '/features.npy', features_dict)
  
         print('Finished data loading.')
