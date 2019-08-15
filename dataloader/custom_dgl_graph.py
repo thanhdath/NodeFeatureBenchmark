@@ -9,7 +9,8 @@ from dgl.view import NodeDataView, NodeSpace
 def add_to_dict(com):
     neibs, nodes, adj = com
     for i, node in enumerate(nodes):
-        neibs[node] = adj[i].nonzero()[1]
+        neibs[node] = [int(x) for x in adj[i].nonzero()[1]]
+    return neibs
 
 class NodeView(object):
     """A NodeView class to act as G.nodes for a DGLGraph.
@@ -55,10 +56,11 @@ class DGLGraph(dgl.DGLGraph):
             n_process = multiprocessing.cpu_count()//2
             pool = multiprocessing.Pool(processes=n_process)
             n_node = len(self.nodes()) // n_process + 1
-            params = [(self.neibs, self.nodes()[i*n_node:(i+1)*n_node], self.adj) for i in range(n_process)]
-            pool.map(add_to_dict, params)
+            params = [({}, self.nodes()[i*n_node:(i+1)*n_node], self.adj) for i in range(n_process)]
+            res = pool.map(add_to_dict, params)
+            [self.neibs.update(r) for r in res]
             with open(neibs_file, "w+") as fp:
-                fp.write(json.dumps(neibs_file))
+                fp.write(json.dumps(self.neibs))
         else:
             self.neibs = json.load(open("neibs-reddit.json"))
     
@@ -69,3 +71,7 @@ class DGLGraph(dgl.DGLGraph):
     def degree(self, node):
         return self.adj[node].sum()
 
+    # @property
+    def edges(self):
+        src, trg = super(DGLGraph, self).edges()
+        return [(int(s), int(t)) for s, t in zip(src, trg)]

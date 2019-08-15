@@ -7,6 +7,7 @@ from scipy.sparse.linalg import svds
 from sklearn.preprocessing import StandardScaler 
 from normalization import lookup as lookup_normalizer
 import json
+import os
 
 def log_verbose(msg, v):
     if v >= 1:

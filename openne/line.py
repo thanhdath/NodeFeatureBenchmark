@@ -131,8 +131,10 @@ class _LINE(object):
 
         look_up = self.g.look_up_dict
         for edge in self.g.G.edges():
-            node_degree[look_up[edge[0]]
-                        ] += self.g.G[edge[0]][edge[1]]["weight"]
+            try:
+                node_degree[look_up[edge[0]]] += self.g.G[edge[0]][edge[1]]["weight"]
+            except:
+                node_degree[look_up[edge[0]]] += 1
 
         norm = sum([math.pow(node_degree[i], power) for i in range(numNodes)])
 
@@ -153,10 +155,16 @@ class _LINE(object):
         large_block = np.zeros(data_size, dtype=np.int32)
         small_block = np.zeros(data_size, dtype=np.int32)
 
-        total_sum = sum([self.g.G[edge[0]][edge[1]]["weight"]
-                         for edge in self.g.G.edges()])
-        norm_prob = [self.g.G[edge[0]][edge[1]]["weight"] *
-                     data_size/total_sum for edge in self.g.G.edges()]
+        try:
+            total_sum = sum([self.g.G[edge[0]][edge[1]]["weight"]
+                            for edge in self.g.G.edges()])
+        except:
+            total_sum = self.g.G.number_of_edges()
+        try:
+            norm_prob = [self.g.G[edge[0]][edge[1]]["weight"] *
+                        data_size/total_sum for edge in self.g.G.edges()]
+        except:
+            norm_prob = [data_size/total_sum for edge in self.g.G.edges()]
         num_small_block = 0
         num_large_block = 0
         cur_small_block = 0

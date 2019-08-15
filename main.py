@@ -89,7 +89,6 @@ def get_feature_initialization(args, graph, inplace=True):
     # walk_file = "{}-seed{}.npy".format(args.dataset.split('/')[-1], args.seed)
     # if init == "node2vec" and os.path.isfile(walk_file):
     #     features = np.load(walk_file)
-    
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size,
                                  inplace=inplace, normalizer=normalizer, verbose=args.verbose,
@@ -118,7 +117,15 @@ def load_data(dataset):
 def main(args):
     data = load_data(args.dataset)
     inplace = "reddit" not in args.dataset 
-    features = get_feature_initialization(args, data.graph, inplace=inplace)
+
+    feat_file = 'feats/{}-{}-seed{}.npz'
+    if os.path.isfile(feat_file):
+        features = np.load(feat_file)[()]
+    else:
+        features = get_feature_initialization(args, data.graph, inplace=inplace)
+        if not os.path.isdir('feat'):
+            os.makedirs('feat')
+        np.savez_compressed(feat_file, features)
     features = dict2arr(features, data.graph)
     alg = get_algorithm(args, data, features)
 
