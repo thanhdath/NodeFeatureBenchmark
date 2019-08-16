@@ -29,12 +29,19 @@ def accuracy(output, labels, multiclass=False):
         correct = correct.sum()
         return correct / len(labels)
     else:
-        preds = torch.sigmoid(output)
-        preds[preds > 0.5] = 1
-        preds[preds <= 0.5] = 0
-        preds = preds.cpu().detach().numpy().astype(np.int32)
+        # preds = torch.sigmoid(output)
+        # preds[preds > 0.5] = 1
+        # preds[preds <= 0.5] = 0
+        # preds = preds.cpu().detach().numpy().astype(np.int32)
+        probs = torch.sigmoid(output)
+        top_k_list = [x.sum() for x in labels]
+        for i, k in enumerate(top_k_list):
+            preds = probs[i].argsort()[-k:]
+            probs[i,:] = 0
+            probs[i,preds] = 1
+        probs = probs.cpu().detach().numpy().astype(np.int32)
         labels = labels.cpu().detach().numpy().astype(np.int32)
-        correct = (preds == labels).mean()
+        correct = (probs == labels).mean()
         return correct
 
 def f1(output, labels, multiclass=False):
@@ -46,12 +53,15 @@ def f1(output, labels, multiclass=False):
         macro = f1_score(labels, preds, average='macro')
         return micro, macro
     else:
-        preds = torch.sigmoid(output)
-        preds[preds > 0.5] = 1
-        preds[preds <= 0.5] = 0
-        preds = preds.cpu().detach().numpy().astype(np.int32)
+        probs = torch.sigmoid(output)
+        top_k_list = [int(x.sum()) for x in labels]
+        for i, k in enumerate(top_k_list):
+            preds = probs[i].argsort()[-k:]
+            probs[i,:] = 0
+            probs[i,preds] = 1
+        probs = probs.cpu().detach().numpy().astype(np.int32)
         labels = labels.cpu().detach().numpy().astype(np.int32)
-        micro = f1_score(labels, preds, average='micro')
-        macro = f1_score(labels, preds, average='macro')
+        micro = f1_score(labels, probs, average='micro')
+        macro = f1_score(labels, probs, average='macro')
         return micro, macro
 

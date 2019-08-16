@@ -144,7 +144,7 @@ def evaluate(model, features, labels, mask, multiclass=False):
 
 class GraphsageAPI():
     def __init__(self, data, features, dropout=0.5, cuda=True, lr=1e-2,
-        epochs=200, hidden=32, layers=2, weight_decay=5e-4, aggregator="mean"):
+        epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean"):
         self.data = data 
         self.features = features
         self.graph = self.preprocess_graph(data)
@@ -203,8 +203,10 @@ class GraphsageAPI():
         # use optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         best_val_acc = 0
-        stime = time.time()
+        npt = 0
+        max_patience = 4
         for epoch in range(self.epochs):
+            stime = time.time()
             model.train()
             # forward
             logits = model(features)
@@ -216,12 +218,18 @@ class GraphsageAPI():
             etime = time.time() - stime
             if epoch % 20 == 0:
                 print('Epoch {} - loss {} - time: {}'.format(epoch, loss.item(), etime))
-            stime = etime
-            acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
-            if acc > best_val_acc:
-                best_val_acc = acc
-                torch.save(model.state_dict(), 'graphsage-best-model.pkl')
-                print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc))
+                # evaluate too slow
+                acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
+                if acc > best_val_acc:
+                    best_val_acc = acc
+                    torch.save(model.state_dict(), 'graphsage-best-model.pkl')
+                    print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc))
+                    npt= 0
+                else:
+                    npt += 1
+                if npt > max_patience:
+                    print("Early stopping")
+                    break
         model.load_state_dict(torch.load('graphsage-best-model.pkl'))
         with torch.no_grad():
             model.eval()

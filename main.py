@@ -9,6 +9,7 @@ from dgl.data import citation_graph as citegrh
 from parser import *
 from algorithms.node_embedding import SGC, Nope, DGIAPI, GraphsageAPI
 from algorithms.logistic_regression import LogisticRegressionPytorch
+import os
 
 
 def parse_args():
@@ -118,14 +119,14 @@ def main(args):
     data = load_data(args.dataset)
     inplace = "reddit" not in args.dataset 
 
-    feat_file = 'feats/{}-{}-seed{}.npz'
+    feat_file = 'feats/{}-{}-seed{}.npy'.format(args.dataset.split('/')[-1], args.init, args.seed)
     if os.path.isfile(feat_file):
-        features = np.load(feat_file)[()]
+        features = np.load(feat_file, allow_pickle=True)[()]
     else:
         features = get_feature_initialization(args, data.graph, inplace=inplace)
-        if not os.path.isdir('feat'):
-            os.makedirs('feat')
-        np.savez_compressed(feat_file, features)
+        if not os.path.isdir('feats'):
+            os.makedirs('feats')
+        np.save(feat_file, features)
     features = dict2arr(features, data.graph)
     alg = get_algorithm(args, data, features)
 

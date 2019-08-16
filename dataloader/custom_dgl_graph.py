@@ -41,13 +41,14 @@ class NodeView(object):
 
     def __call__(self):
         """Return the nodes."""
-        return np.arange(0, len(self))
+        return list(range(0, len(self)))
 
 class DGLGraph(dgl.DGLGraph):
     def __init__(self, adj, readonly=False):
         super(DGLGraph, self).__init__(adj, readonly=readonly)
         self.adj = adj.tocsr()
         # self.nodes_ = [int(x) for x in super(DGLGraph, self).nodes()] 
+        # self.edges = self.edges()
 
     def build_neibs_dict(self):
         neibs_file = "neibs-reddit.json"
@@ -63,6 +64,7 @@ class DGLGraph(dgl.DGLGraph):
                 fp.write(json.dumps(self.neibs))
         else:
             self.neibs = json.load(open("neibs-reddit.json"))
+            self.neibs = {int(k): v for k, v in self.neibs.items()}
     
     @property
     def nodes(self):
@@ -72,6 +74,6 @@ class DGLGraph(dgl.DGLGraph):
         return self.adj[node].sum()
 
     # @property
-    def edges(self):
-        src, trg = super(DGLGraph, self).edges()
-        return [(int(s), int(t)) for s, t in zip(src, trg)]
+    # def edges(self):
+    #     src, trg = super(DGLGraph, self).edges()
+    #     return [(int(s), int(t)) for s, t in zip(src, trg)]

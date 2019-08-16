@@ -64,14 +64,14 @@ class LogisticRegressionPytorch():
             self.optimizer.step()
             if epoch % 20 == 0:
                 print('Epoch {} - loss {}'.format(epoch, loss_train.item()))
-            with torch.no_grad():
-                self.model.eval()
-                output = self.model(val_features)
-                acc = accuracy(output, val_labels, multiclass=self.multiclass)
-                if acc > best_val_acc:
-                    best_val_acc = acc
-                    torch.save(self.model.state_dict(), 'logistic-best-model.pkl')
-                    print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc.item()))
+                with torch.no_grad():
+                    self.model.eval()
+                    output = self.model(val_features)
+                    acc = accuracy(output, val_labels, multiclass=self.multiclass)
+                    if acc > best_val_acc:
+                        best_val_acc = acc
+                        torch.save(self.model.state_dict(), 'logistic-best-model.pkl')
+                        print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc.item()))
         train_time = time.time() - stime
         print('Train time: {:.3f}'.format(train_time))
         self.model.load_state_dict(torch.load('logistic-best-model.pkl'))
