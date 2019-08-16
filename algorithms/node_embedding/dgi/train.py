@@ -6,11 +6,12 @@ import torch.nn.functional as F
 from dgl import DGLGraph
 from .dgi import DGI
 
+
 class DGIAPI():
     def __init__(self, data, features, dropout=0, lr=1e-3, epochs=300,
-        hidden=512, layers=1, weight_decay=0., patience=40, self_loop=False, cuda=True):
+                 hidden=512, layers=1, weight_decay=0., patience=20, self_loop=False, cuda=True):
         self.dropout = dropout
-        self.lr = lr 
+        self.lr = lr
         self.epochs = epochs
         self.hidden = hidden
         self.layers = layers
@@ -22,29 +23,31 @@ class DGIAPI():
         self.graph = self.preprocess_graph(data)
         self.features = torch.FloatTensor(features)
 
+        self.dgi = DGI(self.features.shape[1], self.hidden, self.layers, nn.PReLU(
+            self.hidden), self.dropout)
+
     def preprocess_graph(self, data):
         # graph preprocess and calculate normalization factor
         if data.graph.__class__.__name__ != "DGLGraph":
             if self.self_loop:
                 data.graph.remove_edges_from(data.graph.selfloop_edges())
-                data.graph.add_edges_from(zip(data.graph.nodes(), data.graph.nodes()))
+                data.graph.add_edges_from(
+                    zip(data.graph.nodes(), data.graph.nodes()))
             g = DGLGraph(data.graph)
             return g
         return data.graph
 
     def train(self):
-        features = self.features 
-        in_feats = self.features.shape[1]
+        features = self.features
         if self.cuda:
             features = self.features.cuda()
         # create DGI model
-        dgi = DGI(self.graph, in_feats,self.hidden,self.layers,
-            nn.PReLU(self.hidden),self.dropout)
+        dgi = self.dgi
         if self.cuda:
             dgi.cuda()
         dgi_optimizer = torch.optim.Adam(dgi.parameters(),
-            lr=self.lr,
-            weight_decay=self.weight_decay)
+                                         lr=self.lr,
+                                         weight_decay=self.weight_decay)
         # train deep graph infomax
         cnt_wait = 0
         best = 1e9
@@ -56,7 +59,7 @@ class DGIAPI():
                 t0 = time.time()
 
             dgi_optimizer.zero_grad()
-            loss = dgi(features)
+            loss = dgi(features, self.graph)
             loss.backward()
             dgi_optimizer.step()
 
@@ -76,9 +79,13 @@ class DGIAPI():
                 dur.append(time.time() - t0)
 
             if epoch % 20 == 0:
-                print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f}".format(epoch, np.mean(dur), loss.item()))
+                print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f}".format(
+                    epoch, np.mean(dur), loss.item()))
         print('Loading {}th epoch'.format(best_t))
         dgi.load_state_dict(torch.load('dgi-best-model.pkl'))
-        embeds = dgi.encoder(features, corrupt=False)
+        embeds = dgi.encoder(features, self.graph, corrupt=False)
         embeds = embeds.detach()
         return embeds
+
+    def get_embeds(self, features, g):
+        return self.dgi.encoder(features, g, corrupt=False)

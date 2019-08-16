@@ -7,7 +7,7 @@ import torch
 import random
 from dgl.data import citation_graph as citegrh
 from parser import *
-from algorithms.node_embedding import SGC, Nope, DGIAPI, GraphsageAPI
+from algorithms.node_embedding import SGC, DGIAPI
 from algorithms.logreg_inductive import LogisticRegressionInductive
 import os
 
@@ -45,12 +45,8 @@ def parse_args():
 def get_algorithm(args, data, features):
     if args.alg == "sgc":
         return SGC(data, features, degree=args.degree, cuda=args.cuda)
-    elif args.alg == "nope":
-        return Nope(features)
     elif args.alg == "dgi":
-        return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda)
-    elif args.alg == "graphsage":
-        return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator)
+        return DGIAPI(data, features, cuda=args.cuda)
     else:
         raise NotImplementedError
 
@@ -129,6 +125,11 @@ def main(args):
         val_embs = val_alg.train()
         test_alg = get_algorithm(args, test_data, test_features)
         test_embs = test_alg.train()
+    elif args.alg == "dgi":
+        alg = get_algorithm(args, train_data, train_features)
+        train_embs = alg.train()
+        val_embs = alg.get_embed(val_features, val_data.graph)
+        test_embs = alg.get_embed(test_features, test_data.graph)
 
     print("Using default logistic regression")
     classifier = LogisticRegressionInductive(train_embs, val_embs, test_embs, 
