@@ -247,6 +247,14 @@ class GraphsageInductive():
                         print("Early stopping")
                         break
         model.load_state_dict(torch.load('graphsage-best-model.pkl'))
+        if self.cuda:
+            train_features = train_features.cpu()
+            train_labels = train_labels.cpu()
+            val_features = val_features.cpu()
+            val_labels = val_labels.cpu()
+            test_features = test_features.cuda()
+            test_labels = test_labels.cuda()
+
         with torch.no_grad():
             model.eval()
             output = model(test_features, self.test_graph)
