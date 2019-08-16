@@ -7,7 +7,7 @@ import torch
 import random
 from dgl.data import citation_graph as citegrh
 from parser import *
-from algorithms.node_embedding import SGC, DGIAPI
+from algorithms.node_embedding import SGC, DGIAPI, GraphsageInductive
 from algorithms.logreg_inductive import LogisticRegressionInductive
 import os
 
@@ -42,11 +42,15 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_algorithm(args, data, features):
+def get_algorithm(args, train_data, train_features, val_data=None, val_features=None, 
+    test_data=None, test_features=None):
     if args.alg == "sgc":
-        return SGC(data, features, degree=args.degree, cuda=args.cuda)
+        return SGC(train_data, train_features, degree=args.degree, cuda=args.cuda)
     elif args.alg == "dgi":
-        return DGIAPI(data, features, cuda=args.cuda)
+        return DGIAPI(train_data, train_features, cuda=args.cuda)
+    elif args.alg == "graphsage":
+        return GraphsageInductive(train_data, val_data, test_data, train_features, val_features,
+            test_features, cuda=args.cuda, aggregator=args.aggregator)
     else:
         raise NotImplementedError
 
@@ -117,6 +121,7 @@ def main(args):
     val_features = load_features('valid', val_data.graph, args)
     test_features = load_features('test', test_data.graph, args)
 
+    use_default_classifier = False
     if args.alg == "sgc":
         # aggregate only -> create train val test alg
         train_alg = get_algorithm(args, train_data, train_features) 
@@ -125,18 +130,25 @@ def main(args):
         val_embs = val_alg.train()
         test_alg = get_algorithm(args, test_data, test_features)
         test_embs = test_alg.train()
+        use_default_classifier = True
     elif args.alg == "dgi":
         alg = get_algorithm(args, train_data, train_features)
         train_embs = alg.train()
         val_embs = alg.get_embeds(val_features, val_data.graph)
         test_embs = alg.get_embeds(test_features, test_data.graph)
+        use_default_classifier = True
+    elif args.alg == "graphsage":
+        alg = get_algorithm(args, train_data, train_features, val_data, val_features,
+            test_data, test_features)
+        alg.train()
 
-    print("Using default logistic regression")
-    classifier = LogisticRegressionInductive(train_embs, val_embs, test_embs, 
-        train_data.labels, val_data.labels, test_data.labels,
-        epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
-        bias=args.logreg_bias, cuda=args.cuda, 
-        multiclass=train_data.multiclass)
+    if use_default_classifier:
+        print("Using default logistic regression")
+        classifier = LogisticRegressionInductive(train_embs, val_embs, test_embs, 
+            train_data.labels, val_data.labels, test_data.labels,
+            epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
+            bias=args.logreg_bias, cuda=args.cuda, 
+            multiclass=train_data.multiclass)
 
 def init_environment(args):
     np.random.seed(args.seed)

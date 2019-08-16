@@ -1,6 +1,7 @@
 from .sgc.sgc import SGC
 from .dgi.train import DGIAPI
 from .graphsage.graphsage import GraphsageAPI
+from .graphsage.graphsage_inductive import GraphsageInductive
 import torch
 
 class Nope():

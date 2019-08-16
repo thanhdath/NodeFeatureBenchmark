@@ -96,8 +96,10 @@ class GraphSAGELayer(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
         if aggregator_type == "pooling":
             self.aggregator = PoolingAggregator(g, in_feats, out_feats, activation, bias)
-        else:
+        elif aggregator_type == "mean":
             self.aggregator = MeanAggregator(g, in_feats, out_feats, activation, bias)
+        else:
+            raise NotImplementedError
 
     def forward(self, h):
         h = self.dropout(h)

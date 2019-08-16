@@ -16,7 +16,8 @@ def add_dgi_parser(subparsers):
 
 def add_graphsage_parser(subparsers):
     parser = subparsers.add_parser('graphsage', help='DGI algorithm.')
-    parser.add_argument('--aggregator', help="Aggregator type (mean or pool)")
+    parser.add_argument('--aggregator', default="mean", 
+        help="Aggregator type (mean or pooling)")
     return parser
 
 def add_diffpool_parser(subparsers):
