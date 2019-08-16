@@ -19,7 +19,7 @@ def deepwalk_walk(args):
 
     walks = []
     for node in nodes:
-        walk = [node]
+        walk = [str(node)]
         if len(neibs[node]) == 0:
             walks.append(walk)
             continue

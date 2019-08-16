@@ -34,7 +34,7 @@ def accuracy(output, labels, multiclass=False):
         # preds[preds <= 0.5] = 0
         # preds = preds.cpu().detach().numpy().astype(np.int32)
         probs = torch.sigmoid(output)
-        top_k_list = [x.sum() for x in labels]
+        top_k_list = [int(x.sum()) for x in labels]
         for i, k in enumerate(top_k_list):
             preds = probs[i].argsort()[-k:]
             probs[i,:] = 0

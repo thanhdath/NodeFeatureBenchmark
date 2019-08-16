@@ -114,6 +114,8 @@ class TriangleFeature(FeatureInitialization):
     def __init__(self, **kwargs):
         super(TriangleFeature).__init__()
     def _generate(self, graph, dim_size):
+        if nx.is_directed(graph):
+            graph = nx.to_undirected(graph)
         triangles = nx.triangles(graph)
         prep_dict = {}
         for idx, node in enumerate(graph.nodes()):

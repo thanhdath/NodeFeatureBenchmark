@@ -105,13 +105,14 @@ def dict2arr(dictt, graph):
 
 
 def load_data(dataset):
-    if dataset in "data/cora data/bc data/flickr data/wiki".split():
-        return DefaultDataloader(dataset)
-    elif dataset in ["data/citeseer", "data/pubmed"]:
-        return CitationDataloader(dataset)
-    elif dataset == "data/reddit":
+    data_name = dataset.split('/')[-1]
+    if data_name in "cora bc flickr wiki".split():
+        return DefaultDataloader(data_name)
+    elif data_name in ["citeseer", "pubmed"]:
+        return CitationDataloader(data_name)
+    elif data_name == "reddit":
         return RedditDataset(self_loop=False)
-    elif dataset == "data/reddit_self_loop":
+    elif data_name == "reddit_self_loop":
         return RedditDataset(self_loop=True)
 
 
@@ -119,14 +120,14 @@ def main(args):
     data = load_data(args.dataset)
     inplace = "reddit" not in args.dataset 
 
-    feat_file = 'feats/{}-{}-seed{}.npy'.format(args.dataset.split('/')[-1], args.init, args.seed)
+    feat_file = 'feats/{}-{}-seed{}.npz'.format(args.dataset.split('/')[-1], args.init, args.seed)
     if os.path.isfile(feat_file):
         features = np.load(feat_file, allow_pickle=True)[()]
     else:
         features = get_feature_initialization(args, data.graph, inplace=inplace)
         if not os.path.isdir('feats'):
             os.makedirs('feats')
-        np.save(feat_file, features)
+        np.savez_compressed(feat_file, features)
     features = dict2arr(features, data.graph)
     alg = get_algorithm(args, data, features)
 

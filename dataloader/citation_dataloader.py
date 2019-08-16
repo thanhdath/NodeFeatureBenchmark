@@ -101,6 +101,8 @@ class CitationDataloader(object):
         self.train_mask = torch.ByteTensor(train_mask)
         self.val_mask = torch.ByteTensor(val_mask)
         self.test_mask = torch.ByteTensor(test_mask)
+        self.multiclass = False
+        self.n_classes = int(self.labels.max() + 1)
 
         if first_time:
             features = np.asarray(features.todense())

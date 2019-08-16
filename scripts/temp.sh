@@ -1,29 +1,38 @@
+
+for data in cora citeseer pubmed
+do
 feat_size=128
-data=ENZYMES
 mkdir log
+for seed in $(seq 40 42)
+do
 
-for seed in $(seq 40 44)
+
+alg=dgi
+mkdir log/$alg
+for init in triangle
 do
-alg=diffpool
-for init in ori-rowsum ori-standard label-standard
-do
-python graph_classify.py --dataset data/$data \
+echo $alg-$init
+python -u main.py --dataset data/$data  \
     --feature_size $feat_size \
     --init $init \
     --seed $seed \
     --cuda \
-    $alg --pool_ratio 0.1 --num_pool 1 > log/$alg/$data-$init-seed$seed
-done
+    $alg --self-loop > log/$alg/$data-$init-seed$seed
+done # init
 
 
-alg=gin
-for init in ori-rowsum ori-standard label-standard
+alg=graphsage
+mkdir log/$alg
+for init in triangle
 do
-python graph_classify.py --dataset data/$data \
+echo $alg-$init
+python -u main.py --dataset data/$data  \
     --feature_size $feat_size \
     --init $init \
     --seed $seed \
     --cuda \
-    $alg > log/$alg/$data-$init-seed$seed
-done
+    $alg --aggregator pool > log/$alg/$data-$init-seed$seed
+done # init
+
+done # seed
 done
