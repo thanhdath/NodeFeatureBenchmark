@@ -51,6 +51,7 @@ class LogisticRegressionInductive():
             val_embs = val_embs.cuda()
             self.model.cuda()
         best_val_acc = 0
+        npt = 0
         for epoch in range(self.epochs):
             self.model.train()
             self.optimizer.zero_grad()
@@ -71,6 +72,12 @@ class LogisticRegressionInductive():
                         best_val_acc = acc
                         torch.save(self.model.state_dict(), 'logistic-best-model.pkl')
                         print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc.item()))
+                        npt = 0
+                    else:
+                        npt += 1
+                    if npt > 3: 
+                        print("Early stopping")
+                        break
         train_time = time.time() - stime
         print('Train time: {:.3f}'.format(train_time))
         self.model.load_state_dict(torch.load('logistic-best-model.pkl'))

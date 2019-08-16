@@ -20,22 +20,22 @@ class DGIAPI():
         self.self_loop = self_loop
         self.cuda = cuda
         self.data = data
-        self.graph = self.preprocess_graph(data)
+        self.graph = self.preprocess_graph(data.graph)
         self.features = torch.FloatTensor(features)
 
         self.dgi = DGI(self.features.shape[1], self.hidden, self.layers, nn.PReLU(
             self.hidden), self.dropout)
 
-    def preprocess_graph(self, data):
+    def preprocess_graph(self, graph):
         # graph preprocess and calculate normalization factor
-        if data.graph.__class__.__name__ != "DGLGraph":
+        if graph.__class__.__name__ != "DGLGraph":
             if self.self_loop:
-                data.graph.remove_edges_from(data.graph.selfloop_edges())
-                data.graph.add_edges_from(
-                    zip(data.graph.nodes(), data.graph.nodes()))
-            g = DGLGraph(data.graph)
+                graph.remove_edges_from(graph.selfloop_edges())
+                graph.add_edges_from(
+                    zip(graph.nodes(), graph.nodes()))
+            g = DGLGraph(graph)
             return g
-        return data.graph
+        return graph
 
     def train(self):
         features = self.features
@@ -88,4 +88,5 @@ class DGIAPI():
         return embeds
 
     def get_embeds(self, features, g):
+        g = self.preprocess_graph(g)
         return self.dgi.encoder(features, g, corrupt=False)

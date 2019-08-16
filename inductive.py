@@ -128,8 +128,8 @@ def main(args):
     elif args.alg == "dgi":
         alg = get_algorithm(args, train_data, train_features)
         train_embs = alg.train()
-        val_embs = alg.get_embed(val_features, val_data.graph)
-        test_embs = alg.get_embed(test_features, test_data.graph)
+        val_embs = alg.get_embeds(val_features, val_data.graph)
+        test_embs = alg.get_embeds(test_features, test_data.graph)
 
     print("Using default logistic regression")
     classifier = LogisticRegressionInductive(train_embs, val_embs, test_embs, 

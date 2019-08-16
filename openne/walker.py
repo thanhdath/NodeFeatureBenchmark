@@ -14,8 +14,8 @@ def deepwalk_walk(args):
     walk_length = args["walk_length"]
     neibs = args["neibs"]
     nodes = args["nodes"]
-    if args["iter"] % 5 == 0:
-        print("Iter:", args["iter"])
+    # if args["iter"] % 5 == 0:
+    print("Iter:", args["iter"]) # keep printing, avoid moving process to swap
 
     walks = []
     for node in nodes:
