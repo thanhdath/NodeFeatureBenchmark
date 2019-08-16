@@ -107,9 +107,9 @@ def dict2arr(dictt, graph):
 def load_data(dataset):
     data_name = dataset.split('/')[-1]
     if data_name in "cora bc flickr wiki".split():
-        return DefaultDataloader(data_name)
+        return DefaultDataloader(dataset)
     elif data_name in ["citeseer", "pubmed"]:
-        return CitationDataloader(data_name)
+        return CitationDataloader(dataset)
     elif data_name == "reddit":
         return RedditDataset(self_loop=False)
     elif data_name == "reddit_self_loop":
@@ -122,12 +122,12 @@ def main(args):
 
     feat_file = 'feats/{}-{}-seed{}.npz'.format(args.dataset.split('/')[-1], args.init, args.seed)
     if os.path.isfile(feat_file):
-        features = np.load(feat_file, allow_pickle=True)[()]
+        features = np.load(feat_file, allow_pickle=True)['features'][()]
     else:
         features = get_feature_initialization(args, data.graph, inplace=inplace)
         if not os.path.isdir('feats'):
             os.makedirs('feats')
-        np.savez_compressed(feat_file, features)
+        np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
     alg = get_algorithm(args, data, features)
 

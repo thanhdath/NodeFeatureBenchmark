@@ -106,7 +106,7 @@ def load_features(mode, graph, args):
     feat_file = 'feats/{}-{}-{}-seed{}.npz'.format(args.dataset.split('/')[-1], 
         mode, args.init, args.seed)
     if os.path.isfile(feat_file):
-        features = np.load(feat_file, allow_pickle=True)['features']
+        features = np.load(feat_file, allow_pickle=True)['features'][()]
     else:
         features = get_feature_initialization(args, graph, mode, inplace=False)
         if not os.path.isdir('feats'):

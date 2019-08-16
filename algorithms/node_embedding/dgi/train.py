@@ -8,7 +8,7 @@ from .dgi import DGI
 
 class DGIAPI():
     def __init__(self, data, features, dropout=0, lr=1e-3, epochs=300,
-        hidden=512, layers=1, weight_decay=0., patience=20, self_loop=False, cuda=True):
+        hidden=512, layers=1, weight_decay=0., patience=40, self_loop=False, cuda=True):
         self.dropout = dropout
         self.lr = lr 
         self.epochs = epochs

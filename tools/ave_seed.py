@@ -24,16 +24,16 @@ except:
 
 if data in "bc flickr wiki".split():
     if alg == "nope":
-        inits = "deepwalk hope line gf"
+        inits = "deepwalk hope line gf".split()
     else:
-        inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangles-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard identity".split()
+        inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard identity".split()
 else:
     if alg == "nope":
         inits = "ori ori-rowsum ori-standard deepwalk hope node2vec line gf \
             deepwalk-standard hope-standard node2vec-standard line-standard gf-standard".split()
     elif alg in ["diffpool", "gin"]:
         inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope line \
-            gf triangles-standard kcore-standard egonet-standard pagerank-standard coloring-standar \
+            gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standar \
             clique-standard graphlet identity ori ori-rowsum ori-standard label label-standard".split()
     else:
         inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope \

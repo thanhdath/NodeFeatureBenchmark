@@ -3,13 +3,13 @@ for data in cora citeseer pubmed
 do
 feat_size=128
 mkdir log
-for seed in $(seq 40 42)
+for seed in $(seq 41 42)
 do
 
 
 alg=dgi
 mkdir log/$alg
-for init in triangle
+for init in triangle-standard
 do
 echo $alg-$init
 python -u main.py --dataset data/$data  \
@@ -23,7 +23,7 @@ done # init
 
 alg=graphsage
 mkdir log/$alg
-for init in triangle
+for init in triangle-standard
 do
 echo $alg-$init
 python -u main.py --dataset data/$data  \
