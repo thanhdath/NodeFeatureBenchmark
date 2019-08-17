@@ -103,8 +103,14 @@ def load_data(dataset):
         return PPIDataset("train"), PPIDataset("valid"), PPIDataset("test")
 
 def load_features(mode, graph, args):
+    inits_one = "degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
+    if args.init in inits_one:
+        load_seed = 40
+    else:
+        load_seed=  args.seed
+
     feat_file = 'feats/{}-{}-{}-seed{}.npz'.format(args.dataset.split('/')[-1], 
-        mode, args.init, args.seed)
+        mode, args.init, load_seed)
     if os.path.isfile(feat_file):
         features = np.load(feat_file, allow_pickle=True)['features'][()]
     else:

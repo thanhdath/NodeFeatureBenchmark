@@ -33,6 +33,8 @@ def parse_args():
     return parser.parse_args()
 
 def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, graph, inplace=True, shuffle=False):
+    if "reddit" in data_name:
+        inplace = False
     print("init: {} - seed {}".format(init_norm, seed))
     stime = time.time()
     state = np.random.get_state()
@@ -58,6 +60,8 @@ def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, g
         add_weight(graph)
 
     try:
+        if "reddit" in args.dataset and init == "deepwalk":
+            graph.build_neibs_dict()
         init_feature = lookup_feature_init[init](**kwargs)
         features = init_feature.generate(graph, feature_size,
                                     inplace=inplace, normalizer=normalizer,  verbose=0,
@@ -73,7 +77,7 @@ def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, g
     np.random.set_state(state)
 
 def main(args):
-    for mode in 'train val test'.split():
+    for mode in 'train valid test'.split():
         data = RedditInductiveDataset(mode, self_loop=False)
         graph = data.graph
         # inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard".split()
