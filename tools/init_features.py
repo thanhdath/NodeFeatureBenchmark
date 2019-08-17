@@ -7,6 +7,8 @@ import networkx as nx
 import multiprocessing
 from features_init import lookup as lookup_feature_init
 from main import add_weight
+import time
+from shutil import copyfile
 
 class NoDaemonProcess(multiprocessing.Process):
     # make 'daemon' attribute always return False
@@ -26,11 +28,14 @@ def parse_args():
         description="Pre init features.")
     parser.add_argument('--dataset', default="data/cora")
     parser.add_argument('--feature_size', default=128, type=int)
-    parser.add_argument('--seed', type=int, default=40)
+    # parser.add_argument('--seed', type=int, default=40)
     return parser.parse_args()
 
 def get_feature_initialization(init_norm, feature_size, seed, data_name, graph, inplace=True, shuffle=False):
     print("init: {} - seed {}".format(init_norm, seed))
+    stime = time.time()
+    state = np.random.get_state()
+    np.random.seed(seed)
     elms = init_norm.split("-")
     if len(elms) < 2:
         init = elms[0]
@@ -52,7 +57,7 @@ def get_feature_initialization(init_norm, feature_size, seed, data_name, graph, 
     try:
         init_feature = lookup_feature_init[init](**kwargs)
         features = init_feature.generate(graph, feature_size,
-                                    inplace=inplace, normalizer=normalizer, 
+                                    inplace=inplace, normalizer=normalizer,  verbose=0,
                                     shuffle=shuffle)
         import os 
         if not os.path.isdir('feats'):
@@ -61,23 +66,34 @@ def get_feature_initialization(init_norm, feature_size, seed, data_name, graph, 
         np.savez_compressed(feat_file, features=features)
     except Exception as err:
         print(err)
+    print("Time init features {} : {:.3f} s".format(init_norm, time.time()-stime))
+    np.random.set_state(state)
 
 def main(args):
     graph = nx.read_edgelist(args.dataset + '/edgelist.txt', nodetype=int)
-    inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard".split()
+    # inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard".split()
+    inits_many = "uniform deepwalk ssvd0.5 ssvd1 hope line gf pagerank-standard".split()
+    inits_one = "degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
     dataname = args.dataset.split('/')[-1]
     params = [(init, args.feature_size, seed, dataname, graph)
-        for init in inits for seed in range(40, 43)]
-    pool = MyPool(2)
+        for init in inits_many for seed in range(40, 43)]
+    params += [(init, args.feature_size, 40, dataname, graph)
+        for init in inits_one]
+    np.random.shuffle(params)
+    pool = MyPool(3)
     pool.starmap(get_feature_initialization, params)
     pool.close()
     pool.join()
 
+    for init in inits_one:
+        try:
+            feat_file = 'feats/{}-{}-seed{}.npz'.format(dataname, init, 40)
+            copyfile(feat_file, feat_file.replace("seed40", "seed41"))
+            copyfile(feat_file, feat_file.replace("seed40", "seed41"))
+        except:
+            pass
+
 if __name__ == '__main__':
     args = parse_args()
     print(args)
-    np.random.seed(args.seed)
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
-
     main(args)

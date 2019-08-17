@@ -120,14 +120,22 @@ def main(args):
     data = load_data(args.dataset)
     inplace = "reddit" not in args.dataset 
 
-    feat_file = 'feats/{}-{}-seed{}.npz'.format(args.dataset.split('/')[-1], args.init, args.seed)
+    inits_one = "degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
+    if args.init in inits_one:
+        load_seed = 40
+    else:
+        load_seed=  args.seed
+    
+    feat_file = 'feats/{}-{}-seed{}.npz'.format(args.dataset.split('/')[-1], args.init, load_seed)
     if os.path.isfile(feat_file):
         features = np.load(feat_file, allow_pickle=True)['features'][()]
     else:
-        features = get_feature_initialization(args, data.graph, inplace=inplace)
-        if not os.path.isdir('feats'):
-            os.makedirs('feats')
-        np.savez_compressed(feat_file, features=features)
+        import sys; sys.exit()
+    # else:
+    #     features = get_feature_initialization(args, data.graph, inplace=inplace)
+    #     if not os.path.isdir('feats'):
+    #         os.makedirs('feats')
+    #     np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
     alg = get_algorithm(args, data, features)
 

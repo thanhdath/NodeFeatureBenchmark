@@ -8,45 +8,93 @@ import torch
 from .custom_dgl_graph import DGLGraph
 
 class RedditInductiveDataset(object):
-    def __init__(self, self_loop=False):
-        # download_dir = get_download_dir()
-        download_dir = "data/"
-        self_loop_str = ""
+    def __init__(self, mode, self_loop=False):
+        """
+        mode: one of train val test
+        """
+        self.data_dir = "data/reddit"
         if self_loop:
-            self_loop_str = "_self_loop"
-        zip_file_path = os.path.join(download_dir, "reddit{}.zip".format(self_loop_str))
-        download(_get_dgl_url("dataset/reddit{}.zip".format(self_loop_str)), path=zip_file_path)
-        extract_dir = os.path.join(download_dir, "reddit{}".format(self_loop_str))
-        first_time = not os.path.isdir(extract_dir) 
-        extract_archive(zip_file_path, extract_dir)
-        # graph
-        coo_adj = sp.load_npz(os.path.join(extract_dir, "reddit{}_graph.npz".format(self_loop_str)))
-        # self.graph = nx.from_scipy_sparse_matrix(coo_adj)
-        self.graph = DGLGraph(coo_adj, readonly=True)
-        # features and labels
-        reddit_data = np.load(os.path.join(extract_dir, "reddit_data.npz"))
-        self.features = torch.FloatTensor(reddit_data["feature"])
-        self.labels = torch.LongTensor(reddit_data["label"])
-        self.num_labels = 41
-        # tarin/val/test indices
-        self.node_ids = reddit_data["node_ids"]
-        node_types = reddit_data["node_types"]
-        self.train_mask = torch.ByteTensor(node_types == 1)
-        self.val_mask = torch.ByteTensor(node_types == 2)
-        self.test_mask = torch.ByteTensor(node_types == 3)
+            self.data_dir += "_self_loop"
+        self.graph = self.load_graph(mode)
+        features = np.load(self.data_dir+'/{}_feats.npz'.format(mode), allow_pickle=True)['feats'][()]
+        self.features = torch.FloatTensor(features)
+        labels = np.load(self.data_dir+'/{}_labels.npz'.format(mode), allow_pickle=True)['labels']
+        self.labels = torch.LongTensor(labels)
+        self.n_classes = int(self.labels.max() + 1)
         self.multiclass = False
-        self.n_classes = self.num_labels
+        
+    def load_graph(self, mode):
+        coo_adj = np.load(os.path.join(self.data_dir, "{}_graph.npz".format(mode)), allow_pickle=True)['graph'][()]
+        graph = DGLGraph(coo_adj, readonly=True)
+        return graph
 
-        if first_time:
-            features = self.features.numpy()
-            features_dict = {int(node): features[i] for i, node in enumerate(self.node_ids)}
-            np.save(extract_dir + '/features.npy', features_dict)
- 
-        print('Finished data loading.')
-        print('  NumNodes: {}'.format(self.graph.number_of_nodes()))
-        print('  NumEdges: {}'.format(self.graph.number_of_edges()))
-        print('  NumFeats: {}'.format(self.features.shape[1]))
-        print('  NumClasses: {}'.format(self.num_labels))
-        print('  NumTrainingSamples: {}'.format(len(np.nonzero(self.train_mask)[0])))
-        print('  NumValidationSamples: {}'.format(len(np.nonzero(self.val_mask)[0])))
-        print('  NumTestSamples: {}'.format(len(np.nonzero(self.test_mask)[0])))
+def process(self_loop=False):
+    # download_dir = get_download_dir()
+    download_dir = "data/"
+    self_loop_str = ""
+    if self_loop:
+        self_loop_str = "_self_loop"
+    zip_file_path = os.path.join(download_dir, "reddit{}.zip".format(self_loop_str))
+    download(_get_dgl_url("dataset/reddit{}.zip".format(self_loop_str)), path=zip_file_path)
+    extract_dir = os.path.join(download_dir, "reddit{}".format(self_loop_str))
+    first_time = not os.path.isdir(extract_dir) 
+    extract_archive(zip_file_path, extract_dir)
+    # graph
+    coo_adj = sp.load_npz(os.path.join(extract_dir, "reddit{}_graph.npz".format(self_loop_str)))
+    # graph = nx.from_scipy_sparse_matrix(coo_adj)
+    graph = DGLGraph(coo_adj, readonly=True)
+    # graph =
+    import numpy as np
+    reddit_data = np.load(os.path.join(extract_dir, "reddit_data.npz"))
+    features = reddit_data["feature"]
+    labels = reddit_data["label"]
+    # tarin/val/test indices
+    node_ids = reddit_data["node_ids"]
+    node_types = reddit_data["node_types"]
+    # subgraph
+    train_indices = np.argwhere(node_types == 1).flatten()
+    val_indices = np.argwhere(node_types == 2).flatten()
+    test_indices = np.argwhere(node_types == 3).flatten()
+
+    train_graph = graph.subgraph(train_indices)
+    val_graph = graph.subgraph(val_indices)
+    test_graph = graph.subgraph(test_indices)
+
+    print("Info")
+    print("train graph - nodes {} - edges {}".format(train_graph.number_of_nodes(),
+        train_graph.number_of_edges()))
+    print("val graph - nodes {} - edges {}".format(val_graph.number_of_nodes(),
+        val_graph.number_of_edges()))
+    print("test graph - nodes {} - edges {}".format(test_graph.number_of_nodes(),
+        test_graph.number_of_edges()))
+    # print(train_graph.nodes())
+    print(val_graph.nodes())
+    del graph
+    from networkx.readwrite import json_graph
+    import json
+    train_adj = train_graph.adjacency_matrix_scipy()
+    np.savez_compressed(extract_dir+'/train_graph.npz', graph=train_adj)
+    val_adj = val_graph.adjacency_matrix_scipy()
+    np.savez_compressed(extract_dir+'/train_graph.npz', graph=val_adj)
+    test_adj = test_graph.adjacency_matrix_scipy()
+    np.savez_compressed(extract_dir+'/train_graph.npz', graph=test_adj)
+    
+    train_labels = labels[train_indices]
+    val_labels = labels[val_indices]
+    test_labels = labels[test_indices]
+    import numpy as np 
+    np.savez_compressed(extract_dir+'/train_labels.npz', labels=train_labels)
+    np.savez_compressed(extract_dir+'/val_labels.npz', labels=val_labels)
+    np.savez_compressed(extract_dir+'/test_labels.npz', labels=test_labels)
+
+    train_features = features[train_indices]
+    val_features = features[val_indices]
+    test_features = features[test_indices]
+
+    np.savez_compressed(extract_dir+'/train_feats.npz', feats=train_features)
+    np.savez_compressed(extract_dir+'/val_feats.npz', feats=val_features)
+    np.savez_compressed(extract_dir+'/test_feats.npz', feats=test_features)
+
+if __name__ == '__main__':
+    process()
+    process(self_loop=True)
