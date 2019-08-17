@@ -149,6 +149,7 @@ class KCoreNumberFeature(FeatureInitialization):
         """
         super(KCoreNumberFeature).__init__()
     def _generate(self, graph, dim_size):
+        graph.remove_edges_from(nx.selfloop_edges(graph))
         prep_dict = {}
         kcore = nx.core_number(graph)
         for idx, node in enumerate(graph.nodes()):
@@ -187,6 +188,8 @@ class NodeCliqueNumber(FeatureInitialization):
         """
         super(NodeCliqueNumber).__init__()
     def _generate(self, graph, dim_size):
+        if nx.is_directed(graph):
+            graph = nx.to_undirected(graph)
         prep_dict = {}
         cn = nx.node_clique_number(graph)
         for idx, node in enumerate(graph.nodes()):

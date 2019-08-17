@@ -33,33 +33,33 @@ def parse_args():
     return parser.parse_args()
 
 def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, graph, inplace=True, shuffle=False):
-    if "reddit" in data_name:
-        inplace = False
-    print("init: {} - seed {}".format(init_norm, seed))
-    stime = time.time()
-    state = np.random.get_state()
-    np.random.seed(seed)
-    elms = init_norm.split("-")
-    if len(elms) < 2:
-        init = elms[0]
-        normalizer = "pass"
-    else:
-        init, normalizer = elms[:2]
-    if init not in lookup_feature_init:
-        raise NotImplementedError
-    kwargs = {}
-    if init == "ori":
-        kwargs = {"feature_path": "data/"+data_name + "/{}_feats.npz".format(mode)}
-    elif init == "ssvd0.5":
-        init = "ssvd"
-        kwargs = {"alpha": 0.5}
-    elif init == "ssvd1":
-        init = "ssvd"
-        kwargs = {"alpha": 1}
-    elif init in ["gf", "node2vec"]:
-        add_weight(graph)
-
     try:
+        if "reddit" in data_name:
+            inplace = False
+        print("init: {} - seed {}".format(init_norm, seed))
+        stime = time.time()
+        state = np.random.get_state()
+        np.random.seed(seed)
+        elms = init_norm.split("-")
+        if len(elms) < 2:
+            init = elms[0]
+            normalizer = "pass"
+        else:
+            init, normalizer = elms[:2]
+        if init not in lookup_feature_init:
+            raise NotImplementedError
+        kwargs = {}
+        if init == "ori":
+            kwargs = {"feature_path": "data/"+data_name + "/{}_feats.npz".format(mode)}
+        elif init == "ssvd0.5":
+            init = "ssvd"
+            kwargs = {"alpha": 0.5}
+        elif init == "ssvd1":
+            init = "ssvd"
+            kwargs = {"alpha": 1}
+        elif init in ["gf", "node2vec"]:
+            add_weight(graph)
+
         if "reddit" in args.dataset and init == "deepwalk":
             graph.build_neibs_dict()
         init_feature = lookup_feature_init[init](**kwargs)

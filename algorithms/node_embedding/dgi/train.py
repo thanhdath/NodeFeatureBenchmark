@@ -5,11 +5,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dgl import DGLGraph
 from .dgi import DGI
-
+import itertools
 
 class DGIAPI():
     def __init__(self, data, features, dropout=0, lr=1e-3, epochs=300,
-                 hidden=512, layers=1, weight_decay=0., patience=20, self_loop=False, cuda=True):
+                 hidden=512, layers=1, weight_decay=0., patience=20, self_loop=False, cuda=True,
+                 learnable_features=False):
         self.dropout = dropout
         self.lr = lr
         self.epochs = epochs
@@ -21,10 +22,26 @@ class DGIAPI():
         self.cuda = cuda
         self.data = data
         self.graph = self.preprocess_graph(data.graph)
-        self.features = torch.FloatTensor(features)
+
+        if not learnable_features:
+            self.features = torch.FloatTensor(features)
+        else:
+            print("Learnable features")
+            self.features_embedding = nn.Embedding(features.shape[0], features.shape[1])
+            self.features_embedding.weight = nn.Parameter(features)
+            self.features = self.features_embedding.weight
 
         self.dgi = DGI(self.features.shape[1], self.hidden, self.layers, nn.PReLU(
             self.hidden), self.dropout)
+        if not learnable_features:
+            self.dgi_optimizer = torch.optim.Adam(self.dgi.parameters(),
+                lr=self.lr,
+                weight_decay=self.weight_decay)
+        else:
+            self.dgi_optimizer = torch.optim.Adam(
+                itertools.chain(self.dgi.parameters(), self.features_embedding.parameters()),
+                lr=self.lr,
+                weight_decay=self.weight_decay)
 
     def preprocess_graph(self, graph):
         # graph preprocess and calculate normalization factor
@@ -45,9 +62,7 @@ class DGIAPI():
         dgi = self.dgi
         if self.cuda:
             dgi.cuda()
-        dgi_optimizer = torch.optim.Adam(dgi.parameters(),
-                                         lr=self.lr,
-                                         weight_decay=self.weight_decay)
+
         # train deep graph infomax
         cnt_wait = 0
         best = 1e9
@@ -58,10 +73,10 @@ class DGIAPI():
             if epoch >= 3:
                 t0 = time.time()
 
-            dgi_optimizer.zero_grad()
+            self.dgi_optimizer.zero_grad()
             loss = dgi(features, self.graph)
             loss.backward()
-            dgi_optimizer.step()
+            self.dgi_optimizer.step()
 
             if loss < best:
                 best = loss

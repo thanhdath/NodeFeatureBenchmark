@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument('--dataset', default="data/cora")
     parser.add_argument('--init', default="ori")
     parser.add_argument('--feature_size', default=128, type=int)
-    # args.add_argument('--train_features', action='store_true')
+    parser.add_argument('--learn-features', dest='learnable_features', action='store_true')
     parser.add_argument('--shuffle', action='store_true',
                         help="Whether shuffle features or not.")
     parser.add_argument('--seed', type=int, default=40)
@@ -48,9 +48,11 @@ def get_algorithm(args, data, features):
     elif args.alg == "nope":
         return Nope(features)
     elif args.alg == "dgi":
-        return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda)
+        return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda,
+            learnable_features=args.learnable_features)
     elif args.alg == "graphsage":
-        return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator)
+        return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator,
+            learnable_features=args.learnable_features)
     else:
         raise NotImplementedError
 
@@ -106,7 +108,7 @@ def dict2arr(dictt, graph):
 
 def load_data(dataset):
     data_name = dataset.split('/')[-1]
-    if data_name in "cora bc flickr wiki".split():
+    if data_name in "cora bc flickr wiki youtube".split():
         return DefaultDataloader(dataset)
     elif data_name in ["citeseer", "pubmed"]:
         return CitationDataloader(dataset)
@@ -130,12 +132,12 @@ def main(args):
     if os.path.isfile(feat_file):
         features = np.load(feat_file, allow_pickle=True)['features'][()]
     else:
-        import sys; sys.exit()
+        # import sys; sys.exit()
     # else:
-    #     features = get_feature_initialization(args, data.graph, inplace=inplace)
-    #     if not os.path.isdir('feats'):
-    #         os.makedirs('feats')
-    #     np.savez_compressed(feat_file, features=features)
+        features = get_feature_initialization(args, data.graph, inplace=inplace)
+        if not os.path.isdir('feats'):
+            os.makedirs('feats')
+        np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
     alg = get_algorithm(args, data, features)
 

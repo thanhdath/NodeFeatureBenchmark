@@ -13,6 +13,7 @@ import torch.nn.functional as F
 from dgl import DGLGraph
 import dgl.function as fn
 from utils import f1, accuracy
+import itertools
 
 class Aggregator(nn.Module):
     def __init__(self, g, in_feats, out_feats, activation=None, bias=True):
@@ -146,9 +147,18 @@ def evaluate(model, features, labels, mask, multiclass=False):
 
 class GraphsageAPI():
     def __init__(self, data, features, dropout=0.5, cuda=True, lr=1e-2,
-        epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean"):
+        epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean",
+        learnable_features=False):
         self.data = data 
-        self.features = features
+        self.learnable_features = learnable_features
+        if not learnable_features:
+            self.features = torch.FloatTensor(features)
+        else:
+            print("Learnable features")
+            self.features_embedding = nn.Embedding(features.shape[0], features.shape[1])
+            self.features_embedding.weight = nn.Parameter(features)
+            self.features = self.features_embedding.weight
+
         self.graph = self.preprocess_graph(data)
         self.dropout = dropout
         self.cuda = cuda 
@@ -203,7 +213,12 @@ class GraphsageAPI():
             loss_fcn = torch.nn.CrossEntropyLoss()
 
         # use optimizer
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        if self.learnable_features:
+            optimizer = torch.optim.Adam(
+                itertools.chain(model.parameters(), self.features_embedding.parameters()),
+                lr=self.lr, weight_decay=self.weight_decay)
+        else:
+            optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         best_val_acc = 0
         npt = 0
         max_patience = 4

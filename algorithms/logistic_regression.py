@@ -33,7 +33,9 @@ class LogisticRegressionPytorch():
         self.test_indices = np.argwhere(test_mask).flatten()
 
         self.model = nn.Linear(self.embs.shape[1], self.n_classes, bias=bias)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
+        self.optimizer = optim.Adam(
+            self.model.parameters(), 
+            lr=lr, weight_decay=weight_decay)
         self.train()
 
     def train(self):

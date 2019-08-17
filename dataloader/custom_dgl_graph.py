@@ -46,7 +46,7 @@ class NodeView(object):
 class DGLGraph(dgl.DGLGraph):
     def __init__(self, adj, readonly=False):
         super(DGLGraph, self).__init__(adj, readonly=readonly)
-        self.adj = adj.tocsr()
+        self.adj = adj.tocsr().astype(np.float32)
         # self.nodes_ = [int(x) for x in super(DGLGraph, self).nodes()] 
         # self.edges = self.edges()
 
@@ -72,6 +72,9 @@ class DGLGraph(dgl.DGLGraph):
 
     def degree(self, node):
         return self.adj[node].sum()
+
+    def is_directed(self):
+        return True
 
     # @property
     # def edges(self):

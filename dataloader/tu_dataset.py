@@ -25,9 +25,10 @@ class TUDataset(object):
 
     def __init__(self, datadir, use_pandas=False, ratio=[.7, .1, .2]):
         elms = datadir.split('/')
+        if len(elms[-1]) == 0: elms = elms[:-1]
         self.download_dir = '/'.join(elms[:-1])
         self.name = elms[-1]
-        self.extract_dir = self._download()
+        self.extract_dir = self._download() 
         if use_pandas:
             import pandas as pd
             DS_edge_list = self._idx_from_zero(
@@ -55,6 +56,8 @@ class TUDataset(object):
         # load node attributes
         try:
             self.node_attr = np.loadtxt(self._file_path("node_attributes"), delimiter=",")
+            if len(self.node_attr.shape) == 1:
+                self.node_attr = np.expand_dims(self.node_attr, 1)
         except:
             print("Graph does not has node attributes.")
 
