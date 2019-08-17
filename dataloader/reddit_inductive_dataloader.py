@@ -12,6 +12,7 @@ class RedditInductiveDataset(object):
         """
         mode: one of train val test
         """
+        if mode == "valid": mode = "val"
         self.data_dir = "data/reddit"
         if self_loop:
             self.data_dir += "_self_loop"

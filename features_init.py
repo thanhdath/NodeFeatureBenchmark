@@ -204,6 +204,8 @@ class OriginalFeature(FeatureInitialization):
     def read_node_features(self):
         if self.feature_path.endswith(".npy"):
             features = np.load(self.feature_path, allow_pickle=True)[()]
+        elif self.feature_path.endswith(".npz"):
+            features = np.load(self.feature_path, allow_pickle=True)['feats'][()]
         else:
             features = {}
             fin = open(self.feature_path, 'r')
