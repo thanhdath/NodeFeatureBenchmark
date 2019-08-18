@@ -45,7 +45,6 @@ def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, a
         if "reddit" in data_name:
             inplace = False
         print("init: {} - seed {}".format(init_norm, seed))
-        state = np.random.get_state()
         np.random.seed(seed)
         elms = init_norm.split("-")
         if len(elms) < 2:
@@ -81,13 +80,15 @@ def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, a
         print("Time init features {} : {:.3f} s".format(init_norm, time.time()-stime))
     except Exception as err:
         print(err)
-    np.random.set_state(state)
+
 
 def main(args):
     for mode in 'train valid test'.split():
         # inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard".split()
         inits_many = "uniform deepwalk ssvd0.5 ssvd1 hope line gf pagerank-standard".split()
         inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
+        if args.dataset.endswith("/"):
+            args.dataset = args.dataset[:-1]
         dataname = args.dataset.split('/')[-1]
         params = [(init, args.feature_size, seed, mode, dataname, args)
             for init in inits_many for seed in range(40, 43)]

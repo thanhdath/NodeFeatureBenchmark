@@ -12,22 +12,24 @@ class RedditInductiveDataset(object):
         """
         mode: one of train val test
         """
-        if mode == "valid": mode = "val"
         self.data_dir = "data/reddit"
         if self_loop:
             self.data_dir += "_self_loop"
-        self.graph = self.load_graph(mode)
+        npz = np.load(os.path.join(self.data_dir, "{}_graph.npz".format(mode)), allow_pickle=True)
+        coo_adj = npz['graph'][()]
+        labels = npz['labels'][()]
+        if mode == "train":
+            self.mask = np.arange(len(coo_adj))
+        else:
+            self.mask = npz["{}_nodes".format(mode)][()]
+        
+        graph = DGLGraph(coo_adj, readonly=True)
         features = np.load(self.data_dir+'/{}_feats.npz'.format(mode), allow_pickle=True)['feats'][()]
         self.features = torch.FloatTensor(features)
-        labels = np.load(self.data_dir+'/{}_labels.npz'.format(mode), allow_pickle=True)['labels']
         self.labels = torch.LongTensor(labels)
         self.n_classes = int(self.labels.max() + 1)
         self.multiclass = False
-        
-    def load_graph(self, mode):
-        coo_adj = np.load(os.path.join(self.data_dir, "{}_graph.npz".format(mode)), allow_pickle=True)['graph'][()]
-        graph = DGLGraph(coo_adj, readonly=True)
-        return graph
+    
 
 def process(self_loop=False):
     # download_dir = get_download_dir()
@@ -37,8 +39,7 @@ def process(self_loop=False):
         self_loop_str = "_self_loop"
     zip_file_path = os.path.join(download_dir, "reddit{}.zip".format(self_loop_str))
     download(_get_dgl_url("dataset/reddit{}.zip".format(self_loop_str)), path=zip_file_path)
-    extract_dir = os.path.join(download_dir, "reddit{}".format(self_loop_str))
-    first_time = not os.path.isdir(extract_dir) 
+    extract_dir = os.path.join(download_dir, "reddit{}".format(self_loop_str)) 
     extract_archive(zip_file_path, extract_dir)
     # graph
     coo_adj = sp.load_npz(os.path.join(extract_dir, "reddit{}_graph.npz".format(self_loop_str)))
@@ -58,8 +59,12 @@ def process(self_loop=False):
     test_indices = np.argwhere(node_types == 3).flatten()
 
     train_graph = graph.subgraph(train_indices)
-    val_graph = graph.subgraph(val_indices)
-    test_graph = graph.subgraph(test_indices)
+    val_graph = graph.subgraph(np.hstack([train_indices, val_indices]))
+    val_nodes = np.array([int(x) for x in val_graph.nodes()][len(train_indices):])
+    test_graph = graph
+    test_nodes = test_indices
+
+    # test 
 
     print("Info")
     print("train graph - nodes {} - edges {}".format(train_graph.number_of_nodes(),
@@ -68,32 +73,28 @@ def process(self_loop=False):
         val_graph.number_of_edges()))
     print("test graph - nodes {} - edges {}".format(test_graph.number_of_nodes(),
         test_graph.number_of_edges()))
-    # print(train_graph.nodes())
-    print(val_graph.nodes())
-    del graph
     from networkx.readwrite import json_graph
     import json
-    train_adj = train_graph.adjacency_matrix_scipy()
-    np.savez_compressed(extract_dir+'/train_graph.npz', graph=train_adj)
-    val_adj = val_graph.adjacency_matrix_scipy()
-    np.savez_compressed(extract_dir+'/val_graph.npz', graph=val_adj)
-    test_adj = test_graph.adjacency_matrix_scipy()
-    np.savez_compressed(extract_dir+'/test_graph.npz', graph=test_adj)
-    
     train_labels = labels[train_indices]
-    val_labels = labels[val_indices]
-    test_labels = labels[test_indices]
-    import numpy as np 
-    np.savez_compressed(extract_dir+'/train_labels.npz', labels=train_labels)
-    np.savez_compressed(extract_dir+'/val_labels.npz', labels=val_labels)
-    np.savez_compressed(extract_dir+'/test_labels.npz', labels=test_labels)
+    val_labels = labels[np.hstack([train_indices, val_indices])]
+    test_labels = labels
+
+
+    train_adj = train_graph.adjacency_matrix_scipy()
+    np.savez_compressed(extract_dir+'/train_graph.npz', graph=train_adj, labels=train_labels)
+    val_adj = val_graph.adjacency_matrix_scipy()
+    np.savez_compressed(extract_dir+'/valid_graph.npz', graph=val_adj, 
+        valid_nodes=val_nodes, labels=val_labels)
+    test_adj = test_graph.adjacency_matrix_scipy()
+    np.savez_compressed(extract_dir+'/test_graph.npz', graph=test_adj, 
+        test_nodes=test_nodes, labels=test_labels)
+    
 
     train_features = features[train_indices]
-    val_features = features[val_indices]
-    test_features = features[test_indices]
-
+    val_features = features[np.hstack([train_indices, val_indices])]
+    test_features = features
     np.savez_compressed(extract_dir+'/train_feats.npz', feats=train_features)
-    np.savez_compressed(extract_dir+'/val_feats.npz', feats=val_features)
+    np.savez_compressed(extract_dir+'/valid_feats.npz', feats=val_features)
     np.savez_compressed(extract_dir+'/test_feats.npz', feats=test_features)
 
 if __name__ == '__main__':

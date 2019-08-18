@@ -27,7 +27,7 @@ if data in "bc flickr wiki".split():
         inits = "deepwalk hope line gf".split()
     else:
         inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard identity".split()
-elif "ppi" in data:
+elif "ppi" in data or "inductive" in data:
     inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcor-standard egonet-standard pagerank-standard coloring-standard clique-standard identity ori ori-rowsum ori-standard learnable".split()
 else:
     if alg == "nope":

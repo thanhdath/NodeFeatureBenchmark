@@ -55,7 +55,7 @@ python -u main.py --dataset data/$data  \
     --init $init \
     --seed $seed \
     --cuda \
-    $alg --aggregator pool > log/$alg/$data-$init-seed$seed
+    $alg --aggregator mean > log/$alg/$data-$init-seed$seed
 done # init
 
 done # seed

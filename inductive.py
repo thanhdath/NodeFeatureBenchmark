@@ -118,10 +118,12 @@ def load_features(mode, graph, args):
     if os.path.isfile(feat_file):
         features = np.load(feat_file, allow_pickle=True)['features'][()]
     else:
-        features = get_feature_initialization(args, graph, mode, inplace=False)
-        if not os.path.isdir('feats'):
-            os.makedirs('feats')
-        np.savez_compressed(feat_file, features=features)
+        print(feat_file, "not found ")
+        import sys; sys.exit()
+        # features = get_feature_initialization(args, graph, mode, inplace=False)
+        # if not os.path.isdir('feats'):
+        #     os.makedirs('feats')
+        # np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, graph)
     return features
 
@@ -137,9 +139,9 @@ def main(args):
         train_alg = get_algorithm(args, train_data, train_features) 
         train_embs = train_alg.train()
         val_alg = get_algorithm(args, val_data, val_features)
-        val_embs = val_alg.train()
+        val_embs = val_alg.train()[val_data.mask]
         test_alg = get_algorithm(args, test_data, test_features)
-        test_embs = test_alg.train()
+        test_embs = test_alg.train()[test_data.mask]
         use_default_classifier = True
     elif args.alg == "dgi":
         alg = get_algorithm(args, train_data, train_features)

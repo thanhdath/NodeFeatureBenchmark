@@ -76,7 +76,6 @@ class DGLGraph(dgl.DGLGraph):
     def is_directed(self):
         return True
 
-    # @property
-    # def edges(self):
-    #     src, trg = super(DGLGraph, self).edges()
-    #     return [(int(s), int(t)) for s, t in zip(src, trg)]
+    def edges(self):
+        src, trg = super(DGLGraph, self).edges()
+        return [(int(s), int(t)) for s, t in zip(src, trg)]
