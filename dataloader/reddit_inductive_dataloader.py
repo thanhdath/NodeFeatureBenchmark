@@ -76,9 +76,9 @@ def process(self_loop=False):
     train_adj = train_graph.adjacency_matrix_scipy()
     np.savez_compressed(extract_dir+'/train_graph.npz', graph=train_adj)
     val_adj = val_graph.adjacency_matrix_scipy()
-    np.savez_compressed(extract_dir+'/train_graph.npz', graph=val_adj)
+    np.savez_compressed(extract_dir+'/val_graph.npz', graph=val_adj)
     test_adj = test_graph.adjacency_matrix_scipy()
-    np.savez_compressed(extract_dir+'/train_graph.npz', graph=test_adj)
+    np.savez_compressed(extract_dir+'/test_graph.npz', graph=test_adj)
     
     train_labels = labels[train_indices]
     val_labels = labels[val_indices]

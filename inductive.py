@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 import networkx as nx
-from dataloader import PPIDataset
+from dataloader import PPIDataset, RedditInductiveDataset
 from features_init import lookup as lookup_feature_init
 import torch
 import random
@@ -101,6 +101,10 @@ def load_data(dataset):
     data_name = dataset.split('/')[-1]
     if data_name == "ppi":
         return PPIDataset("train"), PPIDataset("valid"), PPIDataset("test")
+    elif "reddit" in data_name:
+        return (RedditInductiveDataset("train", self_loop=("self_loop" in data_name)), 
+            RedditInductiveDataset("valid", self_loop=("self_loop" in data_name)), 
+            RedditInductiveDataset("test", self_loop=("self_loop" in data_name)))
 
 def load_features(mode, graph, args):
     inits_one = "degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
