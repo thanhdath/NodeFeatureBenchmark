@@ -44,14 +44,15 @@ class NodeView(object):
         return list(range(0, len(self)))
 
 class DGLGraph(dgl.DGLGraph):
-    def __init__(self, adj, readonly=False):
+    def __init__(self, adj, suffix="", readonly=False):
         super(DGLGraph, self).__init__(adj, readonly=readonly)
         self.adj = adj.tocsr().astype(np.float32)
+        self.suffix = suffix
         # self.nodes_ = [int(x) for x in super(DGLGraph, self).nodes()] 
         # self.edges = self.edges()
 
     def build_neibs_dict(self):
-        neibs_file = "neibs-reddit.json"
+        neibs_file = "neibs-reddit{}.json".format(self.suffix)
         if not os.path.isfile(neibs_file):
             self.neibs = {}
             n_process = multiprocessing.cpu_count()//2
@@ -63,7 +64,7 @@ class DGLGraph(dgl.DGLGraph):
             with open(neibs_file, "w+") as fp:
                 fp.write(json.dumps(self.neibs))
         else:
-            self.neibs = json.load(open("neibs-reddit.json"))
+            self.neibs = json.load(open(neibs_file))
             self.neibs = {int(k): v for k, v in self.neibs.items()}
     
     @property

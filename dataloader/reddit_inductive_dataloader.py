@@ -23,7 +23,7 @@ class RedditInductiveDataset(object):
         else:
             self.main_nodes = npz["{}_nodes".format(mode)][()]
         
-        self.graph = DGLGraph(coo_adj, readonly=True)
+        self.graph = DGLGraph(coo_adj, suffix="-{}".format(mode), readonly=True)
         features = np.load(self.data_dir+'/{}_feats.npz'.format(mode), allow_pickle=True)['feats'][()]
         self.features = torch.FloatTensor(features)
         self.labels = torch.LongTensor(labels)

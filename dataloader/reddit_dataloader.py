@@ -21,8 +21,9 @@ class RedditDataset(object):
         extract_archive(zip_file_path, extract_dir)
         # graph
         coo_adj = sp.load_npz(os.path.join(extract_dir, "reddit{}_graph.npz".format(self_loop_str)))
+        print("Check undirected:", (coo_adj == coo_adj.T).sum() / (coo_adj.shape[0]*coo_adj.shape[1]))
         # self.graph = nx.from_scipy_sparse_matrix(coo_adj)
-        self.graph = DGLGraph(coo_adj, readonly=True)
+        self.graph = DGLGraph(coo_adj, suffix="", readonly=True)
         # features and labels
         reddit_data = np.load(os.path.join(extract_dir, "reddit_data.npz"))
         self.features = torch.FloatTensor(reddit_data["feature"])
