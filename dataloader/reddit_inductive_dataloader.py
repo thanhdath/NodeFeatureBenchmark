@@ -19,9 +19,9 @@ class RedditInductiveDataset(object):
         coo_adj = npz['graph'][()]
         labels = npz['labels'][()]
         if mode == "train":
-            self.mask = np.arange(coo_adj.shape[0])
+            self.main_nodes = np.arange(coo_adj.shape[0])
         else:
-            self.mask = npz["{}_nodes".format(mode)][()]
+            self.main_nodes = npz["{}_nodes".format(mode)][()]
         
         self.graph = DGLGraph(coo_adj, readonly=True)
         features = np.load(self.data_dir+'/{}_feats.npz'.format(mode), allow_pickle=True)['feats'][()]

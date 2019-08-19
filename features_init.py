@@ -249,6 +249,17 @@ class GraphFactorizationFeature(FeatureInitialization):
         features = graph_factorization(graph, dim_size)
         return features
 
+class ProposedFeature(FeatureInitialization):
+    def __init__(self, **kwargs):
+        super(ProposedFeature).__init__()
+    def _generate(self, graph, dim_size):
+        features1 = SymmetricSVD(alpha=1)._generate(graph, dim_size-3)
+        features2 = NodeDegreesFeature().generate(graph, dim_size=1, inplace=False, normalizer="standard")
+        features = {node: np.hstack([features1[node], features2[node]]) 
+            for node in features1}
+        return features
+
+
 lookup = {
     "ori": OriginalFeature,
     "degree": NodeDegreesFeature,
@@ -269,6 +280,7 @@ lookup = {
     "ssvd0.5": SymmetricSVD,
     "ssvd1": SymmetricSVD,
     "line": LINEFeature,
-    "gf": GraphFactorizationFeature
+    "gf": GraphFactorizationFeature,
+    "propose": ProposedFeature
 }
 

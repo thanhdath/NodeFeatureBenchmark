@@ -133,25 +133,28 @@ def main(args):
     val_features = load_features('valid', val_data.graph, args)
     test_features = load_features('test', test_data.graph, args)
 
-    if args.init in "uniform".split():
-        val_features[~val_data.mask] = train_features
-        test_features[~test_data.mask] = val_features
-
     use_default_classifier = False
     if args.alg == "sgc":
         # aggregate only -> create train val test alg
         train_alg = get_algorithm(args, train_data, train_features) 
         train_embs = train_alg.train()
         val_alg = get_algorithm(args, val_data, val_features)
-        val_embs = val_alg.train()[val_data.mask]
+        val_embs = val_alg.train()[val_data.main_nodes]
         test_alg = get_algorithm(args, test_data, test_features)
-        test_embs = test_alg.train()[test_data.mask]
+        test_embs = test_alg.train()[test_data.main_nodes]
+        val_labels = val_data.labels[val_data.main_nodes]
+        test_labels = test_data.labels[test_data.main_nodes]
         use_default_classifier = True
     elif args.alg == "dgi":
         alg = get_algorithm(args, train_data, train_features)
         train_embs = alg.train()
-        val_embs = alg.get_embeds(val_features, val_data.graph)
-        test_embs = alg.get_embeds(test_features, test_data.graph)
+        torch.cuda.empty_cache()
+        val_embs = alg.get_embeds(val_features, val_data.graph)[val_data.main_nodes]
+        torch.cuda.empty_cache()
+        test_embs = alg.get_embeds(test_features, test_data.graph)[test_data.main_nodes]
+        val_labels = val_data.labels[val_data.main_nodes]
+        test_labels = test_data.labels[test_data.main_nodes]
+        torch.cuda.empty_cache()
         use_default_classifier = True
     elif args.alg == "graphsage":
         alg = get_algorithm(args, train_data, train_features, val_data, val_features,
@@ -161,7 +164,7 @@ def main(args):
     if use_default_classifier:
         print("Using default logistic regression")
         classifier = LogisticRegressionInductive(train_embs, val_embs, test_embs, 
-            train_data.labels, val_data.labels, test_data.labels,
+            train_data.labels, val_labels, test_labels,
             epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
             bias=args.logreg_bias, cuda=args.cuda, 
             multiclass=train_data.multiclass)

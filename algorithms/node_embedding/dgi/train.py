@@ -104,6 +104,9 @@ class DGIAPI():
 
     def get_embeds(self, features, g):
         if self.cuda:
-            features = features.cuda()
+            self.dgi.cpu()
         g = self.preprocess_graph(g)
-        return self.dgi.encoder(features, g, corrupt=False)
+        embeds = self.dgi.encoder(features, g, corrupt=False)
+        if self.cuda:
+            self.dgi.cuda()
+        return embeds
