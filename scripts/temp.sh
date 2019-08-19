@@ -4,9 +4,10 @@ mkdir log
 for seed in $(seq 40 40)
 do
 
-alg=nope
-data=reddit
-for init in line
+alg=sgc
+data=reddit_self_loop
+mkdir log/$alg
+for init in triangle-standard
 do
 echo $alg-$init
 python -u main.py --dataset data/$data  \

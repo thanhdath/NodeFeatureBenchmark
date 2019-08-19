@@ -79,3 +79,12 @@ class DGLGraph(dgl.DGLGraph):
     def edges(self):
         src, trg = super(DGLGraph, self).edges()
         return [(int(s), int(t)) for s, t in zip(src, trg)]
+
+    def is_multigraph(self):
+        return self._graph.is_multigraph()
+
+    def is_directed(self):
+        return False
+    
+    def __iter__(self):
+        yield from self.nodes()

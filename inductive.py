@@ -133,6 +133,10 @@ def main(args):
     val_features = load_features('valid', val_data.graph, args)
     test_features = load_features('test', test_data.graph, args)
 
+    if args.init in "uniform".split():
+        val_features[~val_data.mask] = train_features
+        test_features[~test_data.mask] = val_features
+
     use_default_classifier = False
     if args.alg == "sgc":
         # aggregate only -> create train val test alg

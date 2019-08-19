@@ -19,11 +19,11 @@ class RedditInductiveDataset(object):
         coo_adj = npz['graph'][()]
         labels = npz['labels'][()]
         if mode == "train":
-            self.mask = np.arange(len(coo_adj))
+            self.mask = np.arange(coo_adj.shape[0])
         else:
             self.mask = npz["{}_nodes".format(mode)][()]
         
-        graph = DGLGraph(coo_adj, readonly=True)
+        self.graph = DGLGraph(coo_adj, readonly=True)
         features = np.load(self.data_dir+'/{}_feats.npz'.format(mode), allow_pickle=True)['feats'][()]
         self.features = torch.FloatTensor(features)
         self.labels = torch.LongTensor(labels)

@@ -30,14 +30,13 @@ def parse_args():
         description="Pre init features.")
     parser.add_argument('--dataset', default="data/cora")
     parser.add_argument('--feature_size', default=128, type=int)
-    parser.add_argument('--self-loop', dest='self_loop', action='store_true')
     # parser.add_argument('--seed', type=int, default=40)
     return parser.parse_args()
 
 def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, args, inplace=True, shuffle=False):
     try:
         if "reddit" in args.dataset:
-            data = RedditInductiveDataset(mode, self_loop=args.self_loop)
+            data = RedditInductiveDataset(mode, self_loop=("self_loop" in args.dataset))
         elif "ppi" in args.dataset:
             data = PPIDataset(mode)
         graph = data.graph
