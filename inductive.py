@@ -107,7 +107,7 @@ def load_data(dataset):
             RedditInductiveDataset("test", self_loop=("self_loop" in data_name)))
 
 def load_features(mode, graph, args):
-    inits_one = "degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
+    inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
     if args.init in inits_one:
         load_seed = 40
     else:

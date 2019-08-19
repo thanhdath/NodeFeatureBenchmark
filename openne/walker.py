@@ -26,6 +26,7 @@ def deepwalk_walk(args):
         while len(walk) < walk_length:
             cur = int(walk[-1])
             cur_nbrs = neibs[cur]
+            if len(cur_nbrs) == 0: break
             walk.append(str(np.random.choice(cur_nbrs)))
         walks.append(walk)
     return walks
