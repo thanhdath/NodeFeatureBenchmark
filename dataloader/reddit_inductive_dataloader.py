@@ -8,7 +8,7 @@ import torch
 from .custom_dgl_graph import DGLGraph
 
 class RedditInductiveDataset(object):
-    def __init__(self, mode, self_loop=False):
+    def __init__(self, mode, self_loop=False, use_networkx=False):
         """
         mode: one of train val test
         """
@@ -23,7 +23,10 @@ class RedditInductiveDataset(object):
         else:
             self.main_nodes = npz["{}_nodes".format(mode)][()]
         
-        self.graph = DGLGraph(coo_adj, suffix="-{}".format(mode), readonly=True)
+        if use_networkx:
+            self.graph = nx.from_scipy_sparse_matrix(coo_adj)
+        else:
+            self.graph = DGLGraph(coo_adj, suffix="-{}".format(mode), readonly=True)
         features = np.load(self.data_dir+'/{}_feats.npz'.format(mode), allow_pickle=True)['feats'][()]
         self.features = torch.FloatTensor(features)
         self.labels = torch.LongTensor(labels)

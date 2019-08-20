@@ -18,6 +18,7 @@ python -u inductive.py --dataset data/$data  \
     $alg > log/$alg/$data-inductive-$init-seed$seed
 done # init
 
+
 data=reddit_self_loop
 alg=dgi
 mkdir log/$alg

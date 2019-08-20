@@ -36,11 +36,11 @@ def parse_args():
 def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, args, inplace=True, shuffle=False):
     try:
         if "reddit" in args.dataset:
-            data = RedditInductiveDataset(mode, self_loop=("self_loop" in args.dataset))
+            data = RedditInductiveDataset(mode, self_loop=("self_loop" in args.dataset), use_networkx=True)
         elif "ppi" in args.dataset:
             data = PPIDataset(mode)
         graph = data.graph
-        stime = time.time()
+        
         if "reddit" in data_name:
             inplace = False
         print("init: {} - seed {}".format(init_norm, seed))
@@ -67,6 +67,7 @@ def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, a
 
         if "reddit" in args.dataset and init == "deepwalk":
             graph.build_neibs_dict()
+        stime = time.time()
         init_feature = lookup_feature_init[init](**kwargs)
         features = init_feature.generate(graph, feature_size,
                                     inplace=inplace, normalizer=normalizer,  verbose=0,
@@ -84,8 +85,11 @@ def get_feature_initialization(init_norm, feature_size, seed, mode, data_name, a
 def main(args):
     for mode in 'train valid test'.split():
         # inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard".split()
-        inits_many = "uniform deepwalk ssvd0.5 ssvd1 hope line gf pagerank-standard".split()
-        inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
+        # inits_many = "uniform deepwalk ssvd0.5 ssvd1 hope line gf pagerank-standard".split()
+        # inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
+        inits_many = "".split()
+        inits_one = "pagerank-standard triangle-standard kcore-standard coloring-standard clique-standard".split()
+
         if args.dataset.endswith("/"):
             args.dataset = args.dataset[:-1]
         dataname = args.dataset.split('/')[-1]
@@ -94,10 +98,13 @@ def main(args):
         params += [(init, args.feature_size, 40, mode, dataname, args)
             for init in inits_one]
         np.random.shuffle(params)
-        pool = MyPool(3)
-        pool.starmap(get_feature_initialization, params)
-        pool.close()
-        pool.join()
+        # pool = MyPool(3)
+        # pool.starmap(get_feature_initialization, params)
+        # pool.close()
+        # pool.join()
+
+        for param in params:
+            get_feature_initialization(*param)
 
     # for init in inits_one:
     #     try:
