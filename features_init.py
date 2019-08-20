@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from normalization import lookup as lookup_normalizer
 import json
 import os
+from scipy.sparse import vstack, csr_matrix, hstack
 
 def log_verbose(msg, v):
     if v >= 1:
@@ -230,6 +231,12 @@ class SymmetricSVD(FeatureInitialization):
             adj = graph.adj 
         else:
             adj = nx.to_scipy_sparse_matrix(graph, dtype=np.float32)
+        if adj.shape[0] < dim_size:
+            padding_row = csr_matrix((dim_size-adj.shape[0], adj.shape[1]), dtype=adj.dtype)
+            adj = vstack((adj, padding_row))
+            padding_col = csr_matrix((dim_size-adj.shape[1], adj.shape[0]), dtype=adj.dtype)
+            adj = hstack((adj, padding_col))
+
         U, X,_ = svds(adj, k = dim_size)
         embedding = U*(X**(self.alpha))
         features = {node: embedding[i] for i, node in enumerate(graph.nodes())}
