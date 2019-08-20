@@ -231,10 +231,10 @@ class SymmetricSVD(FeatureInitialization):
             adj = graph.adj 
         else:
             adj = nx.to_scipy_sparse_matrix(graph, dtype=np.float32)
-        if adj.shape[0] < dim_size:
-            padding_row = csr_matrix((dim_size-adj.shape[0], adj.shape[1]), dtype=adj.dtype)
+        if adj.shape[0] <= dim_size:
+            padding_row = csr_matrix((dim_size-adj.shape[0]+1, adj.shape[1]), dtype=adj.dtype)
             adj = vstack((adj, padding_row))
-            padding_col = csr_matrix((dim_size-adj.shape[1], adj.shape[0]), dtype=adj.dtype)
+            padding_col = csr_matrix((adj.shape[0], dim_size-adj.shape[1]+1), dtype=adj.dtype)
             adj = hstack((adj, padding_col))
 
         U, X,_ = svds(adj, k = dim_size)

@@ -58,6 +58,11 @@ class HOPE(object):
             A = graph.adj 
         else:
             A = nx.to_scipy_sparse_matrix(graph, dtype=np.float32)
+        if A.shape[0] <= self._d:
+            padding_row = csr_matrix((self._d-A.shape[0]+1, A.shape[1]), dtype=A.dtype)
+            A = vstack((A, padding_row))
+            padding_col = csr_matrix((A.shape[0], self._d-A.shape[1]+1), dtype=A.dtype)
+            A = hstack((A, padding_col))
         #M_l = beta*A
         #M_g = sp.eye(graph.number_of_nodes(), dtype=np.float32) - M_l
 
