@@ -4,7 +4,7 @@ from embed_algs import *
 import networkx as nx
 import pdb
 from scipy.sparse.linalg import svds
-from sklearn.preprocessing import StandardScaler 
+from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer, OneHotEncoder
 from normalization import lookup as lookup_normalizer
 import json
 import os
@@ -13,6 +13,23 @@ from scipy.sparse import vstack, csr_matrix, hstack
 def log_verbose(msg, v):
     if v >= 1:
         print(msg)
+
+def check_is_multiclass(features_arr):
+    for feature in features_arr:
+        if len(feature) > 1: return True 
+    return False
+
+def transform_onehot_or_multiclass(features_arr):
+    is_multiclass = check_is_multiclass(features_arr)
+    # is_multiclass = True
+    if is_multiclass:
+        encoder = MultiLabelBinarizer(sparse_output=False)
+        encoder.fit_transform(features_arr)
+    else:
+        encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
+        encoder.fit_transform(features_arr)
+    features_arr = encoder.transform(features_arr)
+    return features_arr
 
 class FeatureInitialization():
     def __init__(self):
@@ -46,6 +63,10 @@ class NodeDegreesFeature(FeatureInitialization):
         prep_dict = {}
         for idx, node in enumerate(graph.nodes()):
             prep_dict[node] = np.array([graph.degree(node)]+[1.]*(dim_size-1))
+            # prep_dict[node] = graph.degree(node)
+        # features_arr = [[prep_dict[x]] for x in graph.node()]
+        # features_arr = transform_onehot_or_multiclass(features_arr)
+        # prep_dict = {node: features_arr[i] for i, node in enumerate(graph.nodes())}
         return prep_dict
 
 class RandomUniformFeature(FeatureInitialization):
@@ -222,6 +243,28 @@ class OriginalFeature(FeatureInitialization):
         features = self.read_node_features()
         return features
 
+class NodeLabelFeature(FeatureInitialization):
+    def __init__(self, **kwargs):
+        super(NodeLabelFeature).__init__()
+        self.label_path = kwargs["label_path"]
+    def read_node_labels(self):
+        features = {}
+        is_multiclass = False
+        fin = open(self.label_path, 'r')
+        for l in fin.readlines():
+            vec = l.split()
+            if len(vec) > 2:
+                is_multiclass = True
+            features[int(vec[0])] = np.array([float(x) for x in vec[1:]])
+        fin.close()
+        return features, is_multiclass
+    def _generate(self, graph, dim_size):
+        features, is_multiclass = self.read_node_labels()
+        features_arr = [features[x] for x in graph.nodes()]
+        features_arr = transform_onehot_or_multiclass(features_arr)
+        features = {node: features_arr[i] for i, node in enumerate(graph.nodes())}
+        return features
+
 class SymmetricSVD(FeatureInitialization):
     def __init__(self, **kwargs):
         super(SymmetricSVD).__init__()
@@ -276,6 +319,7 @@ class ProposedFeature(FeatureInitialization):
 
 lookup = {
     "ori": OriginalFeature,
+    "label": NodeLabelFeature,
     "degree": NodeDegreesFeature,
     "uniform": RandomUniformFeature,
     "identity": IdentityFeature,

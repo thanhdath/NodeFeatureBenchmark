@@ -76,6 +76,8 @@ def get_feature_initialization(args, graph, inplace=True):
             kwargs = {"feature_path": args.dataset+"/features.npy"}
         else:
             kwargs = {"feature_path": args.dataset+"/features.txt"}
+    elif init == "label":
+        kwargs = {"label_path": args.dataset+"/labels.txt"}
     elif init == "ssvd0.5":
         init = "ssvd"
         kwargs = {"alpha": 0.5}
@@ -141,7 +143,10 @@ def main(args):
         if args.init not in ["identity"]:
             np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
-    assert features.shape[1] == args.feature_size, "Wrong feature dimension."
+
+    inits_fixed_dim = "ori ori-rowsum ori-standard label identity".split()
+    # if args.init not in inits_fixed_dim:
+    #     assert features.shape[1] == args.feature_size, "Wrong feature dimension."
     alg = get_algorithm(args, data, features)
 
     embeds = alg.train()
