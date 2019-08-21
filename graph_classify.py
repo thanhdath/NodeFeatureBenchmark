@@ -10,6 +10,7 @@ from algorithms.graph_embedding import *
 from main import get_feature_initialization
 from normalization import lookup as lookup_normalizer
 import time
+import os
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Node feature initialization benchmark.")
@@ -78,6 +79,12 @@ def get_algorithm(args, data):
     else:
         raise NotImplementedError
 
+def save_features(feat_file, features_dict):
+    dirr = '/'.join(feat_file.split('/')[:-1])
+    if not os.path.isdir(dirr):
+        os.makedirs(dirr)
+    np.savez_compressed(feat_file, features=features_dict)
+
 def init_features(args, data: TUDataset):
     elms = args.init.split("-")
     if len(elms) < 2:
@@ -89,26 +96,44 @@ def init_features(args, data: TUDataset):
     stime = time.time()
     if init == "ori": # use node attributes
         print("Init features: Original , node attributes")
-        for g in data.graph_lists:
-            idxs = list(g.nodes())
-            features = data.node_attr[idxs, :]
-            nodes = [x.item() for x in g.nodes()]
-            features_dict = {x: features[i] for i, x in enumerate(nodes)}
-            features_dict = lookup_normalizer[normalizer].norm(features_dict, g.to_networkx(), verbose=args.verbose)
+        for idx_g, g in enumerate(data.graph_lists):
+            feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
+                args.init, args.seed)
+            if os.path.isfile(feat_file):
+                features_dict = np.load(feat_file)['features'][()]
+            else:
+                idxs = list(g.nodes())
+                features = data.node_attr[idxs, :]
+                nodes = [x.item() for x in g.nodes()]
+                features_dict = {x: features[i] for i, x in enumerate(nodes)}
+                features_dict = lookup_normalizer[normalizer].norm(features_dict, g.to_networkx(), verbose=args.verbose)
+                save_features(feat_file, features_dict)
             g.ndata['feat'] = np.array([features_dict[x] for x in nodes])
     elif init == "label": # use node label as node features
         print("Init features: node labels")
-        for g in data.graph_lists:
-            idxs = list(g.nodes())
-            features = data.one_hot_node_labels[idxs, :]
-            nodes = [x.item() for x in g.nodes()]
-            features_dict = {x: features[i] for i, x in enumerate(nodes)}
-            features_dict = lookup_normalizer[normalizer].norm(features_dict, g.to_networkx(), verbose=args.verbose)
+        for idx_g, g in enumerate(data.graph_lists):
+            feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
+                args.init, args.seed)
+            if os.path.isfile(feat_file):
+                features_dict = np.load(feat_file)['features'][()]
+            else:
+                idxs = list(g.nodes())
+                features = data.one_hot_node_labels[idxs, :]
+                nodes = [x.item() for x in g.nodes()]
+                features_dict = {x: features[i] for i, x in enumerate(nodes)}
+                features_dict = lookup_normalizer[normalizer].norm(features_dict, g.to_networkx(), verbose=args.verbose)
+                save_features(feat_file, features_dict)
             g.ndata['feat'] = np.array([features_dict[x] for x in nodes])
     else:
         print("Init features:", init)
-        for graph in data.graph_lists:
-            features = get_feature_initialization(args, graph.to_networkx(), inplace=False)
+        for idx_g, graph in enumerate(data.graph_lists):
+            feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
+                args.init, args.seed)
+            if os.path.isfile(feat_file):
+                features = np.load(feat_file)['features'][()]
+            else:
+                features = get_feature_initialization(args, graph.to_networkx(), inplace=False)
+                save_features(feat_file, features)
             graph.ndata['feat'] = np.array([features[int(x)] for x in graph.nodes()])
     print("Time init features: {:.3f}s".format(time.time()-stime))
 
@@ -135,5 +160,7 @@ def init_environment(args):
 if __name__ == '__main__':
     args = parse_args()
     init_environment(args)
+    if args.dataset.endswith("/"):
+        args.dataset = args.dataset[:-1]
     print(args)
     main(args)
