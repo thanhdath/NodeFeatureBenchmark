@@ -128,7 +128,8 @@ def main(args):
     else:
         load_seed=  args.seed
     
-    feat_file = 'feats/{}-{}-seed{}.npz'.format(args.dataset.split('/')[-1], args.init, load_seed)
+    feat_file = 'feats/{}-{}-seed{}-dim{}.npz'.format(args.dataset.split('/')[-1], args.init, 
+        load_seed, args.feature_size)
     if os.path.isfile(feat_file):
         features = np.load(feat_file, allow_pickle=True)['features'][()]
     else:
