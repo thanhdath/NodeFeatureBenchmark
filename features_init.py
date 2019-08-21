@@ -256,6 +256,13 @@ class GraphFactorizationFeature(FeatureInitialization):
         features = graph_factorization(graph, dim_size)
         return features
 
+class GraphWageFeature(FeatureInitialization):
+    def __init__(self, **kwargs):
+        super(GraphWageFeature).__init__()
+    def _generate(self, graph, dim_size):
+        features = graphwave(graph, dim_size)
+        return features
+
 class ProposedFeature(FeatureInitialization):
     def __init__(self, **kwargs):
         super(ProposedFeature).__init__()
@@ -288,6 +295,7 @@ lookup = {
     "ssvd1": SymmetricSVD,
     "line": LINEFeature,
     "gf": GraphFactorizationFeature,
+    "graphwave": GraphWageFeature,
     "propose": ProposedFeature
 }
 

@@ -7,6 +7,7 @@ import scipy.sparse.linalg as lg
 from . import graph as g
 import torch
 from sklearn.preprocessing import normalize
+from scipy.sparse import vstack, csr_matrix, hstack
 
 __author__ = "Alan WANG"
 __email__ = "alan1995wang@outlook.com"
@@ -78,6 +79,7 @@ class HOPE(object):
         X2 = np.dot(vt.T, sigma)
         # self._X = X2
         self._X = np.asarray(np.concatenate((X1, X2), axis=1))
+        self._X = self._X[:graph.number_of_nodes()]
 
     @property
     def vectors(self):

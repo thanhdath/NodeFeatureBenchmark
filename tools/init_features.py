@@ -71,7 +71,7 @@ def get_feature_initialization(init_norm, feature_size, seed, data_name, args, i
         import os 
         if not os.path.isdir('feats'):
             os.makedirs('feats')
-        feat_file = 'feats/{}-{}-{}-seed{}.npz'.format(data_name, init_norm, seed)
+        feat_file = 'feats/{}-{}-seed{}.npz'.format(data_name, init_norm, seed)
         np.savez_compressed(feat_file, features=features)
         print("Time init features {} : {:.3f} s".format(init_norm, time.time()-stime))
     except Exception as err:

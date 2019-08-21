@@ -1,36 +1,31 @@
-
-
 feat_size=128
 mkdir log
+for data in ENZYMES DD 
+do
+
 for seed in $(seq 40 42)
 do
-data=reddit_self_loop
-alg=sgc
-mkdir log/$alg
-for init in deepwalk
+alg=diffpool
+for init in hope
 do
-echo $alg-$init
-python -u inductive.py --dataset data/$data  \
+python graph_classify.py --dataset data/$data \
     --feature_size $feat_size \
     --init $init \
     --seed $seed \
     --cuda \
-    $alg > log/$alg/$data-inductive-$init-seed$seed
-done # init
+    $alg --pool_ratio 0.15 --num_pool 1 > log/$alg/$data-$init-seed$seed
+done
 
 
-data=reddit_self_loop
-alg=dgi
-mkdir log/$alg
-for init in deepwalk
+alg=gin
+for init in hope ssvd0.5 ssvd1
 do
-echo $alg-$init
-python -u inductive.py --dataset data/$data  \
+python graph_classify.py --dataset data/$data \
     --feature_size $feat_size \
     --init $init \
     --seed $seed \
     --cuda \
-    $alg --self-loop > log/$alg/$data-inductive-$init-seed$seed
-done # init
-
+    $alg > log/$alg/$data-$init-seed$seed
+done
+done
 done

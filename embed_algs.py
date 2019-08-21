@@ -4,6 +4,7 @@ from openne.walker import BasicWalker
 from openne.node2vec import Node2vec
 from openne.hope import HOPE as HOPE_Openne
 from openne.graph import Graph
+from types import SimpleNamespace
 
 def deepwalk(G, dim_size, number_walks=20, walk_length=10, 
     workers=multiprocessing.cpu_count()//3):
@@ -46,3 +47,21 @@ def graph_factorization(G, dim_size):
     graph.read_g(G)
     gf = GraphFactorization(graph, rep_size=dim_size)
     return gf.vectors
+
+def graphwave(G, dim_size):
+    from helpers.GraphWave.spectral_machinery import WaveletMachine
+    settings = SimpleNamespace(
+        mechanism='exact',
+        heat_coefficient=1000.0,
+        sample_number=50,
+        approximation=100,
+        step_size=20,
+        switch=dim_size,
+        node_label_type=int
+    )
+    machine = WaveletMachine(G, settings)
+    machine.create_embedding()
+    embeds = machine.real_and_imaginary
+    indexes = list(machine.index)
+    vectors = {indexes[i]: embeds[i] for i in range(G.number_of_nodes())}
+    return vectors
