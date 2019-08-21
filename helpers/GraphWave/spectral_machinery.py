@@ -86,6 +86,9 @@ class WaveletMachine:
         else:
             self.approximate_structural_wavelet_embedding()
 
+    def transform_embeddings(self):
+        self.real_and_imaginary = np.concatenate([self.real_and_imaginary.real, self.real_and_imaginary.imag], axis = 1)
+
     def transform_and_save_embedding(self):
         """
         Transforming the numpy array with real and imaginary values to a pandas dataframe and saving it as a csv.

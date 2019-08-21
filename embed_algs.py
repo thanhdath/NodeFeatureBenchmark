@@ -53,14 +53,15 @@ def graphwave(G, dim_size):
     settings = SimpleNamespace(
         mechanism='exact',
         heat_coefficient=1000.0,
-        sample_number=50,
+        sample_number=dim_size//2,
         approximation=100,
         step_size=20,
-        switch=dim_size,
+        switch=100,
         node_label_type=int
     )
     machine = WaveletMachine(G, settings)
     machine.create_embedding()
+    machine.transform_embeddings()
     embeds = machine.real_and_imaginary
     indexes = list(machine.index)
     vectors = {indexes[i]: embeds[i] for i in range(G.number_of_nodes())}
