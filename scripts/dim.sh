@@ -1,4 +1,4 @@
-data=cora
+for data in wiki citeseer pubmed bc
 mkdir log
 for feat_size in 32 64 256 512
 do
@@ -9,7 +9,7 @@ do
     mkdir log/$alg
     for init in deepwalk ssvd0.5 ssvd1 hope graphwave
     do
-    echo $alg-$init-$feat_size
+    echo $data-$alg-$init-$feat_size
     python -u main.py --dataset data/$data  \
         --feature_size $feat_size \
         --init $init \
@@ -25,7 +25,7 @@ do
     mkdir log/$alg
     for init in deepwalk ssvd0.5 ssvd1 hope graphwave
     do
-    echo $alg-$init-$feat_size
+    echo $data-$alg-$init-$feat_size
     python -u main.py --dataset data/$data  \
         --feature_size $feat_size \
         --init $init \
@@ -41,7 +41,7 @@ do
     mkdir log/$alg
     for init in graphwave
     do
-    echo $alg-$init-$feat_size
+    echo $data-$alg-$init-$feat_size
     python -u main.py --dataset data/$data  \
         --feature_size $feat_size \
         --init $init \
@@ -57,7 +57,7 @@ do
     mkdir log/$alg
     for init in graphwave
     do
-    echo $alg-$init-$feat_size
+    echo $data-$alg-$init-$feat_size
     python -u main.py --dataset data/$data  \
         --feature_size $feat_size \
         --init $init \
@@ -68,3 +68,5 @@ do
 done # seed
 
 done
+
+done 

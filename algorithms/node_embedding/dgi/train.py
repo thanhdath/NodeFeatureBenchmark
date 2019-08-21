@@ -10,7 +10,7 @@ import itertools
 class DGIAPI():
     def __init__(self, data, features, dropout=0, lr=1e-3, epochs=300,
                  hidden=512, layers=1, weight_decay=0., patience=20, self_loop=False, cuda=True,
-                 learnable_features=False):
+                 learnable_features=False, suffix=""):
         self.dropout = dropout
         self.lr = lr
         self.epochs = epochs
@@ -20,6 +20,7 @@ class DGIAPI():
         self.patience = patience
         self.self_loop = self_loop
         self.cuda = cuda
+        self.suffix = suffix
         self.data = data
         self.graph = self.preprocess_graph(data.graph)
 
@@ -68,6 +69,7 @@ class DGIAPI():
         best = 1e9
         best_t = 0
         dur = []
+        best_model_name = 'dgi-best-model-{}.pkl'.format(self.suffix)
         for epoch in range(self.epochs):
             dgi.train()
             if epoch >= 3:
@@ -82,7 +84,7 @@ class DGIAPI():
                 best = loss
                 best_t = epoch
                 cnt_wait = 0
-                torch.save(dgi.state_dict(), 'dgi-best-model.pkl')
+                torch.save(dgi.state_dict(), best_model_name)
             else:
                 cnt_wait += 1
 
@@ -97,7 +99,7 @@ class DGIAPI():
                 print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f}".format(
                     epoch, np.mean(dur), loss.item()))
         print('Loading {}th epoch'.format(best_t))
-        dgi.load_state_dict(torch.load('dgi-best-model.pkl'))
+        dgi.load_state_dict(torch.load(best_model_name))
         embeds = dgi.encoder(features, self.graph, corrupt=False)
         embeds = embeds.detach()
         return embeds

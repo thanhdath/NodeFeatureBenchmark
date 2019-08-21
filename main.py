@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument('--logreg-wc', dest='logreg_weight_decay', type=float,
                         default=5e-6, help="Weight decay for logistic regression.")
     parser.add_argument('--logreg-epochs',
-                        dest='logreg_epochs', default=200, type=int)
+                        dest='logreg_epochs', default=300, type=int)
 
     subparsers = parser.add_subparsers(dest="alg",
                                        help='Choose 1 of the GNN algorithm from: sgc, dgi, graphsage, nope.')
@@ -49,10 +49,10 @@ def get_algorithm(args, data, features):
         return Nope(features)
     elif args.alg == "dgi":
         return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda,
-            learnable_features=args.learnable_features)
+            learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
     elif args.alg == "graphsage":
         return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator,
-            learnable_features=args.learnable_features)
+            learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
     else:
         raise NotImplementedError
 
@@ -141,6 +141,7 @@ def main(args):
         if args.init not in ["identity"]:
             np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
+    assert features.shape[1] == args.feature_size, "Wrong feature dimension."
     alg = get_algorithm(args, data, features)
 
     embeds = alg.train()
@@ -151,7 +152,7 @@ def main(args):
                                                data.labels, data.train_mask, data.val_mask, data.test_mask,
                                                epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
                                                bias=args.logreg_bias, cuda=args.cuda, 
-                                               multiclass=data.multiclass)
+                                               multiclass=data.multiclass, suffix=args.dataset.split('/')[-1])
 
 
 def init_environment(args):
@@ -163,5 +164,7 @@ def init_environment(args):
 if __name__ == '__main__':
     args = parse_args()
     init_environment(args)
+    if args.dataset.endswith("/"):
+        args.dataset = args.dataset[:-1]
     print(args)
     main(args)

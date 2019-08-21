@@ -148,7 +148,7 @@ def evaluate(model, features, labels, mask, multiclass=False):
 class GraphsageAPI():
     def __init__(self, data, features, dropout=0.5, cuda=True, lr=1e-2,
         epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean",
-        learnable_features=False):
+        learnable_features=False, suffix=""):
         self.data = data 
         self.learnable_features = learnable_features
         if not learnable_features:
@@ -169,6 +169,7 @@ class GraphsageAPI():
         self.weight_decay = weight_decay
         self.aggregator = aggregator
         self.multiclass = data.multiclass
+        self.suffix = suffix
         if self.multiclass:
             print("Train graphsage with multiclass")
 
@@ -222,6 +223,7 @@ class GraphsageAPI():
         best_val_acc = 0
         npt = 0
         max_patience = 4
+        best_model_name = 'graphsage-best-model-{}.pkl'.format(self.suffix)
         for epoch in range(self.epochs):
             stime = time.time()
             model.train()
@@ -239,7 +241,7 @@ class GraphsageAPI():
                 acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
                 if acc > best_val_acc:
                     best_val_acc = acc
-                    torch.save(model.state_dict(), 'graphsage-best-model.pkl')
+                    torch.save(model.state_dict(), best_model_name)
                     print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc))
                     npt= 0
                 else:
@@ -247,7 +249,7 @@ class GraphsageAPI():
                 if npt > max_patience:
                     print("Early stopping")
                     break
-        model.load_state_dict(torch.load('graphsage-best-model.pkl'))
+        model.load_state_dict(torch.load(best_model_name))
         with torch.no_grad():
             model.eval()
             output = model(features)
