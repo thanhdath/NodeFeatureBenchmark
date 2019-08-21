@@ -137,7 +137,8 @@ def main(args):
         features = get_feature_initialization(args, data.graph, inplace=inplace)
         if not os.path.isdir('feats'):
             os.makedirs('feats')
-        np.savez_compressed(feat_file, features=features)
+        if args.init not in ["identity"]:
+            np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
     alg = get_algorithm(args, data, features)
 
