@@ -313,6 +313,14 @@ class Struc2VecFeature(FeatureInitialization):
         features = struc2vec(graph, dim_size)
         return features
 
+class DeepwalkNetMFFeature(FeatureInitialization):
+    def __init__(self, **kwargs):
+        super(DeepwalkNetMFFeature).__init__()
+    def _generate(self, graph, dim_size):
+        from helpers.netmf import netmf_small, netmf_large
+        features = netmf_small(graph, dim_size)
+        return features
+
 class ProposedFeature(FeatureInitialization):
     def __init__(self, **kwargs):
         super(ProposedFeature).__init__()
@@ -348,6 +356,7 @@ lookup = {
     "gf": GraphFactorizationFeature,
     "graphwave": GraphWaveFeature,
     "struc2vec": Struc2VecFeature,
+    "netmf": DeepwalkNetMFFeature,
     "propose": ProposedFeature
 }
 
