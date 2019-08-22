@@ -5,26 +5,22 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def parse(init, seed):
-    logfile = "log/{}/{}-{}-mmd-seed{}".format(alg, data, init, seed)
+    logfile = "log/{}-{}-mmd-seed{}".format(data, init, seed)
     content = open(logfile).read()
-    pval = re.findall("pval: [0-9\.\s]+", content)[0]
-    pval = pval.replace("pval: ", "")
+    pval = re.findall("p_val: [-0-9\.\s]+", content)[0]
+    pval = pval.replace("p_val: ", "")
     pval = float(pval)
 
-    stats = re.findall("stats: [0-9\.\s]+", content)[0]
+    stats = re.findall("stats: [-0-9\.\s]+", content)[0]
     stats = stats.replace("stats: ", "")
     stats = float(stats)
 
-    bandwidth = re.findall("bandwidth: [0-9\.\s]+", content)[0]
+    bandwidth = re.findall("bandwidth: [-0-9\.\s]+", content)[0]
     bandwidth = bandwidth.replace("bandwidth: ", "")
     bandwidth = float(bandwidth)
     return pval, stats, bandwidth
 
 data = sys.argv[1]
-try:
-    alg = sys.argv[2]
-except:
-    alg = "sgc"
 
 inits = "ssvd1 ssvd0.5 deepwalk graphwave hope ori".split()
 

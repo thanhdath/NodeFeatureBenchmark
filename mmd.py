@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 import argparse
 import numpy as np
 import networkx as nx
@@ -92,9 +91,22 @@ def load_data(dataset):
 def main(args):
     data = load_data(args.dataset)
     init_features(args, data)
-    import pdb; pdb.set_trace()
     train_data = data.dataset_train
+    val_data = data.dataset_val
     test_data = data.dataset_test
+
+    train_feats = []
+    test_feats = []
+    for graph, _ in train_data:
+        train_feats.append(graph.ndata['feat'])
+    for graph, _ in val_data:
+        train_feats.append(graph.ndata['feat'])
+    train_feats = np.vstack(train_feats)
+    for graph, _ in test_data:
+        test_feats.append(graph.ndata['feat'])
+    test_feats = np.vstack(test_feats)
+
+    test_mmd(train_feats, test_feats)
 
 def init_environment(args):
     np.random.seed(args.seed)
