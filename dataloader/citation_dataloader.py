@@ -110,6 +110,12 @@ class CitationDataloader(object):
                 for i, node in enumerate(graph.nodes()):
                     fp.write("{} {}\n".format(node, ' '.join(map(str, features[i]))))
 
+        label_file = self.dir + '/' + self.name + '/labels.txt'
+        if not os.path.isfile(label_file):
+            with open(label_file, 'w+') as fp:
+                for i, node in enumerate(graph.nodes()):
+                    fp.write("{} {}\n".format(node, labels[i]))
+
         print('Finished data loading and preprocessing.')
         print('  NumNodes: {}'.format(self.graph.number_of_nodes()))
         print('  NumEdges: {}'.format(self.graph.number_of_edges()))

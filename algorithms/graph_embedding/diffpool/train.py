@@ -132,6 +132,7 @@ def train(dataset, model, prog_args, same_feat=True, val_dataset=None):
     if prog_args.cuda > 0:
         torch.cuda.set_device(0)
     npt = 0
+    best_model_name = 'diffpool-best-model-{}.pkl'.format(time.time())
     for epoch in range(prog_args.epoch):
         begin_time = time.time()
         model.train()
@@ -171,7 +172,7 @@ def train(dataset, model, prog_args, same_feat=True, val_dataset=None):
             if result >= early_stopping_logger['val_acc'] and result <=\
                     train_accu:
                 early_stopping_logger.update(best_epoch=epoch, val_acc=result)
-                torch.save(model.state_dict(), 'diffpool-best-model.pkl')
+                torch.save(model.state_dict(), best_model_name)
             if result > early_stopping_logger['val_acc']:
                 npt = 0
             else:
@@ -181,7 +182,8 @@ def train(dataset, model, prog_args, same_feat=True, val_dataset=None):
             print("best epoch is EPOCH {}, val_acc is {}%".format(early_stopping_logger['best_epoch'],
                                                                   early_stopping_logger['val_acc'] * 100))
         torch.cuda.empty_cache()
-    model.load_state_dict(torch.load('diffpool-best-model.pkl'))
+    model.load_state_dict(torch.load(best_model_name))
+    os.remove(best_model_name)
     return early_stopping_logger
 
 

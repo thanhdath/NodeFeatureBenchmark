@@ -9,6 +9,8 @@ from .parser import Parser
 from .gin import GIN
 import random
 from utils import f1
+import time
+import os
 
 
 def train(args, net, trainloader, optimizer, criterion, epoch):
@@ -109,6 +111,7 @@ def gin_api(args):
     # it's not cost-effective to hanle the cursor and init 0
     # https://stackoverflow.com/a/23121189
     best_val_acc = 0
+    best_model_name = 'gin-best-model-{}.pkl'.format(time.time())
     for epoch in range(args.epochs):
         model.train()
         scheduler.step()
@@ -122,10 +125,11 @@ def gin_api(args):
         _, valid_acc = eval_net(args, model, validloader, criterion)
         if best_val_acc < valid_acc:
             best_val_acc = valid_acc
-            torch.save(model.state_dict(), 'gin-best-model.pkl')
+            torch.save(model.state_dict(), best_model_name)
             print("== Epoch {} - Best val acc: {:.3f}".format(epoch, valid_acc))
-    model.load_state_dict(torch.load('gin-best-model.pkl'))
+    model.load_state_dict(torch.load(best_model_name))
     eval_net_f1(args, model, testloader)
+    os.remove(best_model_name)
 
 
 
