@@ -66,3 +66,17 @@ def graphwave(G, dim_size):
     indexes = list(machine.index)
     vectors = {indexes[i]: embeds[i] for i in range(G.number_of_nodes())}
     return vectors
+
+def struc2vec(G, dim_size, number_walks=20, walk_length=10, 
+    workers=multiprocessing.cpu_count()//3):
+    try:
+        from ge import Struc2Vec
+    except:
+        print("Install ge from https://github.com/shenweichen/GraphEmbedding")
+        raise ImportError
+    
+    model = Struc2Vec(G, walk_length=walk_length, num_walks=number_walks, 
+        workers=workers, verbose=40) #init model
+    model.train(window_size = 5, iter = 3)# train model
+    embeddings = model.get_embeddings()# get embedding vectors
+    return embeddings

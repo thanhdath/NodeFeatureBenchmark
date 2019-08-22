@@ -306,6 +306,13 @@ class GraphWaveFeature(FeatureInitialization):
         features = graphwave(graph, dim_size)
         return features
 
+class Struc2VecFeature(FeatureInitialization):
+    def __init__(self, **kwargs):
+        super(Struc2VecFeature).__init__()
+    def _generate(self, graph, dim_size):
+        features = struc2vec(graph, dim_size)
+        return features
+
 class ProposedFeature(FeatureInitialization):
     def __init__(self, **kwargs):
         super(ProposedFeature).__init__()
@@ -340,6 +347,7 @@ lookup = {
     "line": LINEFeature,
     "gf": GraphFactorizationFeature,
     "graphwave": GraphWaveFeature,
+    "struc2vec": Struc2VecFeature,
     "propose": ProposedFeature
 }
 
