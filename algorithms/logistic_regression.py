@@ -80,9 +80,9 @@ class LogisticRegressionPytorch():
                         npt = 0
                     else:
                         npt += 1
-                    if npt > 3: 
-                        print("Early stopping")
-                        break
+                    # if npt > 100: 
+                    #     print("Early stopping")
+                    #     break
         train_time = time.time() - stime
         print('Train time: {:.3f}'.format(train_time))
         self.model.load_state_dict(torch.load(best_model_name))

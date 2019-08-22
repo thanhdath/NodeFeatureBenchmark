@@ -117,7 +117,7 @@ class TUDataset(object):
     def _download(self):
         if os.path.isdir(self.download_dir + '/' + self.name):
             return self.download_dir
-        zip_file_path = os.path.join(self.download_dir, "tu_{}.zip".format(self.name))
+        zip_file_path = os.path.join(self.download_dir, "{}.zip".format(self.name))
         download(self._url.format(self.name), path=zip_file_path)
         self.extract_archive(zip_file_path, self.download_dir)
         return self.download_dir
