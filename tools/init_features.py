@@ -83,7 +83,7 @@ def main(args):
     # inits_many = "uniform deepwalk ssvd0.5 ssvd1 hope line gf pagerank-standard".split()
     # inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
     inits_many = "".split()
-    inits_one = "pagerank-standard triangle-standard kcore-standard coloring-standard clique-standard".split()
+    inits_one = "triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard".split()
 
     if args.dataset.endswith("/"):
         args.dataset = args.dataset[:-1]
@@ -92,11 +92,11 @@ def main(args):
         for init in inits_many for seed in range(40, 43)]
     params += [(init, args.feature_size, 40, dataname, args)
         for init in inits_one]
-    np.random.shuffle(params)
-    # pool = MyPool(3)
-    # pool.starmap(get_feature_initialization, params)
-    # pool.close()
-    # pool.join()
+    # np.random.shuffle(params)
+    pool = MyPool(1)
+    pool.starmap(get_feature_initialization, params)
+    pool.close()
+    pool.join()
 
     for param in params:
         get_feature_initialization(*param)

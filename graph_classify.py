@@ -100,7 +100,7 @@ def init_features(args, data: TUDataset):
             feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
                 args.init, args.seed)
             if os.path.isfile(feat_file):
-                features_dict = np.load(feat_file)['features'][()]
+                features_dict = np.load(feat_file, allow_pickle=True)['features'][()]
             else:
                 idxs = list(g.nodes())
                 features = data.node_attr[idxs, :]
@@ -115,7 +115,7 @@ def init_features(args, data: TUDataset):
             feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
                 args.init, args.seed)
             if os.path.isfile(feat_file):
-                features_dict = np.load(feat_file)['features'][()]
+                features_dict = np.load(feat_file, allow_pickle=True)['features'][()]
             else:
                 idxs = list(g.nodes())
                 features = data.one_hot_node_labels[idxs, :]
@@ -130,7 +130,7 @@ def init_features(args, data: TUDataset):
             feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
                 args.init, args.seed)
             if os.path.isfile(feat_file):
-                features = np.load(feat_file)['features'][()]
+                features = np.load(feat_file, allow_pickle=True)['features'][()]
             else:
                 features = get_feature_initialization(args, graph.to_networkx(), inplace=False)
                 save_features(feat_file, features)

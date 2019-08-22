@@ -31,18 +31,18 @@ elif "ppi" in data or "inductive" in data:
     inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcor-standard egonet-standard pagerank-standard coloring-standard clique-standard identity ori ori-rowsum ori-standard learnable".split()
 else:
     if alg == "nope":
-        inits = "ori ori-rowsum ori-standard deepwalk hope node2vec line gf \
+        inits = "ori ori-rowsum ori-standard deepwalk hope line gf \
             deepwalk-standard hope-standard node2vec-standard line-standard gf-standard graphwave".split()
     elif alg in ["diffpool", "gin"]:
-        inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope line \
+        inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line \
             gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standar \
-            clique-standard graphlet identity ori ori-rowsum ori-standard label label-standard graphwave".split()
+            clique-standard identity ori ori-rowsum ori-standard label label-standard graphwave".split()
     else:
-        inits = "degree-standard uniform deepwalk node2vec ssvd0.5 ssvd1 hope \
+        inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope \
                 line gf deepwalk-standard node2vec-standard ssvd0.5-standard ssvd1-standard hope-standard line-standard \
                 gf-standard \
                 triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
-                clique-standard graphlet identity ori ori-rowsum ori-standard label graphwave".split()
+                clique-standard identity ori ori-rowsum ori-standard label graphwave".split()
     
 print("Check ordered init methods:")
 for i, init in enumerate(inits):

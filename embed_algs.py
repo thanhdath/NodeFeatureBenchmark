@@ -5,6 +5,7 @@ from openne.node2vec import Node2vec
 from openne.hope import HOPE as HOPE_Openne
 from openne.graph import Graph
 from types import SimpleNamespace
+import networkx as nx
 
 def deepwalk(G, dim_size, number_walks=20, walk_length=10, 
     workers=multiprocessing.cpu_count()//3):
@@ -74,9 +75,11 @@ def struc2vec(G, dim_size, number_walks=20, walk_length=10,
     except:
         print("Install ge from https://github.com/shenweichen/GraphEmbedding")
         raise ImportError
-    
-    model = Struc2Vec(G, walk_length=walk_length, num_walks=number_walks, 
+    mapping = {node: str(node) for node in G.nodes()}
+    H = nx.relabel_nodes(G, mapping)
+    model = Struc2Vec(H, walk_length=walk_length, num_walks=number_walks, 
         workers=workers, verbose=40) #init model
     model.train(window_size = 5, iter = 3)# train model
     embeddings = model.get_embeddings()# get embedding vectors
+    embeddings = {int(k): v for k, v in embeddings.items()}
     return embeddings
