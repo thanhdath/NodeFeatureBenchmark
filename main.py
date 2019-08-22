@@ -110,14 +110,15 @@ def dict2arr(dictt, graph):
 
 def load_data(dataset):
     data_name = dataset.split('/')[-1]
-    if data_name in "cora bc flickr wiki youtube".split():
-        return DefaultDataloader(dataset)
-    elif data_name in ["citeseer", "pubmed"]:
+    if data_name in ["citeseer", "pubmed"]:
         return CitationDataloader(dataset)
     elif data_name == "reddit":
         return RedditDataset(self_loop=False)
     elif data_name == "reddit_self_loop":
         return RedditDataset(self_loop=True)
+    else:
+        # cora bc flickr wiki youtube homo-sapiens
+        return DefaultDataloader(dataset)
 
 
 def main(args):
