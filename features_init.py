@@ -9,6 +9,10 @@ from normalization import lookup as lookup_normalizer
 import json
 import os
 from scipy.sparse import vstack, csr_matrix, hstack
+try:
+    from networkit import *
+except:
+    print("Warning: cannot import networkit. Install by command: pip install networkit")
 
 def log_verbose(msg, v):
     if v >= 1:
@@ -183,9 +187,18 @@ class KCoreNumberFeature(FeatureInitialization):
 class PageRankFeature(FeatureInitialization):
     def __init__(self, **kwargs):
         super(PageRankFeature).__init__()
+        try:
+            self.use_networkit = kwargs["use_networkit"]
+        except:
+            self.use_networkit = False
     def _generate(self, graph, dim_size):
+        if self.use_networkit: # graph must be an instance of networkit
+            pr = centrality.PageRank(graph, 1e-6)
+            pr.run()
+            pr = pr.ranking()
+        else:
+            pr = nx.pagerank(graph)
         prep_dict = {}
-        pr = nx.pagerank(graph)
         for idx, node in enumerate(graph.nodes()):
             feature = np.ones((dim_size))
             feature[0] = pr[node]

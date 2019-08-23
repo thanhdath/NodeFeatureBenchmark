@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import scipy.sparse as sp
 
-
 def read_node_label(filename):
     fin = open(filename, 'r')
     labels = {}

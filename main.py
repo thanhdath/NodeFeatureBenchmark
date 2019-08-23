@@ -65,7 +65,8 @@ def add_weight(subgraph):
         subgraph[n1][n2]['weight'] = 1
     return subgraph
 
-def get_feature_initialization(args, graph, inplace=True):
+def get_feature_initialization(args, data, inplace=True):
+    graph = data.graph
     elms = args.init.split("-")
     if len(elms) < 2:
         init = elms[0]
@@ -91,8 +92,14 @@ def get_feature_initialization(args, graph, inplace=True):
     elif init in ["node2vec"]:
         add_weight(graph)
 
-    if "reddit" in args.dataset and init == "deepwalk":
-        graph.build_neibs_dict()
+    if "reddit" in args.dataset:
+        if init == "deepwalk":
+            graph.build_neibs_dict()
+        elif init in "pagerank".split():
+            kwargs = {"use_networkit": True}
+            graph = data.graph_networkit()
+            inplace = False
+            print("Warning: Init using {} will be inplace = False".format(init))
 
     # super slow feature initialization method
     # walk_file = "{}-seed{}.npy".format(args.dataset.split('/')[-1], args.seed)
@@ -139,7 +146,7 @@ def main(args):
         load_seed, args.feature_size)
 
     if args.shuffle:
-        features = get_feature_initialization(args, data.graph, inplace=inplace)
+        features = get_feature_initialization(args, data, inplace=inplace)
     else:
         if os.path.isfile(feat_file):
             features = np.load(feat_file, allow_pickle=True)['features'][()]

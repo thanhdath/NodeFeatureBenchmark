@@ -6,9 +6,13 @@ from dgl.data.utils import download, extract_archive, get_download_dir, _get_dgl
 import networkx as nx
 import torch
 from .custom_dgl_graph import DGLGraph
+try:
+    from networkit import *
+except:
+    print("Warning: cannot import networkit. Install by command: pip install networkit")
 
 class RedditDataset(object):
-    def __init__(self, self_loop=False, use_networkx=False):
+    def __init__(self, self_loop=False):
         # download_dir = get_download_dir()
         download_dir = "data/"
         self_loop_str = ""
@@ -21,10 +25,8 @@ class RedditDataset(object):
         extract_archive(zip_file_path, extract_dir)
         # graph
         coo_adj = sp.load_npz(os.path.join(extract_dir, "reddit{}_graph.npz".format(self_loop_str)))
-        if use_networkx:
-            self.graph = nx.from_scipy_sparse_matrix(coo_adj)
-        else:
-            self.graph = DGLGraph(coo_adj, suffix="", readonly=True)
+        self.graph = DGLGraph(coo_adj, suffix="", readonly=True)
+
         # features and labels
         reddit_data = np.load(os.path.join(extract_dir, "reddit_data.npz"))
         self.features = torch.FloatTensor(reddit_data["feature"])
@@ -52,3 +54,13 @@ class RedditDataset(object):
         print('  NumTrainingSamples: {}'.format(len(np.nonzero(self.train_mask)[0])))
         print('  NumValidationSamples: {}'.format(len(np.nonzero(self.val_mask)[0])))
         print('  NumTestSamples: {}'.format(len(np.nonzero(self.test_mask)[0])))
+
+    def graph_networkit(self):
+        if not hasattr(self, 'graph_networkit'):
+            edgelist_file = self.datadir + "/edgelist_networkit.txt"
+            if not os.path.isfile(edgelist_file):
+                with open(edgelist_file, "w+") as fp:
+                    fp.write("{} {}".format(adj.shape[0], adj.sum()))
+                    for i in range(adj.shape[0]):
+                        fp.write("\n" + " ".join(map(lambda x : str(x+1), adj[i].nonzero()[1])) )
+            self.graph_networkit = readGraph(edgelist_file, Format.METIS)
