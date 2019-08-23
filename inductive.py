@@ -115,15 +115,17 @@ def load_features(mode, graph, args):
 
     feat_file = 'feats/{}-{}-{}-seed{}.npz'.format(args.dataset.split('/')[-1], 
         mode, args.init, load_seed)
-    if os.path.isfile(feat_file):
-        features = np.load(feat_file, allow_pickle=True)['features'][()]
+    if args.shuffle:
+        features = get_feature_initialization(args, graph, mode, inplace=False)
     else:
-        print(feat_file, "not found ")
-        import sys; sys.exit()
-        # features = get_feature_initialization(args, graph, mode, inplace=False)
-        # if not os.path.isdir('feats'):
-        #     os.makedirs('feats')
-        # np.savez_compressed(feat_file, features=features)
+        if os.path.isfile(feat_file):
+            features = np.load(feat_file, allow_pickle=True)['features'][()]
+        else:
+            print(feat_file, "not found ")
+            features = get_feature_initialization(args, graph, mode, inplace=False)
+            if not os.path.isdir('feats'):
+                os.makedirs('feats')
+            np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, graph)
     return features
 
@@ -139,21 +141,21 @@ def main(args):
         train_alg = get_algorithm(args, train_data, train_features) 
         train_embs = train_alg.train()
         val_alg = get_algorithm(args, val_data, val_features)
-        val_embs = val_alg.train()[val_data.main_nodes]
+        val_embs = val_alg.train()[val_data.mask]
         test_alg = get_algorithm(args, test_data, test_features)
-        test_embs = test_alg.train()[test_data.main_nodes]
-        val_labels = val_data.labels[val_data.main_nodes]
-        test_labels = test_data.labels[test_data.main_nodes]
+        test_embs = test_alg.train()[test_data.mask]
+        val_labels = val_data.labels[val_data.mask]
+        test_labels = test_data.labels[test_data.mask]
         use_default_classifier = True
     elif args.alg == "dgi":
         alg = get_algorithm(args, train_data, train_features)
         train_embs = alg.train()
         torch.cuda.empty_cache()
-        val_embs = alg.get_embeds(val_features, val_data.graph)[val_data.main_nodes]
+        val_embs = alg.get_embeds(val_features, val_data.graph)[val_data.mask]
         torch.cuda.empty_cache()
-        test_embs = alg.get_embeds(test_features, test_data.graph)[test_data.main_nodes]
-        val_labels = val_data.labels[val_data.main_nodes]
-        test_labels = test_data.labels[test_data.main_nodes]
+        test_embs = alg.get_embeds(test_features, test_data.graph)[test_data.mask]
+        val_labels = val_data.labels[val_data.mask]
+        test_labels = test_data.labels[test_data.mask]
         torch.cuda.empty_cache()
         use_default_classifier = True
     elif args.alg == "graphsage":

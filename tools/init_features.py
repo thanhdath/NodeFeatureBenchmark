@@ -71,7 +71,7 @@ def get_feature_initialization(init_norm, feature_size, seed, data_name, args, i
         import os 
         if not os.path.isdir('feats'):
             os.makedirs('feats')
-        feat_file = 'feats/{}-{}-seed{}.npz'.format(data_name, init_norm, seed)
+        feat_file = 'feats/{}-{}-dim{}-seed{}.npz'.format(data_name, init_norm, feature_size, seed)
         np.savez_compressed(feat_file, features=features)
         print("Time init features {} : {:.3f} s".format(init_norm, time.time()-stime))
     except Exception as err:
@@ -83,7 +83,7 @@ def main(args):
     # inits_many = "uniform deepwalk ssvd0.5 ssvd1 hope line gf pagerank-standard".split()
     # inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
     inits_many = "".split()
-    inits_one = "triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard".split()
+    inits_one = "pagerank-standard coloring-standard clique-standard triangle-standard kcore-standard egonet-standard".split()
 
     if args.dataset.endswith("/"):
         args.dataset = args.dataset[:-1]

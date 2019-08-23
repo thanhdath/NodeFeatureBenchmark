@@ -19,6 +19,14 @@ def read_node_label(filename):
     fin.close()
     return labels, multiclass
 
+def scipy_to_sparse_tensor(matrix):
+    coo = matrix.tocoo()
+    values = coo.data
+    indices = np.vstack((coo.row, coo.col))
+    i = torch.LongTensor(indices)
+    v = torch.FloatTensor(values)
+    shape = coo.shape
+    return torch.sparse.FloatTensor(i, v, torch.Size(shape)).to_dense()
 
 def convert_labels_to_binary(labels, graph):
     mlb = MultiLabelBinarizer()

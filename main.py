@@ -8,6 +8,7 @@ import random
 from dgl.data import citation_graph as citegrh
 from parser import *
 from algorithms.node_embedding import SGC, Nope, DGIAPI, GraphsageAPI
+from algorithms.node_embedding.graphsagetf.api import Graphsage
 from algorithms.logistic_regression import LogisticRegressionPytorch
 import os
 
@@ -51,8 +52,11 @@ def get_algorithm(args, data, features):
         return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda,
             learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
     elif args.alg == "graphsage":
-        return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator,
-            learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
+        if features.shape[0] > 100000:
+            return Graphsage(data, features)
+        else:
+            return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator,
+                learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
     else:
         raise NotImplementedError
 
@@ -129,20 +133,22 @@ def main(args):
     if args.init in inits_one:
         load_seed = 40
     else:
-        load_seed=  args.seed
+        load_seed = args.seed
     
     feat_file = 'feats/{}-{}-seed{}-dim{}.npz'.format(args.dataset.split('/')[-1], args.init, 
         load_seed, args.feature_size)
-    if os.path.isfile(feat_file):
-        features = np.load(feat_file, allow_pickle=True)['features'][()]
-    else:
-        # import sys; sys.exit()
-    # else:
+
+    if args.shuffle:
         features = get_feature_initialization(args, data.graph, inplace=inplace)
-        if not os.path.isdir('feats'):
-            os.makedirs('feats')
-        if args.init not in ["identity"]:
-            np.savez_compressed(feat_file, features=features)
+    else:
+        if os.path.isfile(feat_file):
+            features = np.load(feat_file, allow_pickle=True)['features'][()]
+        else:
+            features = get_feature_initialization(args, data.graph, inplace=inplace)
+            if not os.path.isdir('feats'):
+                os.makedirs('feats')
+            if args.init not in ["identity"]:
+                np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
 
     inits_fixed_dim = "ori ori-rowsum ori-standard label identity".split()

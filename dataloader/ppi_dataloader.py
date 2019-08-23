@@ -83,6 +83,7 @@ class PPIDataset(object):
             self.n_classes = self.labels.shape[1]
         self.labels = torch.FloatTensor(self.labels)
         self.mask = torch.ByteTensor(np.ones((len(self.labels))))
+        # self.main_nodes = np.arange(len(self.graph.nodes()))
 
     # def _preprocess(self):
     #     if self.mode == 'train':
