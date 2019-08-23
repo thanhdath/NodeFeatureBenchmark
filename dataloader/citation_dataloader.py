@@ -121,9 +121,9 @@ class CitationDataloader(object):
         print('  NumEdges: {}'.format(self.graph.number_of_edges()))
         print('  NumFeats: {}'.format(self.features.shape[1]))
         print('  NumClasses: {}'.format(self.num_labels))
-        print('  NumTrainingSamples: {}'.format(len(np.nonzero(self.train_mask)[0])))
-        print('  NumValidationSamples: {}'.format(len(np.nonzero(self.val_mask)[0])))
-        print('  NumTestSamples: {}'.format(len(np.nonzero(self.test_mask)[0])))
+        print('  NumTrainingSamples: {}'.format(self.train_mask.sum()))
+        print('  NumValidationSamples: {}'.format(self.val_mask.sum()))
+        print('  NumTestSamples: {}'.format(self.test_mask.sum()))
 
     def __getitem__(self, idx):
         return self

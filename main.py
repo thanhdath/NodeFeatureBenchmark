@@ -52,7 +52,7 @@ def get_algorithm(args, data, features):
         return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda,
             learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
     elif args.alg == "graphsage":
-        if features.shape[0] > 100000:
+        if features.shape[0] > 10000:
             return Graphsage(data, features)
         else:
             return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator,

@@ -26,12 +26,12 @@ inits = "deepwalk ssvd0.5 ssvd1 hope graphwave struc2vec".split()
 features_size = [32, 64, 128, 256, 512]
 print("Check orderd dimension", features_size)
 
-# print("Check ordered init methods:")
-# for i, init in enumerate(inits):
-#     print(i+1, init)
+print("Check ordered init methods:")
+for i, init in enumerate(inits):
+    print(i+1, init)
 
 for init in inits:
-    print("Init ====== {} ======".format(init))
+    # print("Init ====== {} ======".format(init))
     for feature_size in features_size:
         micros = []
         macros = []
@@ -52,4 +52,4 @@ for init in inits:
         # print("Data: {} - Init: {}".format(data, init))
         print("{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}\t{:.3f}".format(
             micro, micro_std, macro, macro_std, time_init))
-    print()
+    # print()

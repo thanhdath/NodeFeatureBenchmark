@@ -71,7 +71,7 @@ def construct_placeholders(num_classes):
 
 class Graphsage():
     def __init__(self, data, features, batch_size=256, max_degree=25, model='graphsage_mean',
-                 samples_1=25, samples_2=10, samples_3=0, dim_1=32, dim_2=32,
+                 samples_1=25, samples_2=10, samples_3=0, dim_1=16, dim_2=16,
                  model_size="small", identity_dim=0, epochs=200, dropout=0.0):
         self.batch_size = batch_size
         self.max_degree = max_degree
@@ -94,9 +94,7 @@ class Graphsage():
         train_data = self.data 
         G = train_data.graph
         features = self.features.numpy()
-        id_map = {node: i for i, node in enumerate(G.nodes())}
-        class_map = {node: train_data.labels[i].numpy(
-        ) for i, node in enumerate(G.nodes())}
+        class_map = {node: train_data.labels[i].numpy() for i, node in enumerate(G.nodes())}
         num_classes = train_data.n_classes
 
         if not features is None:
@@ -113,7 +111,6 @@ class Graphsage():
         test_nodes = np.array(train_data.graph.nodes())[test_indices]
 
         minibatch = NodeMinibatchIterator(G,
-                                          id_map,
                                           train_nodes, val_nodes, test_nodes,
                                           placeholders,
                                           class_map,
@@ -186,8 +183,7 @@ class Graphsage():
 
                 t = time.time()
                 # Training step
-                outs = sess.run([merged, model.opt_op, model.loss,
-                                 model.preds], feed_dict=feed_dict)
+                outs = sess.run([merged, model.opt_op, model.loss, model.preds], feed_dict=feed_dict)
                 train_cost = outs[2]
 
                 # Print results

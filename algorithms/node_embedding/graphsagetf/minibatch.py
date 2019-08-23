@@ -187,7 +187,7 @@ class NodeMinibatchIterator(object):
     batch_size -- size of the minibatches
     max_degree -- maximum size of the downsampled adjacency lists
     """
-    def __init__(self, G, id2idx, train_nodes, val_nodes, test_nodes,
+    def __init__(self, G, train_nodes, val_nodes, test_nodes,
             placeholders, label_map, num_classes, 
             batch_size=100, max_degree=25,
             **kwargs):
@@ -195,7 +195,6 @@ class NodeMinibatchIterator(object):
 
         self.G = G
         self.nodes = G.nodes()
-        self.id2idx = id2idx
         self.placeholders = placeholders
         self.batch_size = batch_size
         self.max_degree = max_degree
@@ -225,26 +224,11 @@ class NodeMinibatchIterator(object):
         deg = np.array([self.G.degree(node) for node in self.G.nodes()])
         return adj, deg
 
-    # def construct_test_adj(self):
-    #     adj = len(self.id2idx)*np.ones((len(self.id2idx)+1, self.max_degree))
-    #     for nodeid in self.G.nodes():
-    #         neighbors = np.array([self.id2idx[neighbor] 
-    #             for neighbor in self.G.neighbors(nodeid)])
-    #         if len(neighbors) == 0:
-    #             continue
-    #         if len(neighbors) > self.max_degree:
-    #             neighbors = np.random.choice(neighbors, self.max_degree, replace=False)
-    #         elif len(neighbors) < self.max_degree:
-    #             neighbors = np.random.choice(neighbors, self.max_degree, replace=True)
-    #         adj[self.id2idx[nodeid], :] = neighbors
-    #     return adj
-
     def end(self):
         return self.batch_num * self.batch_size >= len(self.train_nodes)
 
     def batch_feed_dict(self, batch_nodes, val=False):
-        batch1id = batch_nodes
-        batch1 = [self.id2idx[n] for n in batch1id]
+        batch1 = batch_nodes
               
         labels = np.vstack([self._make_label_vec(node) for node in batch1id])
         feed_dict = dict()
