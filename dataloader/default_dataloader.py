@@ -3,6 +3,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import numpy as np
 import torch
 import scipy.sparse as sp
+# from networkit import *
 
 def read_node_label(filename):
     fin = open(filename, 'r')
@@ -60,7 +61,17 @@ class DefaultDataloader():
         # build symmetric adjacency matrix
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
         self.graph = nx.from_scipy_sparse_matrix(adj, create_using=nx.DiGraph())
-        
+
+        # edgelist_file = self.datadir + "/edgelist_networkit.txt"
+        # adj = self.graph.adj
+        # if not os.path.isfile(edgelist_file):
+        #     with open(edgelist_file, "w+") as fp:
+        #         fp.write("{} {}".format(adj.shape[0], int(adj.sum())))
+        #         for i in range(adj.shape[0]):
+        #             fp.write("\n" + " ".join(map(lambda x : str(x+1), adj[i].nonzero()[1])) )
+        # self.graph = readGraph(edgelist_file, Format.METIS)
+        # import pdb; pdb.set_trace()
+
         labels = convert_labels_to_binary(labels, self.graph)
         if self.multiclass:
             self.labels = torch.FloatTensor(labels)

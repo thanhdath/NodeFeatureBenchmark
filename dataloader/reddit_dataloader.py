@@ -23,6 +23,7 @@ class RedditDataset(object):
         extract_dir = os.path.join(download_dir, "reddit{}".format(self_loop_str))
         first_time = not os.path.isdir(extract_dir) 
         extract_archive(zip_file_path, extract_dir)
+        self.datadir = extract_dir
         # graph
         coo_adj = sp.load_npz(os.path.join(extract_dir, "reddit{}_graph.npz".format(self_loop_str)))
         self.graph = DGLGraph(coo_adj, suffix="", readonly=True)
@@ -56,11 +57,19 @@ class RedditDataset(object):
         print('  NumTestSamples: {}'.format(len(np.nonzero(self.test_mask)[0])))
 
     def graph_networkit(self):
-        if not hasattr(self, 'graph_networkit'):
+        if not hasattr(self, 'graph_nit'):
             edgelist_file = self.datadir + "/edgelist_networkit.txt"
+            adj = self.graph.adj
             if not os.path.isfile(edgelist_file):
                 with open(edgelist_file, "w+") as fp:
-                    fp.write("{} {}".format(adj.shape[0], adj.sum()))
+                    fp.write("{} {}".format(adj.shape[0], int(adj.sum())))
                     for i in range(adj.shape[0]):
                         fp.write("\n" + " ".join(map(lambda x : str(x+1), adj[i].nonzero()[1])) )
-            self.graph_networkit = readGraph(edgelist_file, Format.METIS)
+            self.graph_nit = readGraph(edgelist_file, Format.METIS)
+        return self.graph_nit
+
+    def graph_networkx(self):
+        if not hasattr(self, 'graph_nx'):
+            self.graph_nx = nx.from_scipy_sparse_matrix(self.graph.adj)
+        return self.graph_nx
+        

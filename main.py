@@ -95,16 +95,16 @@ def get_feature_initialization(args, data, inplace=True):
     if "reddit" in args.dataset:
         if init == "deepwalk":
             graph.build_neibs_dict()
-        elif init in "pagerank".split():
+        elif init in "pagerank triangle kcore".split():
             kwargs = {"use_networkit": True}
             graph = data.graph_networkit()
             inplace = False
             print("Warning: Init using {} will be inplace = False".format(init))
+        elif init in "egonet coloring clique".split():
+            graph = data.graph_networkx()
+            inplace = False
+            print("Warning: Init using {} will be inplace = False".format(init))
 
-    # super slow feature initialization method
-    # walk_file = "{}-seed{}.npy".format(args.dataset.split('/')[-1], args.seed)
-    # if init == "node2vec" and os.path.isfile(walk_file):
-    #     features = np.load(walk_file)
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size,
                                  inplace=inplace, normalizer=normalizer, verbose=args.verbose,
@@ -151,7 +151,7 @@ def main(args):
         if os.path.isfile(feat_file):
             features = np.load(feat_file, allow_pickle=True)['features'][()]
         else:
-            features = get_feature_initialization(args, data.graph, inplace=inplace)
+            features = get_feature_initialization(args, data, inplace=inplace)
             if not os.path.isdir('feats'):
                 os.makedirs('feats')
             if args.init not in ["identity"]:

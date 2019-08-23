@@ -139,10 +139,24 @@ class HOPEFeature(FeatureInitialization):
 class TriangleFeature(FeatureInitialization):
     def __init__(self, **kwargs):
         super(TriangleFeature).__init__()
+        try:
+            self.use_networkit = kwargs["use_networkit"]
+        except:
+            self.use_networkit = False
     def _generate(self, graph, dim_size):
-        if nx.is_directed(graph) and "DGLGraph" not in graph.__class__.__name__:
+        if self.use_networkit: # graph must be an instance of networkit
+            execute = sparsification.ChibaNishizekiTriangleEdgeScore(graph)
+            graph.indexEdges()
+            execute.run()
+            triangles = {}
+            for i, (src, trg) in enumerate(self.graph.edges()):
+                triangles[src] = triangles.get(src, 0) + execute.scores[i]
+                triangles[trg] = triangles.get(trg, 0) + execute.scores[i]
+        else:
+            if nx.is_directed(graph) and "DGLGraph" not in graph.__class__.__name__:
                 graph = nx.to_undirected(graph)
-        triangles = nx.triangles(graph)
+            triangles = nx.triangles(graph)
+        
         prep_dict = {}
         for idx, node in enumerate(graph.nodes()):
             prep_dict[node] = np.array([triangles[node]]+[1.]*(dim_size-1))
@@ -174,10 +188,21 @@ class KCoreNumberFeature(FeatureInitialization):
         k-core number
         """
         super(KCoreNumberFeature).__init__()
+        try:
+            self.use_networkit = kwargs["use_networkit"]
+        except:
+            self.use_networkit = False
     def _generate(self, graph, dim_size):
-        graph.remove_edges_from(nx.selfloop_edges(graph))
+        if self.use_networkit: # graph must be an instance of networkit
+            kcore = centrality.CoreDecomposition(self.graph)
+            kcore.run()
+            kcore = kcore.getPartition().getVector()
+            kcore = {node: kcore[i] for i, node in enumerate(graph.nodes())}
+        else:
+            graph.remove_edges_from(nx.selfloop_edges(graph))
+            kcore = nx.core_number(graph)
+
         prep_dict = {}
-        kcore = nx.core_number(graph)
         for idx, node in enumerate(graph.nodes()):
             feature = np.ones((dim_size))
             feature[0] = kcore[node]
@@ -196,6 +221,7 @@ class PageRankFeature(FeatureInitialization):
             pr = centrality.PageRank(graph, 1e-6)
             pr.run()
             pr = pr.ranking()
+            pr = {x[0]: x[1] for x in pr}
         else:
             pr = nx.pagerank(graph)
         prep_dict = {}
