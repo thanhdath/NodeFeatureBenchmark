@@ -37,6 +37,8 @@ else:
         inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line \
             gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standar \
             clique-standard identity ori ori-rowsum ori-standard label label-standard graphwave".split()
+    elif alg == "simple":
+        inits = "degree uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle kcore egonet pagerank coloring clique ori ori-rowsum label graphwave label-onehot".split()
     else:
         inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope \
                 line gf deepwalk-standard node2vec-standard ssvd0.5-standard ssvd1-standard hope-standard line-standard \

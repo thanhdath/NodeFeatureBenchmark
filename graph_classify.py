@@ -99,6 +99,8 @@ def save_features(feat_file, features_dict):
     np.savez_compressed(feat_file, features=features_dict)
 
 def init_features(args, data: TUDataset):
+    inits_one = "degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
+
     elms = args.init.split("-")
     if len(elms) < 2:
         init = elms[0]
@@ -107,11 +109,15 @@ def init_features(args, data: TUDataset):
         init, normalizer = elms[:2]
     print("Normalizer: ", normalizer)
     stime = time.time()
+    if init in inits_one:
+        load_seed = 40
+    else:
+        load_seed = args.seed
     if init == "ori": # use node attributes
         print("Init features: Original , node attributes")
         for idx_g, g in enumerate(data.graph_lists):
             feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
-                args.init, args.seed)
+                args.init, load_seed)
             if os.path.isfile(feat_file):
                 features_dict = np.load(feat_file, allow_pickle=True)['features'][()]
             else:
@@ -126,7 +132,7 @@ def init_features(args, data: TUDataset):
         print("Init features: node labels")
         for idx_g, g in enumerate(data.graph_lists):
             feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
-                args.init, args.seed)
+                args.init, load_seed)
             if os.path.isfile(feat_file):
                 features_dict = np.load(feat_file, allow_pickle=True)['features'][()]
             else:
@@ -141,7 +147,7 @@ def init_features(args, data: TUDataset):
         print("Init features:", init)
         for idx_g, graph in enumerate(data.graph_lists):
             feat_file = "feats/{}/{}-{}-seed{}.npz".format(args.dataset.split("/")[-1], idx_g,  
-                args.init, args.seed)
+                args.init, load_seed)
             if os.path.isfile(feat_file):
                 features = np.load(feat_file, allow_pickle=True)['features'][()]
             else:

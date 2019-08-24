@@ -103,7 +103,7 @@ def get_feature_initialization(args, data, inplace=True, input_graph=False):
             graph = data.graph_networkit()
             inplace = False
             print("Warning: Init using {} will set inplace = False".format(init))
-        elif init in "egonet coloring clique".split():
+        elif init in "egonet coloring clique graphwave".split():
             graph = data.graph_networkx()
             inplace = False
             print("Warning: Init using {} will set inplace = False".format(init))

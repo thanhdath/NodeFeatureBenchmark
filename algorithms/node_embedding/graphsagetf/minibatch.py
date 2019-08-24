@@ -220,8 +220,21 @@ class NodeMinibatchIterator(object):
         return label_vec
 
     def construct_adj(self):
-        adj = nx.adjacency_matrix(self.G).todense()
-        deg = np.array([self.G.degree(node) for node in self.G.nodes()])
+        n_nodes = self.G.number_of_nodes()
+        try:
+            adj_sparse = nx.to_scipy_sparse_matrix(self.G)
+            deg = np.array([self.G.degree(node) for node in self.G.nodes()])
+        except:
+            adj_sparse = self.G.adj
+            deg = np.asarray(self.G.adj.sum(axis=1))
+        adj = n_nodes*np.ones((n_nodes+1, self.max_degree))
+        for i in range(n_nodes):
+            neighbors = adj_sparse[0].nonzero()[1]
+            if len(neighbors) > self.max_degree:
+                neighbors = np.random.choice(neighbors, self.max_degree, replace=False)
+            elif len(neighbors) < self.max_degree:
+                neighbors = np.random.choice(neighbors, self.max_degree, replace=True)
+            adj[i,:] = neighbors
         return adj, deg
 
     def end(self):

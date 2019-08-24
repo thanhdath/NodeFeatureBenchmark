@@ -42,10 +42,17 @@ class RedditDataset(object):
         self.multiclass = False
         self.n_classes = self.num_labels
 
-        if first_time:
+        feature_file = extract_dir + '/features.npy'
+        if not os.path.isfile(feature_file):
             features = self.features.numpy()
             features_dict = {int(node): features[i] for i, node in enumerate(self.node_ids)}
-            np.save(extract_dir + '/features.npy', features_dict)
+            np.save(feature_file, features_dict)
+
+        label_file = extract_dir + '/labels.npy'
+        if not os.path.isfile(label_file):
+            labels = reddit_data["label"]
+            labels_dict = {int(node): labels[i] for i, node in enumerate(self.node_ids)}
+            np.save(label_file, labels_dict)
  
         print('Finished data loading.')
         print('  NumNodes: {}'.format(self.graph.number_of_nodes()))
