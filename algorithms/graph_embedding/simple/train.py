@@ -6,19 +6,19 @@ class Simple():
     def __init__(self, operator='mean', l2_norm=False):
         self.operator = operator
         if operator == 'mean':
-            self.func = lambda x: x.mean(axis=0)
+            self.func = lambda x: x.mean(dim=0)
         elif operator == 'sum':
-            self.func = lambda x: x.sum(axis=0)
+            self.func = lambda x: x.sum(dim=0)
         elif operator == 'max':
-            self.func = lambda x: x.max(axis=0)
+            self.func = lambda x: x.max(dim=0)
         if l2_norm:
-            self.norm = lambda x: x / np.sqrt(np.sum(x**2, axis=1))
+            self.norm = lambda x: x / torch.sqrt(torch.sum(x**2, dim=1))
         else:
             self.norm = lambda x: x
 
     def forward(self, node_embs):
         """
-        node_embs: numpy array
+        node_embs:torch float tensor
         """
         graph_embs = self.norm(self.func(node_embs))
         return graph_embs
@@ -26,11 +26,13 @@ class Simple():
 def gen_graph_embs(dataset, model_emb):
     graph_embeds = []
     graph_labels = []
-    for graph, labels in dataset:
-        graph_emb = model_emb.forward(graph.ndata['feat'])
+    print("Gen graph embeddings for dataset of size ", len(dataset))
+    for i, (graph, labels) in enumerate(dataset):
+        if i % 10 == 0: print("{}/{}".format(i+1, len(dataset)))
+        graph_emb = model_emb.forward(torch.FloatTensor(graph.ndata['feat']).cuda())
         graph_embeds.append(graph_emb)
-        graph_labels.append(graph_labels)
-    graph_embeds = torch.FloatTensor(graph_embeds)
+        graph_labels.append(labels)
+    graph_embeds = torch.stack(graph_embeds)
     graph_labels = np.array(graph_labels)
     if len(graph_labels.shape) == 2 and graph_labels.shape[1] > 1:
         multiclass = True
