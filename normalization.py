@@ -47,7 +47,6 @@ class PassNormalizer(Normalizer):
             print("Feature Normalizer: No")
         return features
 
-
 lookup = {
     "standard": StandardNormalizer,
     "rowsum": RowSumNormalizer,

@@ -6,10 +6,11 @@ import torch.optim as optim
 import numpy as np
 from utils import f1, accuracy
 import torch
+import os
 
 class LogisticRegressionPytorch():
     def __init__(self, embs, labels, train_mask, val_mask, test_mask, 
-        epochs=200, lr=0.2, weight_decay=5e-6, bias=True, cuda=True, multiclass=False, suffix=""):
+        epochs=200, lr=0.2, weight_decay=5e-6, bias=True, cuda=True, multiclass=False):
         """
         embs: np array, embedding of nodes
         labels: LongTensor for single-label, FloatTensor for multilabel 
@@ -31,7 +32,6 @@ class LogisticRegressionPytorch():
         self.train_indices = np.argwhere(train_mask).flatten()
         self.val_indices = np.argwhere(val_mask).flatten()
         self.test_indices = np.argwhere(test_mask).flatten()
-        self.suffix = suffix
 
         self.model = nn.Linear(self.embs.shape[1], self.n_classes, bias=bias)
         self.optimizer = optim.Adam(
@@ -56,7 +56,7 @@ class LogisticRegressionPytorch():
             self.model.cuda()
         best_val_acc = 0
         npt = 0
-        best_model_name = 'logistic-best-model-{}.pkl'.format(self.suffix)
+        best_model_name = 'logistic-best-model-{}.pkl'.format(time.time())
         for epoch in range(self.epochs):
             self.model.train()
             self.optimizer.zero_grad()
@@ -86,6 +86,7 @@ class LogisticRegressionPytorch():
         train_time = time.time() - stime
         print('Train time: {:.3f}'.format(train_time))
         self.model.load_state_dict(torch.load(best_model_name))
+        os.remove(best_model_name)
         if self.cuda:
             train_labels = train_labels.cpu()
             train_features = train_features.cpu()

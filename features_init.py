@@ -149,9 +149,9 @@ class TriangleFeature(FeatureInitialization):
             graph.indexEdges()
             execute.run()
             triangles = {}
-            for i, (src, trg) in enumerate(self.graph.edges()):
-                triangles[src] = triangles.get(src, 0) + execute.scores[i]
-                triangles[trg] = triangles.get(trg, 0) + execute.scores[i]
+            for i, (src, trg) in enumerate(graph.edges()):
+                triangles[src] = triangles.get(src, 0) + execute.scores()[i]
+                triangles[trg] = triangles.get(trg, 0) + execute.scores()[i]
         else:
             if nx.is_directed(graph) and "DGLGraph" not in graph.__class__.__name__:
                 graph = nx.to_undirected(graph)
@@ -194,7 +194,8 @@ class KCoreNumberFeature(FeatureInitialization):
             self.use_networkit = False
     def _generate(self, graph, dim_size):
         if self.use_networkit: # graph must be an instance of networkit
-            kcore = centrality.CoreDecomposition(self.graph)
+            graph.removeSelfLoops()
+            kcore = centrality.CoreDecomposition(graph)
             kcore.run()
             kcore = kcore.getPartition().getVector()
             kcore = {node: kcore[i] for i, node in enumerate(graph.nodes())}

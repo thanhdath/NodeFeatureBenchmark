@@ -65,8 +65,11 @@ def add_weight(subgraph):
         subgraph[n1][n2]['weight'] = 1
     return subgraph
 
-def get_feature_initialization(args, data, inplace=True):
-    graph = data.graph
+def get_feature_initialization(args, data, inplace=True, input_graph=False):
+    if input_graph:
+        graph = data
+    else:
+        graph = data.graph
     elms = args.init.split("-")
     if len(elms) < 2:
         init = elms[0]
@@ -99,11 +102,11 @@ def get_feature_initialization(args, data, inplace=True):
             kwargs = {"use_networkit": True}
             graph = data.graph_networkit()
             inplace = False
-            print("Warning: Init using {} will be inplace = False".format(init))
+            print("Warning: Init using {} will set inplace = False".format(init))
         elif init in "egonet coloring clique".split():
             graph = data.graph_networkx()
             inplace = False
-            print("Warning: Init using {} will be inplace = False".format(init))
+            print("Warning: Init using {} will set inplace = False".format(init))
 
     init_feature = lookup_feature_init[init](**kwargs)
     return init_feature.generate(graph, args.feature_size,

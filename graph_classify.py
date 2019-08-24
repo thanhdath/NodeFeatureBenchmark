@@ -27,6 +27,7 @@ def parse_args():
         help='Choose from: diffpool, gin.')
     add_diffpool_parser(subparsers)
     add_gin_parser(subparsers)
+    add_simple_graph_emb_parse(subparsers)
     return parser.parse_args()
 
 def build_diffpool_params(args, data):
@@ -69,6 +70,15 @@ def build_gin_params(args, data):
     )
     return params
 
+def build_simple_params(args, data):
+    params = SimpleNamespace(
+        dataset=data,
+        cuda=args.cuda,
+        operator=args.operator,
+        l2_norm=args.l2_norm
+    )
+    return params
+
 def get_algorithm(args, data):
     if args.alg == "diffpool":
         params = build_diffpool_params(args, data)
@@ -76,6 +86,9 @@ def get_algorithm(args, data):
     elif args.alg == "gin":
         params = build_gin_params(args, data)
         return gin_api(params)
+    elif args.alg == "simple":
+        params = build_simple_params(args, data)
+        return simple_api(params)
     else:
         raise NotImplementedError
 
@@ -132,7 +145,7 @@ def init_features(args, data: TUDataset):
             if os.path.isfile(feat_file):
                 features = np.load(feat_file, allow_pickle=True)['features'][()]
             else:
-                features = get_feature_initialization(args, graph.to_networkx(), inplace=False)
+                features = get_feature_initialization(args, graph.to_networkx(), inplace=False, input_graph=True)
                 save_features(feat_file, features)
             graph.ndata['feat'] = np.array([features[int(x)] for x in graph.nodes()])
     print("Time init features: {:.3f}s".format(time.time()-stime))

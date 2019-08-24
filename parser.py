@@ -37,3 +37,9 @@ def add_gin_parser(subparsers):
     parser.add_argument('--degree_as_tag', action="store_true",
         help='take the degree of nodes as input feature')
     return parser
+
+def add_simple_graph_emb_parse(subparsers):
+    parser = subparsers.add_parser('simple', help='Simple graph embedding algorithm.')
+    parser.add_argument('--operator', default="sum", choices=["sum", "mean", "max"])
+    parser.add_argument('--l2_norm', action='store_true')
+    return parser
