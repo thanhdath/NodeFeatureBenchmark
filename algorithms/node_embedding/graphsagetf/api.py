@@ -150,8 +150,8 @@ class Graphsage():
 
         sigmoid = self.sigmoid
         config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        #config.gpu_options.per_process_gpu_memory_fraction = GPU_MEM_FRACTION
+        # config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = .8
         config.allow_soft_placement = True
 
         # Initialize session

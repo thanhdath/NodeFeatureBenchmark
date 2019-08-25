@@ -53,7 +53,7 @@ def get_algorithm(args, data, features):
             learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
     elif args.alg == "graphsage":
         if features.shape[0] > 10000:
-            return Graphsage(data, features)
+            return Graphsage(data, features, max_degree=args.max_degree, samples_1=args.samples_1)
         else:
             return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator,
                 learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])

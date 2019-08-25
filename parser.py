@@ -18,6 +18,8 @@ def add_graphsage_parser(subparsers):
     parser = subparsers.add_parser('graphsage', help='DGI algorithm.')
     parser.add_argument('--aggregator', default="mean", 
         help="Aggregator type (mean or pooling)")
+    parser.add_argument('--max_degree', default=25, type=int, help="Max degree for neighbors sampling.")
+    parser.add_argument('--samples_1', default=25, type=int, help="")
     return parser
 
 def add_diffpool_parser(subparsers):
