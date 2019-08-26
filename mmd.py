@@ -13,7 +13,8 @@ import os
 import shogun as sg
 from graph_classify import init_features
 import multiprocessing
-from inductive import load_data, load_features
+from inductive import load_features
+from inductive import load_data as load_data_inductive
 sg.get_global_parallel().set_num_threads(multiprocessing.cpu_count()//3)
 
 
@@ -24,6 +25,7 @@ def parse_args():
     parser.add_argument('--feature_size', default=128, type=int)
     # args.add_argument('--train_features', action='store_true')
     parser.add_argument('--seed', type=int, default=40)
+    parser.add_argument('--shuffle', action='store_true')
     parser.add_argument('--verbose', type=int, default=0)
     return parser.parse_args()
 
@@ -102,10 +104,8 @@ def rbf_mmd_test(X, Y, bandwidth='median', null_samples=1000,
 
 def load_data(dataset):
     dataname = dataset.split('/')[-1]
-    if dataname in "cora".split():
-        return DefaultDataloader(dataset)
-    elif dataname in "citeseer pubmed".split():
-        return CitationDataloader(dataset)
+    if dataname in "cora citeseer pubmed".split():
+        return load_data_inductive(dataset)
     else:
         return TUDataset(dataset)
 
@@ -114,7 +114,7 @@ def main(args):
     data = load_data(args.dataset)
     dataname = args.dataset.split('/')[-1]
     if dataname in "cora citeseer pubmed".split():
-        train_data, val_data, test_data = load_data(args.dataset)
+        train_data, val_data, test_data = data
         train_feats = load_features('train', train_data.graph, args)
         # val_features = load_features('valid', val_data.graph, args)
         test_feats = load_features('test', test_data.graph, args)

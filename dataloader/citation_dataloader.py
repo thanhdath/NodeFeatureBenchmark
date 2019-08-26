@@ -149,11 +149,11 @@ class CitationInductiveDataloader(object):
         graph_file = '{}/{}/{}_graph.npz'.format(self.dir, self.name, self.mode)
         if not os.path.isfile(graph_file):  
             self._store_train_val_test()
-        npz = np.load(graph_file)
+        npz = np.load(graph_file, allow_pickle=True)
         adj = npz['graph'][()]
         self.graph = nx.from_scipy_sparse_matrix(adj)
         self.labels = npz['labels'][()]
-        self.features = np.load('{}/{}/{}_feats.npy'.format(self.dir, self.name, self.mode))
+        self.features = np.load('{}/{}/{}_feats.npy'.format(self.dir, self.name, self.mode), allow_pickle=True)
         # if self.mode == "train":
         #     self.train_nodes = npz["train_nodes"][()]
         # elif self.mode == "valid":

@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from dgl import DGLGraph
 from .dgi import DGI
 import itertools
+import os
 
 class DGIAPI():
     def __init__(self, data, features, dropout=0, lr=1e-3, epochs=300,
@@ -69,7 +70,7 @@ class DGIAPI():
         best = 1e9
         best_t = 0
         dur = []
-        best_model_name = 'dgi-best-model-{}.pkl'.format(self.suffix)
+        best_model_name = 'dgi-best-model-{}.pkl'.format(time.time())
         for epoch in range(self.epochs):
             dgi.train()
             if epoch >= 3:
@@ -100,6 +101,7 @@ class DGIAPI():
                     epoch, np.mean(dur), loss.item()))
         print('Loading {}th epoch'.format(best_t))
         dgi.load_state_dict(torch.load(best_model_name))
+        os.remove(best_model_name)
         embeds = dgi.encoder(features, self.graph, corrupt=False)
         embeds = embeds.detach()
         return embeds

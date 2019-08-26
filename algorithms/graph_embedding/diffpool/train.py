@@ -172,8 +172,8 @@ def train(dataset, model, prog_args, same_feat=True, val_dataset=None):
             if result >= early_stopping_logger['val_acc'] and result <=\
                     train_accu:
                 early_stopping_logger.update(best_epoch=epoch, val_acc=result)
-                torch.save(model.state_dict(), best_model_name)
             if result > early_stopping_logger['val_acc']:
+                torch.save(model.state_dict(), best_model_name)
                 npt = 0
             else:
                 npt += 1

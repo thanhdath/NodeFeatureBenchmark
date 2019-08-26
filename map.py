@@ -10,7 +10,11 @@ from parser import *
 from algorithms.node_embedding import SGC, DGIAPI, GraphsageInductive
 from algorithms.logreg_inductive import LogisticRegressionInductive
 import os
-
+from muse.evaluation import Evaluator
+from muse.models import build_model
+from muse.trainer import Trainer
+from muse.utils import initialize_exp
+from types import SimpleNamespace
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -146,6 +150,18 @@ def main(args):
     val_features = load_features('valid', val_data.graph, args)
     test_features = load_features('test', test_data.graph, args)
 
+    # 
+    anchors = list(train_data.graph.nodes() )
+    train_features_dict = {node: train_features[i].numpy() for i,node in enumerate(train_data.graph.nodes())}
+    val_features_dict = {node: val_features[i].numpy() for i,node in enumerate(val_data.graph.nodes())}
+    test_features_dict = {node: test_features[i].numpy() for i,node in enumerate(test_data.graph.nodes())}
+    val_features_dict, train_features_dict = aligned_emb(val_features_dict, train_features_dict, anchors, args.feature_size)
+    test_features_dict, train_features_dict = aligned_emb(test_features_dict, train_features_dict, anchors, args.feature_size)
+
+    val_features = dict2arr(val_features_dict, val_data.graph)
+    test_features = dict2arr(test_features_dict, test_data.graph)
+
+
     use_default_classifier = False
     if args.alg == "sgc":
         # aggregate only -> create train val test alg
@@ -187,6 +203,98 @@ def init_environment(args):
     torch.random.manual_seed(args.seed)
     random.seed(args.seed)
 
+
+def save_embeddings(vectors, lang, size, log_dir):
+    if not os.path.isdir(log_dir):
+        os.makedirs(log_dir)
+    from muse.dictionary import Dictionary
+    embeddings = []
+    word2id = {}
+    for i, word in enumerate(vectors.keys()):
+        embeddings.append(vectors[word])
+        word2id[word] = i
+    embeddings = torch.FloatTensor(embeddings)
+    id2word = {i: w for w, i in word2id.items()}
+    dico = Dictionary(id2word, word2id, lang)
+    file_path = log_dir + '/' + lang + '.pth'
+    torch.save({'dico': dico, 'vectors': embeddings}, file_path)
+    return file_path
+
+def aligned_emb(src_emb, trg_emb, anchors, dim_size):
+    write_dict("train.dict", anchors, ".")
+    save_embeddings(src_emb, "embsrc", None, ".")
+    save_embeddings(trg_emb, "embbase", None, ".")
+    src_emb, tgr_emb = map_emb(exp_id="src", exp_name="src", src_lang="embsrc",
+            tgt_lang="embbase",
+            dico_train="train.dict",
+            dico_eval="val.dict",
+            src_emb="embsrc.pth",
+            tgt_emb="embbase.pth", 
+            emb_dim=dim_size,
+            cuda=True)
+    return src_emb, trg_emb
+
+def write_dict(filename, anchors, log_dir):
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    with open(log_dir + '/' + filename, 'w') as f:
+        for anchor in anchors:
+            f.write(str(anchor) + " " + str(anchor) + "\n")
+
+def map_emb(seed=42, verbose=1, exp_path="", exp_name="test", exp_id="test", cuda=False,
+            src_lang='emb0', tgt_lang='emb1', max_vocab=-1, n_refinement=3,
+            dico_train="cora_train.dict", dico_eval="cora_val.dict",
+            dico_method='csls_knn_10', dico_build="S2T&T2S",
+            dico_threshold=0, dico_max_rank=0, dico_min_size=0, dico_max_size=0,
+            src_emb="cora_emb_space0.emb", tgt_emb="cora_emb_space1.emb",
+            emb_dim=128, normalize_embeddings=""):
+    p = {}
+    p['seed'] = seed
+    p['verbose'] = verbose
+    p['exp_path'] = exp_path
+    p['exp_name'] = exp_name
+    p['exp_id'] = exp_id
+    p['cuda'] = cuda
+    p['src_lang'] = src_lang
+    p['tgt_lang'] = tgt_lang
+    p['max_vocab'] = max_vocab
+    p['n_refinement'] = n_refinement
+    p['dico_train'] = dico_train
+    p['dico_eval'] = dico_eval
+    p['dico_method'] = dico_method
+    p['dico_build'] = dico_build
+    p['dico_threshold'] = dico_threshold
+    p['dico_max_rank'] = dico_max_rank
+    p['dico_min_size'] = dico_min_size
+    p['dico_max_size'] = dico_max_size
+    p['src_emb'] = src_emb
+    p['tgt_emb'] = tgt_emb
+    p['emb_dim'] = emb_dim
+    p['normalize_embeddings'] = normalize_embeddings
+    params = SimpleNamespace(**p)
+
+    VALIDATION_METRIC_SUP = 'precision_at_1-csls_knn_10'
+    VALIDATION_METRIC_UNSUP = 'mean_cosine-csls_knn_10-S2T-10000'
+    logger = initialize_exp(params)
+    src_emb, tgt_emb, mapping, _ = build_model(params, False)
+    trainer = Trainer(src_emb, tgt_emb, mapping, None, params)
+    evaluator = Evaluator(trainer)
+    trainer.load_training_dico(params.dico_train)
+    VALIDATION_METRIC = VALIDATION_METRIC_UNSUP if params.dico_train == 'identical_char' else VALIDATION_METRIC_SUP
+    logger.info("Validation metric: %s" % VALIDATION_METRIC)
+
+    """
+    Learning loop for Procrustes Iterative Learning
+    """
+    for n_iter in range(params.n_refinement + 1):
+        logger.info('Starting iteration %i...' % n_iter)
+        trainer.procrustes()
+        logger.info('End of iteration %i.\n\n' % n_iter)
+
+    mapped_src, mapped_tgt = trainer.export(save=False)
+    src_emb = {params.src_dico[i]: mapped_src[i].tolist() for i in range(len(params.src_dico))}
+    tgt_emb = {params.tgt_dico[i]: mapped_tgt[i].tolist() for i in range(len(params.tgt_dico))}
+    return src_emb, tgt_emb
 
 if __name__ == '__main__':
     args = parse_args()

@@ -14,6 +14,7 @@ from dgl import DGLGraph
 import dgl.function as fn
 from utils import f1, accuracy
 import itertools
+import os
 
 class Aggregator(nn.Module):
     def __init__(self, g, in_feats, out_feats, activation=None, bias=True):
@@ -223,7 +224,7 @@ class GraphsageAPI():
         best_val_acc = 0
         npt = 0
         max_patience = 4
-        best_model_name = 'graphsage-best-model-{}.pkl'.format(self.suffix)
+        best_model_name = 'graphsage-best-model-{}.pkl'.format(time.time())
         for epoch in range(self.epochs):
             stime = time.time()
             model.train()
@@ -250,6 +251,7 @@ class GraphsageAPI():
                     print("Early stopping")
                     break
         model.load_state_dict(torch.load(best_model_name))
+        os.remove(best_model_name)
         with torch.no_grad():
             model.eval()
             output = model(features)
