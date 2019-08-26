@@ -11,6 +11,9 @@ import time
 import os
 import shogun as sg
 from graph_classify import init_features
+import multiprocessing
+sg.get_global_parallel().set_num_threads(multiprocessing.cpu_count()//3)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Node feature initialization benchmark.")
@@ -18,17 +21,26 @@ def parse_args():
     parser.add_argument('--init', default="ori")
     parser.add_argument('--feature_size', default=128, type=int)
     # args.add_argument('--train_features', action='store_true')
-    parser.add_argument('--shuffle', action='store_true', help="Whether shuffle features or not.")
     parser.add_argument('--seed', type=int, default=40)
     parser.add_argument('--verbose', type=int, default=0)
     return parser.parse_args()
 
+
 def test_mmd(emb1, emb2):
+    print(emb1.shape)
+    print(emb2.shape)
+
+    if emb1.shape[0] > 200000:
+        np.random.shuffle(emb1)
+        emb1 = emb1[:emb1.shape[0]//16]
+        np.random.shuffle(emb2)
+        emb2 = emb2[:emb2.shape[0]//2]
     p_val, stat, samps, bandwidth = rbf_mmd_test(np.asarray(
         emb1).astype("float64"), np.asarray(emb2).astype("float64"))
     print("p_val:", p_val)
     print("stats:", stat)
     print("bandwidth:", bandwidth)
+
 
 def rbf_mmd_test(X, Y, bandwidth='median', null_samples=1000,
                  median_samples=1000, cache_size=32):
@@ -85,8 +97,10 @@ def rbf_mmd_test(X, Y, bandwidth='median', null_samples=1000,
     p_val = np.mean(stat <= samps)
     return p_val, stat, samps, bandwidth
 
+
 def load_data(dataset):
     return TUDataset(dataset)
+
 
 def main(args):
     data = load_data(args.dataset)
@@ -108,10 +122,12 @@ def main(args):
 
     test_mmd(train_feats, test_feats)
 
+
 def init_environment(args):
     np.random.seed(args.seed)
     torch.random.manual_seed(args.seed)
     random.seed(args.seed)
+
 
 if __name__ == '__main__':
     args = parse_args()

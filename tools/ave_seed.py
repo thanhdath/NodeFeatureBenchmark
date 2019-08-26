@@ -35,7 +35,7 @@ else:
             deepwalk-standard hope-standard node2vec-standard line-standard gf-standard graphwave".split()
     elif alg in ["diffpool", "gin"]:
         inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line \
-            gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standar \
+            gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
             clique-standard identity ori ori-rowsum ori-standard label label-standard graphwave".split()
     elif alg == "simple":
         inits = "degree uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle kcore egonet pagerank coloring clique ori ori-rowsum label graphwave label-onehot".split()

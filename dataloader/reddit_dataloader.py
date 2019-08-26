@@ -1,7 +1,8 @@
 import scipy.sparse as sp
 import numpy as np
 import dgl
-import os, sys
+import os
+import sys
 from dgl.data.utils import download, extract_archive, get_download_dir, _get_dgl_url
 import networkx as nx
 import torch
@@ -10,6 +11,7 @@ try:
     from networkit import *
 except:
     print("Warning: cannot import networkit. Install by command: pip install networkit")
+
 
 class RedditDataset(object):
     def __init__(self, self_loop=False):
@@ -21,11 +23,12 @@ class RedditDataset(object):
         zip_file_path = os.path.join(download_dir, "reddit{}.zip".format(self_loop_str))
         download(_get_dgl_url("dataset/reddit{}.zip".format(self_loop_str)), path=zip_file_path)
         extract_dir = os.path.join(download_dir, "reddit{}".format(self_loop_str))
-        first_time = not os.path.isdir(extract_dir) 
+        first_time = not os.path.isdir(extract_dir)
         extract_archive(zip_file_path, extract_dir)
         self.datadir = extract_dir
         # graph
-        coo_adj = sp.load_npz(os.path.join(extract_dir, "reddit{}_graph.npz".format(self_loop_str)))
+        coo_adj = sp.load_npz(os.path.join(
+            extract_dir, "reddit{}_graph.npz".format(self_loop_str)))
         self.graph = DGLGraph(coo_adj, suffix="", readonly=True)
 
         # features and labels
@@ -45,15 +48,17 @@ class RedditDataset(object):
         feature_file = extract_dir + '/features.npy'
         if not os.path.isfile(feature_file):
             features = self.features.numpy()
-            features_dict = {int(node): features[i] for i, node in enumerate(self.node_ids)}
+            features_dict = {int(node): features[i]
+                             for i, node in enumerate(self.node_ids)}
             np.save(feature_file, features_dict)
 
-        label_file = extract_dir + '/labels.npy'
+        label_file = extract_dir + '/labels.npz'
         if not os.path.isfile(label_file):
             labels = reddit_data["label"]
-            labels_dict = {int(node): labels[i] for i, node in enumerate(self.node_ids)}
-            np.save(label_file, labels_dict)
- 
+            labels_dict = {int(node): np.array([labels[i]])
+                           for i, node in enumerate(self.node_ids)}
+            np.savez_compressed(label_file, labels=labels_dict, is_multiclass=False)
+
         print('Finished data loading.')
         print('  NumNodes: {}'.format(self.graph.number_of_nodes()))
         print('  NumEdges: {}'.format(self.graph.number_of_edges()))
@@ -71,7 +76,8 @@ class RedditDataset(object):
                 with open(edgelist_file, "w+") as fp:
                     fp.write("{} {}".format(adj.shape[0], int(adj.sum())))
                     for i in range(adj.shape[0]):
-                        fp.write("\n" + " ".join(map(lambda x : str(x+1), adj[i].nonzero()[1])) )
+                        fp.write(
+                            "\n" + " ".join(map(lambda x: str(x+1), adj[i].nonzero()[1])))
             self.graph_nit = readGraph(edgelist_file, Format.METIS)
         return self.graph_nit
 
@@ -79,4 +85,3 @@ class RedditDataset(object):
         if not hasattr(self, 'graph_nx'):
             self.graph_nx = nx.from_scipy_sparse_matrix(self.graph.adj)
         return self.graph_nx
-        

@@ -70,8 +70,8 @@ def construct_placeholders(num_classes):
 
 
 class Graphsage():
-    def __init__(self, data, features, batch_size=256, max_degree=25, model='graphsage_mean',
-                 samples_1=25, samples_2=10, samples_3=0, dim_1=16, dim_2=16,
+    def __init__(self, data, features, batch_size=1024, max_degree=25, model='graphsage_mean',
+                 samples_1=25, samples_2=10, samples_3=0, dim_1=128, dim_2=128,
                  model_size="small", identity_dim=0, epochs=200, dropout=0.0):
         self.batch_size = batch_size
         self.max_degree = max_degree

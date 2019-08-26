@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 import networkx as nx
-from dataloader import DefaultDataloader, CitationDataloader, RedditDataset
+from dataloader import DefaultDataloader, CitationDataloader, RedditDataset, NELLDataloader
 from features_init import lookup as lookup_feature_init
 import torch
 import random
@@ -19,7 +19,8 @@ def parse_args():
     parser.add_argument('--dataset', default="data/cora")
     parser.add_argument('--init', default="ori")
     parser.add_argument('--feature_size', default=128, type=int)
-    parser.add_argument('--learn-features', dest='learnable_features', action='store_true')
+    parser.add_argument('--learn-features', dest='learnable_features',
+                        action='store_true')
     parser.add_argument('--shuffle', action='store_true',
                         help="Whether shuffle features or not.")
     parser.add_argument('--seed', type=int, default=40)
@@ -50,20 +51,22 @@ def get_algorithm(args, data, features):
         return Nope(features)
     elif args.alg == "dgi":
         return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda,
-            learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
+                      learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
     elif args.alg == "graphsage":
         if features.shape[0] > 10000:
             return Graphsage(data, features, max_degree=args.max_degree, samples_1=args.samples_1)
         else:
             return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator,
-                learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
+                                learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
     else:
         raise NotImplementedError
+
 
 def add_weight(subgraph):
     for n1, n2 in subgraph.edges():
         subgraph[n1][n2]['weight'] = 1
     return subgraph
+
 
 def get_feature_initialization(args, data, inplace=True, input_graph=False):
     if input_graph:
@@ -80,12 +83,9 @@ def get_feature_initialization(args, data, inplace=True, input_graph=False):
         raise NotImplementedError
     kwargs = {}
     if init == "ori":
-        if "reddit" in args.dataset:
-            kwargs = {"feature_path": args.dataset+"/features.npy"}
-        else:
-            kwargs = {"feature_path": args.dataset+"/features.txt"}
+        kwargs = {"feature_path": args.dataset+"/features.npz"}
     elif init == "label":
-        kwargs = {"label_path": args.dataset+"/labels.txt"}
+        kwargs = {"label_path": args.dataset+"/labels.npz"}
     elif init == "ssvd0.5":
         init = "ssvd"
         kwargs = {"alpha": 0.5}
@@ -130,6 +130,8 @@ def load_data(dataset):
         return RedditDataset(self_loop=False)
     elif data_name == "reddit_self_loop":
         return RedditDataset(self_loop=True)
+    elif data_name == "NELL":
+        return NELLDataloader(dataset)
     else:
         # cora bc flickr wiki youtube homo-sapiens
         return DefaultDataloader(dataset)
@@ -137,16 +139,16 @@ def load_data(dataset):
 
 def main(args):
     data = load_data(args.dataset)
-    inplace = "reddit" not in args.dataset 
+    inplace = "reddit" not in args.dataset
 
     inits_one = "degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
     if args.init in inits_one:
         load_seed = 40
     else:
         load_seed = args.seed
-    
-    feat_file = 'feats/{}-{}-seed{}-dim{}.npz'.format(args.dataset.split('/')[-1], args.init, 
-        load_seed, args.feature_size)
+
+    feat_file = 'feats/{}-{}-seed{}-dim{}.npz'.format(args.dataset.split('/')[-1], args.init,
+                                                      load_seed, args.feature_size)
 
     if args.shuffle:
         features = get_feature_initialization(args, data, inplace=inplace)
@@ -173,7 +175,7 @@ def main(args):
         classifier = LogisticRegressionPytorch(embeds,
                                                data.labels, data.train_mask, data.val_mask, data.test_mask,
                                                epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
-                                               bias=args.logreg_bias, cuda=args.cuda, 
+                                               bias=args.logreg_bias, cuda=args.cuda,
                                                multiclass=data.multiclass, suffix=args.dataset.split('/')[-1])
 
 

@@ -288,15 +288,20 @@ class NodeLabelFeature(FeatureInitialization):
         super(NodeLabelFeature).__init__()
         self.label_path = kwargs["label_path"]
     def read_node_labels(self):
-        features = {}
-        is_multiclass = False
-        fin = open(self.label_path, 'r')
-        for l in fin.readlines():
-            vec = l.split()
-            if len(vec) > 2:
-                is_multiclass = True
-            features[int(vec[0])] = np.array([float(x) for x in vec[1:]])
-        fin.close()
+        if self.label_path.endswith(".npz"):
+            npz = np.load(self.label_path, allow_pickle=True)
+            features = npz['labels'][()]
+            is_multiclass = npz['is_multiclass'][()]
+        else:
+            features = {}
+            is_multiclass = False
+            fin = open(self.label_path, 'r')
+            for l in fin.readlines():
+                vec = l.split()
+                if len(vec) > 2:
+                    is_multiclass = True
+                features[int(vec[0])] = np.array([float(x) for x in vec[1:]])
+            fin.close()
         return features, is_multiclass
     def _generate(self, graph, dim_size):
         features, is_multiclass = self.read_node_labels()

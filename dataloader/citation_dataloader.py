@@ -32,11 +32,9 @@ class CitationDataloader(object):
         if not os.path.isfile(self.zip_file_path):
             download(_get_dgl_url(_urls[self.name]), path=self.zip_file_path)
             extract_archive(self.zip_file_path, '{}/{}'.format(self.dir, self.name))
-            self._load(True)
-        else:
-            self._load(False)
+        self._load()
 
-    def _load(self, first_time=True):
+    def _load(self):
         """Loads input data from gcn/data directory
 
         ind.name.x => the feature vectors of the training instances as scipy.sparse.csr.csr_matrix object;
@@ -104,17 +102,16 @@ class CitationDataloader(object):
         self.multiclass = False
         self.n_classes = int(self.labels.max() + 1)
 
-        if first_time:
+        features_file = self.dir + '/' + self.name + '/features.npz'
+        if not os.path.isfile(features_file):
             features = np.asarray(features.todense())
-            with open(self.dir + '/' + self.name + '/features.txt', 'w+') as fp:
-                for i, node in enumerate(graph.nodes()):
-                    fp.write("{} {}\n".format(node, ' '.join(map(str, features[i]))))
+            features_dict = {node: features[i] for i, node in enumerate(graph.nodes())}
+            np.savez_compressed(features_file, features=features_dict)
 
-        label_file = self.dir + '/' + self.name + '/labels.txt'
+        label_file = self.dir + '/' + self.name + '/labels.npz'
         if not os.path.isfile(label_file):
-            with open(label_file, 'w+') as fp:
-                for i, node in enumerate(graph.nodes()):
-                    fp.write("{} {}\n".format(node, labels[i]))
+            labels_dict = {node: labels[i] for i, node in enumerate(graph.nodes())}
+            np.savez_compressed(label_file, labels=labels_dict)
 
         print('Finished data loading and preprocessing.')
         print('  NumNodes: {}'.format(self.graph.number_of_nodes()))
