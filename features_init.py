@@ -270,7 +270,13 @@ class OriginalFeature(FeatureInitialization):
         if self.feature_path.endswith(".npy"):
             features = np.load(self.feature_path, allow_pickle=True)[()]
         elif self.feature_path.endswith(".npz"):
-            features = np.load(self.feature_path, allow_pickle=True)['feats'][()]
+            npz = np.load(self.feature_path, allow_pickle=True)
+            features = npz['feats'][()]
+            try:
+                nodes = npz['nodes'][()]
+                features_dict = {node: features[i] for i, node in enumerate(nodes)}
+            except:
+                pass
         else:
             features = {}
             fin = open(self.feature_path, 'r')

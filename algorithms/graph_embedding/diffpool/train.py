@@ -127,7 +127,7 @@ def train(dataset, model, prog_args, same_feat=True, val_dataset=None):
     dataloader = dataset
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,
                                         model.parameters()), lr=0.001)
-    early_stopping_logger = {"best_epoch": -1, "val_acc": -1}
+    early_stopping_logger = {"best_epoch": -1, "val_acc": -2}
 
     if prog_args.cuda > 0:
         torch.cuda.set_device(0)

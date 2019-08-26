@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import scipy.sparse as sp
 # from networkit import *
+import os
 
 def read_node_label(filename):
     fin = open(filename, 'r')
@@ -72,6 +73,13 @@ class DefaultDataloader():
         # self.graph = readGraph(edgelist_file, Format.METIS)
         # import pdb; pdb.set_trace()
 
+        features = {}
+        with open(datadir+'/labels.txt') as fp:
+            for line in fp:
+                elms = line.strip().split()
+                features[int(elms[0])] = np.array([float(x) for x in elms[1:]])
+        self.features = np.array([features[x] for x in self.graph.nodes()])
+
         labels = convert_labels_to_binary(labels, self.graph)
         if self.multiclass:
             self.labels = torch.FloatTensor(labels)
@@ -105,3 +113,100 @@ class DefaultDataloader():
                                           self.train_mask.sum(), 
                                           self.val_mask.sum(), 
                                           self.test_mask.sum()))
+
+class DefaultInductiveDataloader():
+    """
+    load data from data/ directory which contains edgelist.txt, labels.txt
+    """
+
+    def __init__(self, datadir, mode):
+        self.datadir = datadir
+        self.mode = mode
+        self._load()
+
+    def _load(self):
+        graph_file = '{}/{}_graph.npz'.format(self.datadir, self.mode)
+        if not os.path.isfile(graph_file):  
+            self._store_train_val_test()
+        npz = np.load(graph_file)
+        adj = npz['graph'][()]
+        self.graph = nx.from_scipy_sparse_matrix(adj)
+        self.labels = npz['labels'][()]
+        self.features = np.load('{}/{}_feats.npy'.format(self.datadir, self.mode))
+        # if self.mode == "train":
+        #     self.train_nodes = npz["train_nodes"][()]
+        # elif self.mode == "valid":
+        #     self.valid_nodes = npz["valid_nodes"][()]
+        # elif self.mode == "test":
+        #     self.test_nodes = npz["test_nodes"][()]
+        self.mask = npz["{}_nodes".format(self.mode)][()]
+        self.n_classes = int(npz["n_classes"][()])
+        self.labels = torch.LongTensor(self.labels)
+        self.multiclass = npz["multiclass"][()]
+
+    def _store_train_val_test(self):
+        datadir = self.datadir
+        labels, multiclass = read_node_label(datadir+'/labels.txt')
+        # build graph
+        edges = []
+        with open(datadir+'/edgelist.txt') as fp:
+            for line in fp:
+                src, trg = line.strip().split()[:2]
+                edges.append([int(src), int(trg)])
+        edges = np.array(edges)
+        adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:,0], edges[:,1])),
+            shape=(len(labels), len(labels)), dtype=np.int32)
+        # build symmetric adjacency matrix
+        adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+        self.graph = nx.from_scipy_sparse_matrix(adj, create_using=nx.DiGraph())
+
+        features = {}
+        with open(datadir+'/features.txt') as fp:
+            for line in fp:
+                elms = line.strip().split()
+                features[int(elms[0])] = np.array([float(x) for x in elms[1:]])
+        features = np.array([features[x] for x in self.graph.nodes()])
+
+        labels = convert_labels_to_binary(labels, self.graph)
+        if multiclass:
+            labels = torch.FloatTensor(labels)
+            n_classes = labels.shape[1]
+        else:
+            labels = torch.LongTensor(labels.argmax(axis=1))
+            n_classes = int(labels.max() + 1)
+
+        if "cora" in datadir:
+            print("Split train-val-test by default for cora dataset.")
+            idx_train = list(range(140))
+            idx_val = list(range(200, 500))
+            idx_test = list(range(500, 1500))
+        else:
+            print("Split train-val-test 0.7-0.1-0.2.")
+            indices = np.random.permutation(np.arange(self.labels.shape[0]))
+            n_train = int(len(indices) * 0.7)
+            n_val = int(len(indices) * 0.1)
+            idx_train = indices[:n_train]
+            idx_val = indices[n_train:n_train+n_val]
+            idx_test = indices[n_train+n_val:]
+
+        train_adj = adj[idx_train, :][:, idx_train]
+        val_adj = adj[idx_train+idx_val, :][:, idx_train+idx_val]
+        test_adj = adj
+
+        # save train_graph
+        extract_dir = self.datadir
+        np.savez_compressed(extract_dir+'/train_graph.npz', graph=train_adj, 
+            labels=labels[idx_train], train_nodes=idx_train, 
+            n_classes=labels.max()+1, multiclass=multiclass)
+        np.save(extract_dir+'/train_feats.npy', features[idx_train])
+        # save valid graph
+        np.savez_compressed(extract_dir+'/valid_graph.npz', graph=val_adj, 
+            labels=labels[idx_val], valid_nodes=list(range(len(idx_train), len(idx_train)+len(idx_val))), 
+            n_classes=labels.max()+1, multiclass=multiclass)
+        np.save(extract_dir+'/valid_feats.npy', features[idx_train+idx_val])
+        # save valid graph
+        test_labels = labels[idx_test]
+        np.savez_compressed(extract_dir+'/test_graph.npz', graph=test_adj, 
+            labels=labels[idx_test], test_nodes=idx_test,
+            n_classes=labels.max()+1, multiclass=multiclass)
+        np.save(extract_dir+'/test_feats.npy', features)

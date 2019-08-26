@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 import networkx as nx
-from dataloader import PPIDataset, RedditInductiveDataset
+from dataloader import PPIDataset, RedditInductiveDataset, CitationInductiveDataloader, DefaultInductiveDataloader
 from features_init import lookup as lookup_feature_init
 import torch
 import random
@@ -105,6 +105,14 @@ def load_data(dataset):
         return (RedditInductiveDataset("train", self_loop=("self_loop" in data_name)), 
             RedditInductiveDataset("valid", self_loop=("self_loop" in data_name)), 
             RedditInductiveDataset("test", self_loop=("self_loop" in data_name)))
+    elif data_name in "citeseer pubmed".split():
+        return (CitationInductiveDataloader(dataset, "train"), 
+            CitationInductiveDataloader(dataset, "valid"), 
+            CitationInductiveDataloader(dataset, "test"), )
+    elif data_name in "cora".split():
+        return (DefaultInductiveDataloader(dataset, "train"),
+            DefaultInductiveDataloader(dataset, "valid"),
+            DefaultInductiveDataloader(dataset, "test"))
 
 def load_features(mode, graph, args):
     inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
@@ -125,7 +133,10 @@ def load_features(mode, graph, args):
             features = get_feature_initialization(args, graph, mode, inplace=False)
             if not os.path.isdir('feats'):
                 os.makedirs('feats')
-            np.savez_compressed(feat_file, features=features)
+            try:
+                np.savez_compressed(feat_file, features=features)
+            except: 
+                pass
     features = dict2arr(features, graph)
     return features
 
@@ -144,8 +155,8 @@ def main(args):
         val_embs = val_alg.train()[val_data.mask]
         test_alg = get_algorithm(args, test_data, test_features)
         test_embs = test_alg.train()[test_data.mask]
-        val_labels = val_data.labels[val_data.mask]
-        test_labels = test_data.labels[test_data.mask]
+        val_labels = val_data.labels
+        test_labels = test_data.labels
         use_default_classifier = True
     elif args.alg == "dgi":
         alg = get_algorithm(args, train_data, train_features)
@@ -154,8 +165,8 @@ def main(args):
         val_embs = alg.get_embeds(val_features, val_data.graph)[val_data.mask]
         torch.cuda.empty_cache()
         test_embs = alg.get_embeds(test_features, test_data.graph)[test_data.mask]
-        val_labels = val_data.labels[val_data.mask]
-        test_labels = test_data.labels[test_data.mask]
+        val_labels = val_data.labels
+        test_labels = test_data.labels
         torch.cuda.empty_cache()
         use_default_classifier = True
     elif args.alg == "graphsage":

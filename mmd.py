@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import networkx as nx
 from dataloader.tu_dataset import TUDataset
+from dataloader import CitationDataloader, DefaultDataloader
 import torch
 import random
 from parser import *
@@ -12,6 +13,7 @@ import os
 import shogun as sg
 from graph_classify import init_features
 import multiprocessing
+from inductive import load_data, load_features
 sg.get_global_parallel().set_num_threads(multiprocessing.cpu_count()//3)
 
 
@@ -99,27 +101,39 @@ def rbf_mmd_test(X, Y, bandwidth='median', null_samples=1000,
 
 
 def load_data(dataset):
-    return TUDataset(dataset)
+    dataname = dataset.split('/')[-1]
+    if dataname in "cora".split():
+        return DefaultDataloader(dataset)
+    elif dataname in "citeseer pubmed".split():
+        return CitationDataloader(dataset)
+    else:
+        return TUDataset(dataset)
 
 
 def main(args):
     data = load_data(args.dataset)
-    init_features(args, data)
-    train_data = data.dataset_train
-    val_data = data.dataset_val
-    test_data = data.dataset_test
+    dataname = args.dataset.split('/')[-1]
+    if dataname in "cora citeseer pubmed".split():
+        train_data, val_data, test_data = load_data(args.dataset)
+        train_feats = load_features('train', train_data.graph, args)
+        # val_features = load_features('valid', val_data.graph, args)
+        test_feats = load_features('test', test_data.graph, args)
+    else:
+        init_features(args, data)
+        train_data = data.dataset_train
+        val_data = data.dataset_val
+        test_data = data.dataset_test
 
-    train_feats = []
-    test_feats = []
-    for graph, _ in train_data:
-        train_feats.append(graph.ndata['feat'])
-    for graph, _ in val_data:
-        train_feats.append(graph.ndata['feat'])
-    train_feats = np.vstack(train_feats)
-    for graph, _ in test_data:
-        test_feats.append(graph.ndata['feat'])
-    test_feats = np.vstack(test_feats)
-
+        train_feats = []
+        test_feats = []
+        for graph, _ in train_data:
+            train_feats.append(graph.ndata['feat'])
+        for graph, _ in val_data:
+            train_feats.append(graph.ndata['feat'])
+        train_feats = np.vstack(train_feats)
+        for graph, _ in test_data:
+            test_feats.append(graph.ndata['feat'])
+        test_feats = np.vstack(test_feats)
     test_mmd(train_feats, test_feats)
 
 
