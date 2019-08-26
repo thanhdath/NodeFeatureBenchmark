@@ -176,7 +176,7 @@ def main(args):
                                                data.labels, data.train_mask, data.val_mask, data.test_mask,
                                                epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
                                                bias=args.logreg_bias, cuda=args.cuda,
-                                               multiclass=data.multiclass, suffix=args.dataset.split('/')[-1])
+                                               multiclass=data.multiclass)
 
 
 def init_environment(args):
