@@ -217,27 +217,32 @@ class CitationInductiveDataloader(object):
         idx_test = test_idx_range.tolist()
         idx_train = list(range(len(y)))
         idx_val = list(range(len(y), len(y)+500))
+        mask = np.zeros((labels.shape[0]))
+        mask[idx_test + idx_train + idx_val] = 1
+        idx_free = np.argwhere(mask == 0).flatten().tolist()
 
         train_mask = _sample_mask(idx_train, labels.shape[0])
         val_mask = _sample_mask(idx_val, labels.shape[0])
         test_mask = _sample_mask(idx_test, labels.shape[0])
 
         adj = nx.to_scipy_sparse_matrix(graph)
-        train_adj = adj[idx_train, :][:, idx_train]
-        val_adj = adj[idx_train+idx_val, :][:, idx_train+idx_val]
+        train_adj = adj[idx_free+idx_train, :][:, idx_free+idx_train]
+        val_adj = adj[idx_free+idx_train+idx_val, :][:, idx_free+idx_train+idx_val]
         test_adj = adj
 
         # save train_graph
         extract_dir = self.dir + '/' + self.name
         np.savez_compressed(extract_dir+'/train_graph.npz', graph=train_adj, 
-            labels=labels[idx_train], train_nodes=idx_train, 
+            labels=labels[idx_train], 
+            train_nodes=list(range(len(idx_free), train_adj.shape[0])), 
             n_classes=labels.max()+1)
-        np.save(extract_dir+'/train_feats.npy', features[idx_train].todense())
+        np.save(extract_dir+'/train_feats.npy', features[idx_free+idx_train].todense())
         # save valid graph
         np.savez_compressed(extract_dir+'/valid_graph.npz', graph=val_adj, 
-            labels=labels[idx_val], valid_nodes=list(range(len(idx_train), len(idx_train)+len(idx_val))), 
+            labels=labels[idx_val], 
+            valid_nodes=list(range(len(idx_free) + len(idx_train), val_adj.shape[0])),
             n_classes=labels.max()+1)
-        np.save(extract_dir+'/valid_feats.npy', features[idx_train+idx_val].todense())
+        np.save(extract_dir+'/valid_feats.npy', features[idx_free+idx_train+idx_val].todense())
         # save valid graph
         test_labels = labels[idx_test]
         np.savez_compressed(extract_dir+'/test_graph.npz', graph=test_adj, 

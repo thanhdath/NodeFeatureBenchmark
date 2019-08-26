@@ -47,7 +47,7 @@ def get_algorithm(args, train_data, train_features, val_data=None, val_features=
     if args.alg == "sgc":
         return SGC(train_data, train_features, degree=args.degree, cuda=args.cuda)
     elif args.alg == "dgi":
-        return DGIAPI(train_data, train_features, cuda=args.cuda)
+        return DGIAPI(train_data, train_features, cuda=args.cuda, self_loop=True)
     elif args.alg == "graphsage":
         return GraphsageInductive(train_data, val_data, test_data, train_features, val_features,
             test_features, cuda=args.cuda, aggregator=args.aggregator)
@@ -150,7 +150,7 @@ def main(args):
     if args.alg == "sgc":
         # aggregate only -> create train val test alg
         train_alg = get_algorithm(args, train_data, train_features) 
-        train_embs = train_alg.train()
+        train_embs = train_alg.train()[train_data.mask]
         val_alg = get_algorithm(args, val_data, val_features)
         val_embs = val_alg.train()[val_data.mask]
         test_alg = get_algorithm(args, test_data, test_features)

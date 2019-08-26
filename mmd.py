@@ -31,6 +31,10 @@ def parse_args():
 
 
 def test_mmd(emb1, emb2):
+    emb1[np.isnan(emb1)] = 0
+    emb1[np.isinf(emb1)] = 0
+    emb2[np.isnan(emb2)] = 0
+    emb2[np.isinf(emb2)] = 0
     print(emb1.shape)
     print(emb2.shape)
 

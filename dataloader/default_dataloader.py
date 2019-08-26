@@ -180,30 +180,34 @@ class DefaultInductiveDataloader():
             idx_train = list(range(140))
             idx_val = list(range(200, 500))
             idx_test = list(range(500, 1500))
+            idx_free = list(range(140, 200)) + list(range(1500, labels.shape[0]))
         else:
             print("Split train-val-test 0.7-0.1-0.2.")
-            indices = np.random.permutation(np.arange(self.labels.shape[0]))
+            indices = np.random.permutation(np.arange(labels.shape[0]))
             n_train = int(len(indices) * 0.7)
             n_val = int(len(indices) * 0.1)
-            idx_train = indices[:n_train]
-            idx_val = indices[n_train:n_train+n_val]
-            idx_test = indices[n_train+n_val:]
+            idx_train = indices[:n_train].tolist()
+            idx_val = indices[n_train:n_train+n_val].tolist()
+            idx_test = indices[n_train+n_val:].tolist()
+            idx_free = []
 
-        train_adj = adj[idx_train, :][:, idx_train]
-        val_adj = adj[idx_train+idx_val, :][:, idx_train+idx_val]
+        train_adj = adj[idx_free+idx_train, :][:, idx_free+idx_train]
+        val_adj = adj[idx_free+idx_train+idx_val, :][:, idx_free+idx_train+idx_val]
         test_adj = adj
 
         # save train_graph
         extract_dir = self.datadir
         np.savez_compressed(extract_dir+'/train_graph.npz', graph=train_adj, 
-            labels=labels[idx_train], train_nodes=idx_train, 
+            labels=labels[idx_train], 
+            train_nodes=list(range(len(idx_free), train_adj.shape[0])), 
             n_classes=labels.max()+1, multiclass=multiclass)
-        np.save(extract_dir+'/train_feats.npy', features[idx_train])
+        np.save(extract_dir+'/train_feats.npy', features[idx_free+idx_train])
         # save valid graph
         np.savez_compressed(extract_dir+'/valid_graph.npz', graph=val_adj, 
-            labels=labels[idx_val], valid_nodes=list(range(len(idx_train), len(idx_train)+len(idx_val))), 
+            labels=labels[idx_val], 
+            valid_nodes=list(range(len(idx_free) + len(idx_train), val_adj.shape[0])), 
             n_classes=labels.max()+1, multiclass=multiclass)
-        np.save(extract_dir+'/valid_feats.npy', features[idx_train+idx_val])
+        np.save(extract_dir+'/valid_feats.npy', features[idx_free+idx_train+idx_val])
         # save valid graph
         test_labels = labels[idx_test]
         np.savez_compressed(extract_dir+'/test_graph.npz', graph=test_adj, 

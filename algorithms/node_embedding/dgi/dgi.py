@@ -20,9 +20,9 @@ class Encoder(nn.Module):
     def forward(self, features, g, corrupt=False):
         if corrupt:
             perm = torch.randperm(features.shape[0])
-            features = features[perm]
-        features = self.conv(features, g)
-        return features
+            hidden = features[perm]
+        hidden = self.conv(features, g)
+        return hidden
 
 
 class Discriminator(nn.Module):
