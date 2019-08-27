@@ -18,11 +18,18 @@ def parse(init, seed):
     bandwidth = re.findall("bandwidth: [-0-9\.\s]+", content)[0]
     bandwidth = bandwidth.replace("bandwidth: ", "")
     bandwidth = float(bandwidth)
-    return pval, stats, bandwidth
+
+    try:
+        samps = re.findall("samps: [-0-9\.\s]+", content)[0]
+        samps = samps.replace("samps: ", "")
+        samps = float(samps)
+    except:
+        samps = 0
+    return pval, stats, bandwidth, samps
 
 data = sys.argv[1]
 
-inits = "ssvd1 ssvd0.5 deepwalk graphwave hope ori".split()
+inits = "ssvd1 ssvd0.5 deepwalk graphwave hope ori degree-standard triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard".split()
 
 print("Check ordered init methods:")
 for i, init in enumerate(inits):
@@ -32,12 +39,14 @@ for init in inits:
     micros = []
     macros = []
     times = []
+    sampss = []
     for seed in range(40, 50):
         try:
-            pval, stats, bandwidth = parse(init, seed)
+            pval, stats, bandwidth, samps = parse(init, seed)
             micros.append(pval)
             macros.append(stats)
             times.append(bandwidth)
+            sampss.append(samps)
         except:
             pass
     micro = np.mean(micros)
@@ -46,6 +55,8 @@ for init in inits:
     macro_std = np.std(macros)
     time_init = np.mean(times)
     bandwidth_std = np.std(times)
+    samps = np.mean(sampss)
+    samps_std = np.std(samps)
     # print("Data: {} - Init: {}".format(data, init))
-    print("{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}".format(
-        micro, micro_std, macro, macro_std, time_init, bandwidth_std))
+    print("{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}\t{:.3f}+-{:.3f}".format(
+        micro, micro_std, macro, macro_std, time_init, bandwidth_std, samps, samps_std))

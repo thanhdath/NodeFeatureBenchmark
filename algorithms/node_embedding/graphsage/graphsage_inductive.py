@@ -221,7 +221,7 @@ class GraphsageInductive():
             model.train()
             # forward
             logits = model(train_features, self.train_graph)
-            loss = loss_fcn(logits, train_labels)
+            loss = loss_fcn(logits[self.train_data.mask], train_labels)
 
             optimizer.zero_grad()
             loss.backward()
@@ -233,7 +233,7 @@ class GraphsageInductive():
                 model.eval()
                 with torch.no_grad():
                     logits = model(val_features, self.val_graph)
-                    acc = accuracy(logits, val_labels,
+                    acc = accuracy(logits[self.val_data.mask], val_labels,
                                    multiclass=self.multiclass)
                     if acc > best_val_acc:
                         best_val_acc = acc
@@ -258,5 +258,5 @@ class GraphsageInductive():
         with torch.no_grad():
             model.eval()
             output = model(test_features, self.test_graph)
-            micro, macro = f1(output, test_labels, multiclass=self.multiclass)
+            micro, macro = f1(output[self.test_data.mask], test_labels, multiclass=self.multiclass)
             print('Test micro-macro: {:.3f}\t{:.3f}'.format(micro, macro))

@@ -30,6 +30,26 @@ def parse_args():
     return parser.parse_args()
 
 
+# def test_mmd(emb1, emb2):
+#     emb1[np.isnan(emb1)] = 0
+#     emb1[np.isinf(emb1)] = 0
+#     emb2[np.isnan(emb2)] = 0
+#     emb2[np.isinf(emb2)] = 0
+#     print(emb1.shape)
+#     print(emb2.shape)
+
+#     if emb1.shape[0] > 200000:
+#         np.random.shuffle(emb1)
+#         emb1 = emb1[:emb1.shape[0]//16]
+#         np.random.shuffle(emb2)
+#         emb2 = emb2[:emb2.shape[0]//2]
+#     p_val, stat, samps, bandwidth = rbf_mmd_test(np.asarray(
+#         emb1).astype("float64"), np.asarray(emb2).astype("float64"))
+#     print("p_val:", p_val)
+#     print("stats:", stat)
+#     print("bandwidth:", bandwidth)
+#     print("samps:", np.mean(samps))
+
 def test_mmd(emb1, emb2):
     emb1[np.isnan(emb1)] = 0
     emb1[np.isinf(emb1)] = 0
@@ -38,17 +58,30 @@ def test_mmd(emb1, emb2):
     print(emb1.shape)
     print(emb2.shape)
 
-    if emb1.shape[0] > 200000:
-        np.random.shuffle(emb1)
-        emb1 = emb1[:emb1.shape[0]//16]
-        np.random.shuffle(emb2)
-        emb2 = emb2[:emb2.shape[0]//2]
-    p_val, stat, samps, bandwidth = rbf_mmd_test(np.asarray(
+    # if emb1.shape[0] > 200000:
+    #     np.random.shuffle(emb1)
+    #     emb1 = emb1[:emb1.shape[0]//16]
+    #     np.random.shuffle(emb2)
+    #     emb2 = emb2[:emb2.shape[0]//2]
+    p_val, stat, samps = linear_mmd_test(np.asarray(
         emb1).astype("float64"), np.asarray(emb2).astype("float64"))
     print("p_val:", p_val)
     print("stats:", stat)
-    print("bandwidth:", bandwidth)
+    print("bandwidth:", 0)
+    print("samps:", np.mean(samps))
 
+def linear_mmd_test(X, Y, null_samples=1000):
+    mmd = sg.QuadraticTimeMMD()
+    mmd.set_p(sg.RealFeatures(X.T.astype(np.float64)))
+    mmd.set_q(sg.RealFeatures(Y.T.astype(np.float64)))
+    mmd.set_kernel(sg.LinearKernel())
+
+    mmd.set_num_null_samples(null_samples)
+    samps = mmd.sample_null()
+    stat = mmd.compute_statistic()
+
+    p_val = np.mean(stat <= samps)
+    return p_val, stat, samps
 
 def rbf_mmd_test(X, Y, bandwidth='median', null_samples=1000,
                  median_samples=1000, cache_size=32):
@@ -119,9 +152,9 @@ def main(args):
     dataname = args.dataset.split('/')[-1]
     if dataname in "cora citeseer pubmed".split():
         train_data, val_data, test_data = data
-        train_feats = load_features('train', train_data.graph, args)
+        train_feats = load_features('train', train_data.graph, args)[train_data.mask]
         # val_features = load_features('valid', val_data.graph, args)
-        test_feats = load_features('test', test_data.graph, args)
+        test_feats = load_features('test', test_data.graph, args)[test_data.mask]
     else:
         init_features(args, data)
         train_data = data.dataset_train

@@ -243,7 +243,7 @@ class NodeMinibatchIterator(object):
     def batch_feed_dict(self, batch_nodes, val=False):
         batch1 = batch_nodes
               
-        labels = np.vstack([self._make_label_vec(int(node)) for node in batch1])
+        labels = np.vstack([self._make_label_vec(node) for node in batch1])
         feed_dict = dict()
         feed_dict.update({self.placeholders['batch_size'] : len(batch1)})
         feed_dict.update({self.placeholders['batch']: batch1})

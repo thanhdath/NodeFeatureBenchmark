@@ -23,9 +23,7 @@ def check_is_multiclass(features_arr):
         if len(feature) > 1: return True 
     return False
 
-def transform_onehot_or_multiclass(features_arr):
-    is_multiclass = check_is_multiclass(features_arr)
-    # is_multiclass = True
+def transform_onehot_or_multiclass(features_arr, is_multiclass=False):
     if is_multiclass:
         encoder = MultiLabelBinarizer(sparse_output=False)
         encoder.fit_transform(features_arr)
@@ -297,7 +295,20 @@ class NodeLabelFeature(FeatureInitialization):
         if self.label_path.endswith(".npz"):
             npz = np.load(self.label_path, allow_pickle=True)
             features = npz['labels'][()]
-            is_multiclass = npz['is_multiclass'][()]
+            try:
+                is_multiclass = npz['is_multiclass'][()]
+            except:
+                values = list(features.values())
+                try:
+                    len(values[0])
+                    for v in values:
+                        if len(v) > 1: 
+                            is_multiclass = True 
+                            break
+                except:
+                    is_multiclass = False
+                    features = {k: [v] for k, v in features.items()}
+                
         else:
             features = {}
             is_multiclass = False
@@ -312,7 +323,7 @@ class NodeLabelFeature(FeatureInitialization):
     def _generate(self, graph, dim_size):
         features, is_multiclass = self.read_node_labels()
         features_arr = [features[x] for x in graph.nodes()]
-        features_arr = transform_onehot_or_multiclass(features_arr)
+        features_arr = transform_onehot_or_multiclass(features_arr, is_multiclass=is_multiclass)
         features = {node: features_arr[i] for i, node in enumerate(graph.nodes())}
         return features
 

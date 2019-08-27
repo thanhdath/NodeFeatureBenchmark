@@ -22,17 +22,16 @@ try:
 except:
     alg = "sgc"
 
-if data in "bc flickr wiki".split():
+if data in "bc flickr wiki homo-sapiens".split():
     if alg == "nope":
         inits = "deepwalk hope line gf".split()
     else:
-        inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard identity".split()
+        inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard identity learnable".split()
 elif "ppi" in data or "inductive" in data:
     inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard clique-standard identity ori ori-rowsum ori-standard learnable graphwave".split()
 else:
     if alg == "nope":
-        inits = "ori ori-rowsum ori-standard deepwalk hope line gf \
-            deepwalk-standard hope-standard node2vec-standard line-standard gf-standard graphwave".split()
+        inits = "ori ori-rowsum ori-standard deepwalk hope line gf graphwave".split()
     elif alg in ["diffpool", "gin"]:
         inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope line \
             gf triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
@@ -41,10 +40,9 @@ else:
         inits = "degree uniform deepwalk ssvd0.5 ssvd1 hope line gf triangle kcore egonet pagerank coloring clique ori ori-rowsum label graphwave label-onehot".split()
     else:
         inits = "degree-standard uniform deepwalk ssvd0.5 ssvd1 hope \
-                line gf deepwalk-standard node2vec-standard ssvd0.5-standard ssvd1-standard hope-standard line-standard \
-                gf-standard \
+                line gf \
                 triangle-standard kcore-standard egonet-standard pagerank-standard coloring-standard \
-                clique-standard identity ori ori-rowsum ori-standard label graphwave".split()
+                clique-standard identity ori ori-rowsum ori-standard learnable graphwave label".split()
     
 print("Check ordered init methods:")
 for i, init in enumerate(inits):

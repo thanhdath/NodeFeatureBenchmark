@@ -100,7 +100,9 @@ class NELLDataloader(object):
 
         features_file = self.dir + '/' + self.name + '/features.npz'
         if not os.path.isfile(features_file):
-            np.savez_compressed(features_file, feats=features.todense(), nodes=list(graph.nodes()))
+            np.savez_compressed(features_file, 
+                feats=features.todense(), 
+                nodes=list(graph.nodes()))
 
         label_file = self.dir + '/' + self.name + '/labels.npz'
         if not os.path.isfile(label_file):

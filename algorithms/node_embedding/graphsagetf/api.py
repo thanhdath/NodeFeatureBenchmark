@@ -70,9 +70,9 @@ def construct_placeholders(num_classes):
 
 
 class Graphsage():
-    def __init__(self, data, features, batch_size=1024, max_degree=25, model='graphsage_mean',
-                 samples_1=25, samples_2=10, samples_3=0, dim_1=128, dim_2=128,
-                 model_size="small", identity_dim=0, epochs=200, dropout=0.0):
+    def __init__(self, data, features, batch_size=512, max_degree=100, model='graphsage_mean',
+                 samples_1=25, samples_2=10, samples_3=0, dim_1=64, dim_2=64,
+                 model_size="small", identity_dim=0, epochs=200, dropout=0.5):
         self.batch_size = batch_size
         self.max_degree = max_degree
         self.model = model
@@ -94,7 +94,7 @@ class Graphsage():
         train_data = self.data 
         G = train_data.graph
         features = self.features.numpy()
-        class_map = {node: train_data.labels[i].numpy() for i, node in enumerate(G.nodes())}
+        class_map = {node: train_data.labels[i].numpy().tolist() for i, node in enumerate(G.nodes())}
         num_classes = train_data.n_classes
 
         if not features is None:

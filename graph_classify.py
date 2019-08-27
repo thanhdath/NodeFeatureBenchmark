@@ -127,7 +127,7 @@ def init_features(args, data: TUDataset):
                 features_dict = {x: features[i] for i, x in enumerate(nodes)}
                 features_dict = lookup_normalizer[normalizer].norm(features_dict, g.to_networkx(), verbose=args.verbose)
                 save_features(feat_file, features_dict)
-            g.ndata['feat'] = np.array([features_dict[x] for x in nodes])
+            g.ndata['feat'] = np.array([features_dict[int(x)] for x in g.nodes()])
     elif init == "label": # use node label as node features
         print("Init features: node labels")
         for idx_g, g in enumerate(data.graph_lists):
@@ -142,7 +142,7 @@ def init_features(args, data: TUDataset):
                 features_dict = {x: features[i] for i, x in enumerate(nodes)}
                 features_dict = lookup_normalizer[normalizer].norm(features_dict, g.to_networkx(), verbose=args.verbose)
                 save_features(feat_file, features_dict)
-            g.ndata['feat'] = np.array([features_dict[x] for x in nodes])
+            g.ndata['feat'] = np.array([features_dict[int(x)] for x in g.nodes()])
     else:
         print("Init features:", init)
         for idx_g, graph in enumerate(data.graph_lists):

@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument('--dataset', default="data/ppi")
     parser.add_argument('--init', default="ori")
     parser.add_argument('--feature_size', default=128, type=int)
-    # args.add_argument('--train_features', action='store_true')
+    parser.add_argument('--learn-features', dest='learnable_features', action='store_true')
     parser.add_argument('--shuffle', action='store_true',
                         help="Whether shuffle features or not.")
     parser.add_argument('--seed', type=int, default=40)
@@ -47,10 +47,10 @@ def get_algorithm(args, train_data, train_features, val_data=None, val_features=
     if args.alg == "sgc":
         return SGC(train_data, train_features, degree=args.degree, cuda=args.cuda)
     elif args.alg == "dgi":
-        return DGIAPI(train_data, train_features, cuda=args.cuda, self_loop=True)
+        return DGIAPI(train_data, train_features, cuda=args.cuda, self_loop=True, learnable_features=args.learnable_features)
     elif args.alg == "graphsage":
         return GraphsageInductive(train_data, val_data, test_data, train_features, val_features,
-            test_features, cuda=args.cuda, aggregator=args.aggregator)
+            test_features, cuda=args.cuda, aggregator=args.aggregator, learnable_features=args.learnable_features)
     else:
         raise NotImplementedError
 
@@ -133,10 +133,10 @@ def load_features(mode, graph, args):
             features = get_feature_initialization(args, graph, mode, inplace=False)
             if not os.path.isdir('feats'):
                 os.makedirs('feats')
-            try:
-                np.savez_compressed(feat_file, features=features)
-            except: 
-                pass
+            # try:
+            #     np.savez_compressed(feat_file, features=features)
+            # except: 
+            #     pass
     features = dict2arr(features, graph)
     return features
 
@@ -160,7 +160,7 @@ def main(args):
         use_default_classifier = True
     elif args.alg == "dgi":
         alg = get_algorithm(args, train_data, train_features)
-        train_embs = alg.train()
+        train_embs = alg.train()[train_data.mask]
         torch.cuda.empty_cache()
         val_embs = alg.get_embeds(val_features, val_data.graph)[val_data.mask]
         torch.cuda.empty_cache()

@@ -8,6 +8,7 @@ from .dgi import DGI
 import itertools
 import os
 
+
 class DGIAPI():
     def __init__(self, data, features, dropout=0, lr=1e-3, epochs=300,
                  hidden=512, layers=1, weight_decay=0., patience=60, self_loop=False, cuda=True,
@@ -37,11 +38,12 @@ class DGIAPI():
             self.hidden), self.dropout)
         if not learnable_features:
             self.dgi_optimizer = torch.optim.Adam(self.dgi.parameters(),
-                lr=self.lr,
-                weight_decay=self.weight_decay)
+                                                  lr=self.lr,
+                                                  weight_decay=self.weight_decay)
         else:
             self.dgi_optimizer = torch.optim.Adam(
-                itertools.chain(self.dgi.parameters(), self.features_embedding.parameters()),
+                itertools.chain(self.dgi.parameters(),
+                                self.features_embedding.parameters()),
                 lr=self.lr,
                 weight_decay=self.weight_decay)
 
