@@ -12,7 +12,7 @@ import os
 class DGIAPI():
     def __init__(self, data, features, dropout=0, lr=1e-3, epochs=300,
                  hidden=512, layers=1, weight_decay=0., patience=60, self_loop=False, cuda=True,
-                 learnable_features=False, suffix=""):
+                 learnable_features=False, suffix="", load_model=None):
         self.dropout = dropout
         self.lr = lr
         self.epochs = epochs
@@ -25,6 +25,7 @@ class DGIAPI():
         self.suffix = suffix
         self.data = data
         self.graph = self.preprocess_graph(data.graph)
+        self.load_model = load_model
 
         if not learnable_features:
             self.features = torch.FloatTensor(features)
@@ -72,7 +73,16 @@ class DGIAPI():
         best = 1e9
         best_t = 0
         dur = []
-        best_model_name = 'dgi-best-model-{}.pkl'.format(time.time())
+        if self.load_model is not None:
+            self.dgi.load_state_dict(torch.load(self.load_model))
+            from_data = self.load_model.replace(".pkl", "").replace("dgi-best-model-", "")
+            best_model_name = 'dgi-best-model-{}-from-{}.pkl'.format(
+                self.suffix, from_data)
+            print("Load pretrained model ", self.load_model)
+        else:
+            best_model_name = 'dgi-best-model-{}.pkl'.format(self.suffix)
+        print("Save best model to ", best_model_name)
+
         for epoch in range(self.epochs):
             dgi.train()
             if epoch >= 3:

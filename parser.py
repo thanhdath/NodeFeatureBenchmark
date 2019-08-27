@@ -12,6 +12,8 @@ def add_dgi_parser(subparsers):
     parser = subparsers.add_parser('dgi', help='DGI algorithm.')
     parser.add_argument('--self-loop', dest='self_loop', action='store_true',
         help="Whether add self loop or not.")
+    parser.add_argument('--load-model', dest='load_model', help="Path to pretrain embeds model.")
+    parser.add_argument('--epochs', type=int, default=300, help="Number of epochs for training embeds.")
     return parser
 
 def add_graphsage_parser(subparsers):
