@@ -178,6 +178,7 @@ def main(args):
 
     if args.alg in ["sgc", "dgi", "nope"]:
         print("Using default logistic regression")
+        torch.cuda.empty_cache()
         classifier = LogisticRegressionPytorch(embeds,
                                                data.labels, data.train_mask, data.val_mask, data.test_mask,
                                                epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,

@@ -45,12 +45,12 @@ class RedditDataset(object):
         self.multiclass = False
         self.n_classes = self.num_labels
 
-        feature_file = extract_dir + '/features.npy'
+        feature_file = extract_dir + '/features.npz'
         if not os.path.isfile(feature_file):
             features = self.features.numpy()
             features_dict = {int(node): features[i]
                              for i, node in enumerate(self.node_ids)}
-            np.save(feature_file, features_dict)
+            np.savez_compressed(feature_file, features=features_dict)
 
         label_file = extract_dir + '/labels.npz'
         if not os.path.isfile(label_file):
