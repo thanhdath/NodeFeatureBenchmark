@@ -12,7 +12,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
             placeholders, features, adj, degrees,
             layer_infos, concat=True, aggregator_type="mean", 
             model_size="small", sigmoid_loss=False, identity_dim=0,
-            learning_rate=0.01, weight_decay=5e-4,
+            learning_rate=0.01, weight_decay=5e-4, train_features=False,
                 **kwargs):
         '''
         Args:
@@ -58,7 +58,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
                 raise Exception("Must have a positive value for identity feature dimension if no input features given.")
             self.features = self.embeds
         else:
-            self.features = tf.Variable(tf.constant(features, dtype=tf.float32), trainable=False)
+            self.features = tf.Variable(tf.constant(features, dtype=tf.float32), trainable=train_features)
             if not self.embeds is None:
                 self.features = tf.concat([self.embeds, self.features], axis=1)
         # self.degrees = degrees

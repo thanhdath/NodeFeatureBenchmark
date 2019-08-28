@@ -191,7 +191,9 @@ def main(args):
         # from_seed = args.load_model.split("-")[5]
         from_features_file = 'feats/{}-{}-seed{}-dim128.npz'.format(from_data, from_init, load_seed)
         from_features = np.load(from_features_file, allow_pickle=True)['features'][()]
-        anchors_file = "anchors-{}-{}.dict".format(args.dataset.split('/')[-1], from_data)
+        dataname = args.dataset.split('/')[-1]
+        anchors_file = "anchors-{}-{}.dict".format(dataname, from_data)
+        print("Aligned features from {} to {} space".format(dataname, from_data))
         features, from_features = aligned_emb(features, from_features, anchors_file, args.feature_size)
     features = dict2arr(features, data.graph)
 

@@ -72,7 +72,7 @@ def construct_placeholders(num_classes):
 class Graphsage():
     def __init__(self, data, features, batch_size=512, max_degree=100, model='graphsage_mean',
                  samples_1=25, samples_2=10, samples_3=0, dim_1=64, dim_2=64,
-                 model_size="small", identity_dim=0, epochs=200, dropout=0.5):
+                 model_size="small", identity_dim=0, epochs=200, dropout=0.5, train_features=False):
         self.batch_size = batch_size
         self.max_degree = max_degree
         self.model = model
@@ -85,6 +85,7 @@ class Graphsage():
         self.identity_dim = identity_dim
         self.epochs = epochs
         self.dropout = dropout
+        self.train_features = train_features
 
         self.data = data
         self.features = features
@@ -144,7 +145,8 @@ class Graphsage():
                                         model_size=self.model_size,
                                         sigmoid_loss=self.sigmoid,
                                         identity_dim=self.identity_dim,
-                                        logging=True)
+                                        logging=True,
+                                        train_features=self.train_features)
         else:
             raise Exception('Error: model name unrecognized.')
 

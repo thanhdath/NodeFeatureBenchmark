@@ -203,5 +203,8 @@ if __name__ == '__main__':
     init_environment(args)
     if args.dataset.endswith("/"):
         args.dataset = args.dataset[:-1]
+    if args.init == "learnable":
+        args.init = "uniform"
+        args.learnable_features = True
     print(args)
     main(args)
