@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from dgl import DGLGraph
 import dgl.function as fn
 from utils import f1, accuracy
-
+import itertools
 
 class Aggregator(nn.Module):
     def __init__(self, in_feats, out_feats, activation=None, bias=True):
@@ -150,11 +150,21 @@ class GraphsageInductive():
     def __init__(self, train_data, val_data, test_data,
                  train_features, val_features, test_features,
                  dropout=0.5, cuda=True, lr=1e-2,
-                 epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean"):
+                 epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean",
+                 learnable_features=False):
         self.train_data = train_data
         self.val_data = val_data
         self.test_data = test_data
-        self.train_features = train_features
+
+        self.learnable_features = learnable_features
+        if not learnable_features:
+            self.train_features = torch.FloatTensor(train_features)
+        else:
+            print("Learnable features")
+            self.features_embedding = nn.Embedding(train_features.shape[0], train_features.shape[1])
+            self.features_embedding.weight = nn.Parameter(train_features)
+            self.train_features = self.features_embedding.weight
+
         self.val_features = val_features
         self.test_features = test_features
 
@@ -211,8 +221,13 @@ class GraphsageInductive():
             loss_fcn = torch.nn.CrossEntropyLoss()
 
         # use optimizer
-        optimizer = torch.optim.Adam(
-            model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        # use optimizer
+        if self.learnable_features:
+            optimizer = torch.optim.Adam(itertools.chain(model.parameters(), self.features_embedding.parameters()),
+                lr=self.lr, weight_decay=self.weight_decay)
+        else:
+            optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+
         best_val_acc = 0
         npt = 0
         max_patience = 3
