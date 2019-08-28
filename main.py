@@ -11,7 +11,7 @@ from algorithms.node_embedding import SGC, Nope, DGIAPI, GraphsageAPI
 from algorithms.node_embedding.graphsagetf.api import Graphsage
 from algorithms.logistic_regression import LogisticRegressionPytorch
 import os
-
+from sklearn.decomposition import PCA
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -26,6 +26,8 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=40)
     parser.add_argument('--verbose', type=int, default=1)
     parser.add_argument('--cuda', action='store_true')
+    parser.add_argument('--pca', action='store_true', 
+        help="Whether to reduce feature dimention to feature_size. Use for original features, identity features.")
 
     # for logistic regression
     parser.add_argument('--logreg-bias', action='store_true',
@@ -169,11 +171,15 @@ def main(args):
                 np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
 
-    inits_fixed_dim = "ori ori-rowsum ori-standard label identity".split()
-    # if args.init not in inits_fixed_dim:
-    #     assert features.shape[1] == args.feature_size, "Wrong feature dimension."
-    alg = get_algorithm(args, data, features)
+    inits_fixed_dim = "ori label identity".split()
+    init, norm = (args.init+"-0").split("-")[:2]
+    if args.pca and init in inits_fixed_dim:
+        print("Perform PCA to reduce feature dimention from {} to {}.".format(features.shape[1], args.feature_size))
+        pca = PCA(n_components=args.feature_size)
+        pca.fit(features.numpy())
+        features = torch.FloatTensor(pca.transform(features.numpy()))
 
+    alg = get_algorithm(args, data, features)
     embeds = alg.train()
 
     if args.alg in ["sgc", "dgi", "nope"]:
