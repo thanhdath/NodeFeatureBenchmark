@@ -19,7 +19,7 @@ data = sys.argv[1]
 alg = sys.argv[2]
 load_from = sys.argv[3]
 
-inits = "ssvd1 ssvd0.5 hope deepwalk graphwave degree-standard".split()
+inits = "ssvd1 ssvd0.5 hope deepwalk graphwave degree-standard ori".split()
 
 print("Check ordered init methods:")
 for i, init in enumerate(inits):
