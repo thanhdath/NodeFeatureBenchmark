@@ -56,11 +56,14 @@ def get_algorithm(args, data, features):
                       suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
                       load_model=args.load_model)
     elif args.alg == "graphsage":
-        if features.shape[0] > 10000:
+        if features.shape[0] > 60000:
             return Graphsage(data, features, max_degree=args.max_degree, samples_1=args.samples_1)
         else:
-            return GraphsageAPI(data, features, cuda=args.cuda, aggregator=args.aggregator,
-                                learnable_features=args.learnable_features, suffix=args.dataset.split('/')[-1])
+            return GraphsageAPI(data, features, cuda=args.cuda, 
+                                aggregator=args.aggregator,
+                                learnable_features=args.learnable_features, 
+                                suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
+                                load_model=args.load_model)
     else:
         raise NotImplementedError
 
@@ -162,7 +165,7 @@ def main(args):
             features = get_feature_initialization(args, data, inplace=inplace)
             if not os.path.isdir('feats'):
                 os.makedirs('feats')
-            if args.init not in ["identity", "ori", "ori-rowsum", "ori-standard"]:
+            if args.init not in ["identity"]:
                 np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
 

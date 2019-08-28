@@ -149,7 +149,7 @@ def evaluate(model, features, labels, mask, multiclass=False):
 class GraphsageAPI():
     def __init__(self, data, features, dropout=0.5, cuda=True, lr=1e-2,
         epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean",
-        learnable_features=False, suffix=""):
+        learnable_features=False, suffix="", load_model=None):
         self.data = data 
         self.learnable_features = learnable_features
         if not learnable_features:
@@ -171,6 +171,7 @@ class GraphsageAPI():
         self.aggregator = aggregator
         self.multiclass = data.multiclass
         self.suffix = suffix
+        self.load_model = load_model
         if self.multiclass:
             print("Train graphsage with multiclass")
 
@@ -216,15 +217,29 @@ class GraphsageAPI():
 
         # use optimizer
         if self.learnable_features:
-            optimizer = torch.optim.Adam(
-                itertools.chain(model.parameters(), self.features_embedding.parameters()),
+            optimizer = torch.optim.Adam(itertools.chain(model.parameters(), self.features_embedding.parameters()),
                 lr=self.lr, weight_decay=self.weight_decay)
         else:
             optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         best_val_acc = 0
         npt = 0
         max_patience = 4
-        best_model_name = 'graphsage-best-model-{}.pkl'.format(time.time())
+
+        if self.load_model is not None:
+            pretrained_model = torch.load(self.load_model)
+            pretrained_model = {k:v for k, v in pretrained_model.items() if "layers.{}".format(self.layers) not in k}
+            state = model.state_dict()
+            state.update(pretrained_model)
+            model.load_state_dict(state)
+            for i in range(self.layers):
+                model.layers[i].requires_grad = False
+            from_data = self.load_model.replace(".pkl", "").replace("graphsage-best-model-", "")
+            best_model_name = 'graphsage-best-model-{}-from-{}.pkl'.format(
+                self.suffix, from_data)
+            print("Load pretrained model ", self.load_model)
+        else:
+            best_model_name = 'graphsage-best-model-{}.pkl'.format(self.suffix)
+        print("Save best model to ", best_model_name)
         for epoch in range(self.epochs):
             stime = time.time()
             model.train()
@@ -249,9 +264,10 @@ class GraphsageAPI():
                     npt += 1
                 if npt > max_patience:
                     print("Early stopping")
-                    break
-        model.load_state_dict(torch.load(best_model_name))
-        os.remove(best_model_name)
+                    break 
+        if os.path.isdir(best_model_name):
+            model.load_state_dict(torch.load(best_model_name))
+        # os.remove(best_model_name)
         with torch.no_grad():
             model.eval()
             output = model(features)

@@ -112,8 +112,9 @@ class DGIAPI():
                 print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f}".format(
                     epoch, np.mean(dur), loss.item()))
         print('Loading {}th epoch'.format(best_t))
-        dgi.load_state_dict(torch.load(best_model_name))
-        os.remove(best_model_name)
+        if os.path.isfile(best_model_name):
+            dgi.load_state_dict(torch.load(best_model_name))
+        # os.remove(best_model_name)
         embeds = dgi.encoder(features, self.graph, corrupt=False)
         embeds = embeds.detach()
         return embeds

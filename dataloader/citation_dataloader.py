@@ -104,7 +104,7 @@ class CitationDataloader(object):
         self.multiclass = False
         self.n_classes = int(self.labels.max() + 1)
 
-        features_file = self.dir + '/' + self.name + '/features.npy'
+        features_file = self.dir + '/' + self.name + '/features.npz'
         if not os.path.isfile(features_file):
             features = np.asarray(features.todense())
             features_dict = {node: features[i] for i, node in enumerate(graph.nodes())}

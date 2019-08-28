@@ -63,22 +63,13 @@ class DefaultDataloader():
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
         self.graph = nx.from_scipy_sparse_matrix(adj, create_using=nx.DiGraph())
 
-        # edgelist_file = self.datadir + "/edgelist_networkit.txt"
-        # adj = self.graph.adj
-        # if not os.path.isfile(edgelist_file):
-        #     with open(edgelist_file, "w+") as fp:
-        #         fp.write("{} {}".format(adj.shape[0], int(adj.sum())))
-        #         for i in range(adj.shape[0]):
-        #             fp.write("\n" + " ".join(map(lambda x : str(x+1), adj[i].nonzero()[1])) )
-        # self.graph = readGraph(edgelist_file, Format.METIS)
-        # import pdb; pdb.set_trace()
-
-        features = {}
-        with open(datadir+'/labels.txt') as fp:
-            for line in fp:
-                elms = line.strip().split()
-                features[int(elms[0])] = np.array([float(x) for x in elms[1:]])
-        self.features = np.array([features[x] for x in self.graph.nodes()])
+        if not os.path.isfile(datadir + '/features.npz'):
+            features = {}
+            with open(datadir+'/features.txt') as fp:
+                for line in fp:
+                    elms = line.strip().split()
+                    features[int(elms[0])] = np.array([float(x) for x in elms[1:]])
+            np.savez_compressed(datadir + '/features.npz', features=features)
 
         labels = convert_labels_to_binary(labels, self.graph)
         if self.multiclass:
