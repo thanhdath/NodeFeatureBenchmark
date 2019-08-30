@@ -5,8 +5,13 @@ import random
 data1name = sys.argv[1]
 data2name = sys.argv[2]
 
-data1 = DefaultDataloader("data/{}".format(data1name))
-data2 = CitationDataloader("data/{}".format(data2name))
+def load_data(dataname):
+    if dataname in "cora".split():
+        return DefaultDataloader("data/{}".format(dataname))
+    elif dataname in "citeseer pubmed".split():
+        return CitationDataloader("data/{}".format(dataname))
+data1 = load_data(data1name)
+data2 = load_data(data2name)
 
 import networkx as nx
 degrees1 = {x: data1.graph.degree(x) for x in data1.graph.nodes()}

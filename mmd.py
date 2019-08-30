@@ -38,11 +38,11 @@ def test_mmd(emb1, emb2):
     print(emb1.shape)
     print(emb2.shape)
 
-    if emb1.shape[0] > 200000:
-        np.random.shuffle(emb1)
-        emb1 = emb1[:emb1.shape[0]//16]
-        np.random.shuffle(emb2)
-        emb2 = emb2[:emb2.shape[0]//2]
+    # if emb1.shape[0] > 200000:
+    #     np.random.shuffle(emb1)
+    #     emb1 = emb1[:emb1.shape[0]//16]
+    #     np.random.shuffle(emb2)
+    #     emb2 = emb2[:emb2.shape[0]//2]
     p_val, stat, samps, bandwidth = rbf_mmd_test(np.asarray(
         emb1).astype("float64"), np.asarray(emb2).astype("float64"))
     print("p_val:", p_val)
@@ -50,28 +50,8 @@ def test_mmd(emb1, emb2):
     print("bandwidth:", bandwidth)
     print("samps:", np.mean(samps))
 
-# def test_mmd(emb1, emb2):
-#     emb1[np.isnan(emb1)] = 0
-#     emb1[np.isinf(emb1)] = 0
-#     emb2[np.isnan(emb2)] = 0
-#     emb2[np.isinf(emb2)] = 0
-#     print(emb1.shape)
-#     print(emb2.shape)
-
-#     # if emb1.shape[0] > 200000:
-#     #     np.random.shuffle(emb1)
-#     #     emb1 = emb1[:emb1.shape[0]//16]
-#     #     np.random.shuffle(emb2)
-#     #     emb2 = emb2[:emb2.shape[0]//2]
-#     p_val, stat, samps = linear_mmd_test(np.asarray(
-#         emb1).astype("float64"), np.asarray(emb2).astype("float64"))
-#     print("p_val:", p_val)
-#     print("stats:", stat)
-#     print("bandwidth:", 0)
-#     print("samps:", np.mean(samps))
-
-def rbf_mmd_test(X, Y, bandwidth='median', null_samples=1000,
-                 median_samples=1000, cache_size=32):
+def rbf_mmd_test(X, Y, bandwidth='median', null_samples=2000,
+                 median_samples=2000, cache_size=32):
     '''
     Run an MMD test using a Gaussian kernel.
     Parameters
@@ -137,7 +117,7 @@ def load_data(dataset):
 def main(args):
     data = load_data(args.dataset)
     dataname = args.dataset.split('/')[-1]
-    if dataname in "cora citeseer pubmed".split():
+    if dataname in "cora citeseer pubmed NELL".split():
         train_data, val_data, test_data = data
         train_feats = load_features('train', train_data.graph, args)[train_data.mask]
         # val_features = load_features('valid', val_data.graph, args)

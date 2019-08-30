@@ -18,6 +18,7 @@ class LogisticRegressionPytorch():
         if multiclass:
             print("Train logistic regression for multiclass")
         self.multiclass = multiclass
+        # embs = embs / torch.sqrt(torch.sum(embs**2, dim=0))
         self.embs = embs
         if not self.multiclass:
             self.labels = labels # LongTensor 2, 1, 2, ...]

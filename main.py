@@ -59,7 +59,8 @@ def get_algorithm(args, data, features):
                       load_model=args.load_model)
     elif args.alg == "graphsage":
         if features.shape[0] > 60000:
-            return Graphsage(data, features, max_degree=args.max_degree, samples_1=args.samples_1)
+            return Graphsage(data, features, max_degree=args.max_degree, samples_1=args.samples_1,
+                train_features=args.learnable_features)
         else:
             return GraphsageAPI(data, features, cuda=args.cuda, 
                                 aggregator=args.aggregator,

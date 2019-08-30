@@ -46,6 +46,7 @@ class PassNormalizer(Normalizer):
         if verbose > 0:
             print("Feature Normalizer: No")
         return features
+        
 
 lookup = {
     "standard": StandardNormalizer,

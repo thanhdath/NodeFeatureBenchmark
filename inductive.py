@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 import networkx as nx
-from dataloader import PPIDataset, RedditInductiveDataset, CitationInductiveDataloader, DefaultInductiveDataloader
+from dataloader import PPIDataset, RedditInductiveDataset, CitationInductiveDataloader, DefaultInductiveDataloader, NELLInductiveDataloader
 from features_init import lookup as lookup_feature_init
 import torch
 import random
@@ -113,6 +113,10 @@ def load_data(dataset):
         return (DefaultInductiveDataloader(dataset, "train"),
             DefaultInductiveDataloader(dataset, "valid"),
             DefaultInductiveDataloader(dataset, "test"))
+    elif data_name == "NELL":
+        return (NELLInductiveDataloader(dataset, "train"),
+            NELLInductiveDataloader(dataset, "valid"),
+            NELLInductiveDataloader(dataset, "test"))
 
 def load_features(mode, graph, args):
     inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()

@@ -63,7 +63,7 @@ class DefaultDataloader():
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
         self.graph = nx.from_scipy_sparse_matrix(adj, create_using=nx.DiGraph())
 
-        if not os.path.isfile(datadir + '/features.npz'):
+        if not os.path.isfile(datadir + '/features.npz') and os.path.isfile(datadir+'/features.txt'):
             features = {}
             with open(datadir+'/features.txt') as fp:
                 for line in fp:

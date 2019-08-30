@@ -3,6 +3,6 @@ from .citation_dataloader import CitationDataloader, CitationInductiveDataloader
 from .reddit_dataloader import RedditDataset
 from .ppi_dataloader import PPIDataset
 from .reddit_inductive_dataloader import RedditInductiveDataset
-from .nell_dataloader import NELLDataloader
+from .nell_dataloader import NELLDataloader, NELLInductiveDataloader
 
 __all__ = ['DefaultDataloader']

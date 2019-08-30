@@ -7,7 +7,7 @@ from dgl import DGLGraph
 from .dgi import DGI
 import itertools
 import os
-
+import tensorboardX
 
 class DGIAPI():
     def __init__(self, data, features, dropout=0, lr=1e-3, epochs=300,
@@ -79,6 +79,7 @@ class DGIAPI():
             best_model_name = 'dgi-best-model-{}-from-{}.pkl'.format(
                 self.suffix, from_data)
             print("Load pretrained model ", self.load_model)
+            writer = tensorboardX.SummaryWriter("summary/"+best_model_name.replace("dgi-best-model-", "").replace(".pkl", ""))
         else:
             best_model_name = 'dgi-best-model-{}.pkl'.format(self.suffix)
         print("Save best model to ", best_model_name)
@@ -108,9 +109,11 @@ class DGIAPI():
             if epoch >= 3:
                 dur.append(time.time() - t0)
 
-            if epoch % 20 == 0:
-                print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f}".format(
-                    epoch, np.mean(dur), loss.item()))
+            if epoch % 1 == 0:
+                print("Epoch {:05d} | Time(s) {:.4f} | Loss {}".format(epoch, np.mean(dur), loss.item()))
+            
+            if self.load_model is not None:
+                writer.add_scalar("dgi loss", loss, epoch)
         print('Loading {}th epoch'.format(best_t))
         if os.path.isfile(best_model_name):
             dgi.load_state_dict(torch.load(best_model_name))

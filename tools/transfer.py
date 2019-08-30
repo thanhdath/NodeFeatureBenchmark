@@ -8,6 +8,8 @@ warnings.filterwarnings('ignore')
 def parse(init, seed):
     logfile = "log/transfer/{}/{}-{}-seed{}-loadfrom-{}".format(
         alg, data, init, seed, load_from)
+    if with_muse:
+        logfile += "-withmuse"
     content = open(logfile).read()
     f1 = re.findall("micro-macro: [0-9\.\s]+", content)[0]
     f1 = f1.replace("micro-macro: ", "")
@@ -18,6 +20,12 @@ def parse(init, seed):
 data = sys.argv[1]
 alg = sys.argv[2]
 load_from = sys.argv[3]
+try:
+    sys.argv[4]
+    with_muse = True 
+except:
+    with_muse = False
+print("Parse result transfer with muse")
 
 inits = "ssvd1 ssvd0.5 hope deepwalk graphwave degree-standard ori".split()
 
