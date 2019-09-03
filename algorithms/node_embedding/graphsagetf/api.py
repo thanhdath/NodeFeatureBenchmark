@@ -158,7 +158,7 @@ class Graphsage():
             # Create model
             sampler = UniformNeighborSampler(adj_info)
             layer_infos = [SAGEInfo("node", sampler, self.samples_1, 2*self.dim_1)]
-            n_layers = 3
+            n_layers = 1 
             for i in range(n_layers-1):
                 layer_infos.append(SAGEInfo("node", sampler, self.samples_2, 2*self.dim_2))
 
@@ -259,9 +259,9 @@ class Graphsage():
                 "val_f1_mic=", "{:.5f}".format(val_f1_mic),
                 "val_f1_mac=", "{:.5f}".format(val_f1_mac))
             writer.add_scalar("val_f1", val_f1_mic, epoch)
-            # if val_f1_mic > best_val_acc:
-            #     saver.save(sess, best_model_name)
-            #     best_val_acc = val_f1_mic
+            if val_f1_mic > best_val_acc:
+                saver.save(sess, best_model_name)
+                best_val_acc = val_f1_mic
 
         # unfreeze aggregators and train the whole graph
         if self.load_model is not None:
@@ -306,8 +306,11 @@ class Graphsage():
                     "val_f1_mic=", "{:.5f}".format(val_f1_mic),
                     "val_f1_mac=", "{:.5f}".format(val_f1_mac))
                 writer.add_scalar("val_f1", val_f1_mic, epoch+self.epochs)
+                if val_f1_mic > best_val_acc:
+                    saver.save(sess, best_model_name)
+                    best_val_acc = val_f1_mic
 
-        # saver.restore(sess, best_model_name)
+        saver.restore(sess, best_model_name)
         save_path = saver.save(sess, best_model_name)
         print("Model saved in path: %s" % save_path)
         writer.close()

@@ -47,7 +47,7 @@ class DefaultDataloader():
     load data from data/ directory which contains edgelist.txt, labels.txt
     """
 
-    def __init__(self, datadir):
+    def __init__(self, datadir, random_split=False):
         self.datadir = datadir
         labels, self.multiclass = read_node_label(datadir+'/labels.txt')
         # build graph
@@ -79,7 +79,7 @@ class DefaultDataloader():
             self.labels = torch.LongTensor(labels.argmax(axis=1))
             self.n_classes = int(self.labels.max() + 1)
 
-        if "cora" in datadir:
+        if "cora" in datadir and (not random_split):
             print("Split train-val-test by default for cora dataset.")
             self.train_mask = torch.ByteTensor(_sample_mask(range(140), self.labels.shape[0]))
             self.val_mask = torch.ByteTensor(_sample_mask(range(200, 500), self.labels.shape[0]))

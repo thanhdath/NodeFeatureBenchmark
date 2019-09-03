@@ -6,8 +6,11 @@ warnings.filterwarnings('ignore')
 
 
 def parse(init, seed):
-    logfile = "log/transfer/{}/{}-{}-seed{}-loadfrom-{}".format(
-        alg, data, init, seed, load_from)
+    if load_from == "None":
+        logfile = "log/transfer/{}/{}-{}-seed{}".format(alg, data, init, seed)
+    else:
+        logfile = "log/transfer/{}/{}-{}-seed{}-loadfrom-{}".format(
+            alg, data, init, seed, load_from)
     if with_muse:
         logfile += "-withmuse"
     content = open(logfile).read()
@@ -23,9 +26,9 @@ load_from = sys.argv[3]
 try:
     sys.argv[4]
     with_muse = True 
+    print("Parse result transfer with muse")
 except:
     with_muse = False
-print("Parse result transfer with muse")
 
 inits = "ssvd1 ssvd0.5 hope deepwalk graphwave degree-standard ori".split()
 

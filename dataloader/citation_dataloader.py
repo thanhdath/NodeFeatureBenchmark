@@ -26,11 +26,12 @@ def _pickle_load(pkl_file):
         return pkl.load(pkl_file)
 
 class CitationDataloader(object):
-    def __init__(self, datadir):
+    def __init__(self, datadir, random_split=False):
         elms = datadir.split('/')
         self.name = elms[-1]
         self.dir = '/'.join(elms[:-1])
         self.zip_file_path='{}/{}.zip'.format(self.dir, self.name)
+        self.random_split = random_split
         if not os.path.isfile(self.zip_file_path):
             download(_get_dgl_url(_urls[self.name]), path=self.zip_file_path)
             extract_archive(self.zip_file_path, '{}/{}'.format(self.dir, self.name))
@@ -85,9 +86,18 @@ class CitationDataloader(object):
         onehot_labels[test_idx_reorder, :] = onehot_labels[test_idx_range, :]
         labels = np.argmax(onehot_labels, 1)
 
-        idx_test = test_idx_range.tolist()
-        idx_train = range(len(y))
-        idx_val = range(len(y), len(y)+500)
+        if not self.random_split:
+            idx_test = test_idx_range.tolist()
+            idx_train = range(len(y))
+            idx_val = range(len(y), len(y)+500)
+        else:
+            print("Split train-val-test 0.7-0.1-0.2.")
+            indices = np.random.permutation(np.arange(labels.shape[0]))
+            n_train = int(len(indices) * 0.7)
+            n_val = int(len(indices) * 0.1)
+            idx_train = indices[:n_train].tolist()
+            idx_val = indices[n_train:n_train+n_val].tolist()
+            idx_test = indices[n_train+n_val:].tolist()
 
         train_mask = _sample_mask(idx_train, labels.shape[0])
         val_mask = _sample_mask(idx_val, labels.shape[0])
