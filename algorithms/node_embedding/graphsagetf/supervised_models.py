@@ -73,9 +73,22 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         self.layer_infos = layer_infos
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        self.trainable_varlist = None
+        # two optimizer for finetuning
+        self.optimizer_finetune = tf.train.AdamOptimizer(learning_rate=self.learning_rate/10)
 
         self.build()
 
+    def freeze_aggregators(self):
+        aggregator_vars = []
+        for i in range(len(self.aggregators)):
+            aggregator_vars += tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.aggregators[i].name_scope)
+        self.trainable_varlist = [x for x in tf.trainable_variables()
+            if x not in aggregator_vars]
+
+    def switch_to_finetune_mode(self):
+        self.optimizer = self.optimizer_finetune
+        self.trainable_varlist = tf.trainable_variables()
 
     def build(self):
         samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
@@ -93,11 +106,14 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         self.node_preds = self.node_pred(self.outputs1)
 
         self._loss()
-        grads_and_vars = self.optimizer.compute_gradients(self.loss)
+        if self.trainable_varlist is not None:
+            grads_and_vars = self.optimizer.compute_gradients(self.loss, var_list=self.trainable_varlist)
+        else:
+            grads_and_vars = self.optimizer.compute_gradients(self.loss)
         clipped_grads_and_vars = [(tf.clip_by_value(grad, -5.0, 5.0) if grad is not None else None, var) 
                 for grad, var in grads_and_vars]
         self.grad, _ = clipped_grads_and_vars[0]
-        self.opt_op = self.optimizer.apply_gradients(clipped_grads_and_vars)
+        self.opt_op = self.optimizer.apply_gradients(clipped_grads_and_vars) 
         self.preds = self.predict()
 
     def _loss(self):

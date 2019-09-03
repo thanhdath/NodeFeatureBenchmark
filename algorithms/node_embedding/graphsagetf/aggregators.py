@@ -87,7 +87,8 @@ class GCNAggregator(Layer):
         else:
             name = ''
 
-        with tf.variable_scope(self.name + name + '_vars'):
+        self.name_scope = self.name + name + '_vars'
+        with tf.variable_scope(self.name_scope):
             self.vars['weights'] = glorot([neigh_input_dim, output_dim],
                                                         name='neigh_weights')
             if self.bias:

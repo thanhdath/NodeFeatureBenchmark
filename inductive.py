@@ -195,5 +195,8 @@ def init_environment(args):
 if __name__ == '__main__':
     args = parse_args()
     init_environment(args)
+    if args.init == "learnable":
+        args.init = "uniform"
+        args.learnable_features = True
     print(args)
     main(args)

@@ -13,7 +13,7 @@ from .supervised_models import SupervisedGraphsage
 from .models import SAGEInfo
 from .minibatch import NodeMinibatchIterator
 from .neigh_samplers import UniformNeighborSampler
-
+import tensorboardX
 
 def calc_f1(y_true, y_pred, sigmoid=False):
     if not sigmoid:
@@ -70,9 +70,9 @@ def construct_placeholders(num_classes):
 
 
 class Graphsage():
-    def __init__(self, data, features, batch_size=512, max_degree=100, model='graphsage_mean',
-                 samples_1=25, samples_2=10, samples_3=0, dim_1=64, dim_2=64, lr=0.01,
-                 model_size="small", identity_dim=0, epochs=200, dropout=0.5, train_features=False,
+    def __init__(self, data, features, batch_size=512, max_degree=100, model='mean',
+                 samples_1=25, samples_2=10, samples_3=0, dim_1=128, dim_2=128, lr=0.01,
+                 model_size="small", identity_dim=0, epochs=50, dropout=0.2, train_features=False,
                  load_model=None, suffix=""):
         self.batch_size = batch_size
         self.max_degree = max_degree
@@ -95,7 +95,7 @@ class Graphsage():
         self.suffix = suffix
         self.lr = lr
         if self.load_model:
-            self.lr /= 5
+            self.epochs = self.epochs // 2
 
     def train(self):
         train_data = self.data 
@@ -128,7 +128,7 @@ class Graphsage():
         adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
         adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 
-        if self.model == 'graphsage_mean':
+        if self.model == 'mean':
             # Create model
             sampler = UniformNeighborSampler(adj_info)
             if self.samples_3 != 0:
@@ -154,14 +154,33 @@ class Graphsage():
                                         logging=True,
                                         train_features=self.train_features,
                                         learning_rate=self.lr)
+        elif self.model == 'gcn':
+            # Create model
+            sampler = UniformNeighborSampler(adj_info)
+            layer_infos = [SAGEInfo("node", sampler, self.samples_1, 2*self.dim_1)]
+            n_layers = 3
+            for i in range(n_layers-1):
+                layer_infos.append(SAGEInfo("node", sampler, self.samples_2, 2*self.dim_2))
+
+            model = SupervisedGraphsage(num_classes, placeholders, 
+                                        features,
+                                        adj_info,
+                                        minibatch.deg,
+                                        layer_infos=layer_infos, 
+                                        aggregator_type="gcn",
+                                        model_size=self.model_size,
+                                        concat=False,
+                                        sigmoid_loss = self.sigmoid,
+                                        identity_dim = self.identity_dim,
+                                        logging=True)
         else:
             raise Exception('Error: model name unrecognized.')
 
         sigmoid = self.sigmoid
         config = tf.ConfigProto()
         # config.gpu_options.allow_growth = True
-        config.gpu_options.per_process_gpu_memory_fraction = .8
-        config.allow_soft_placement = True
+        # config.gpu_options.per_process_gpu_memory_fraction = .8
+        # config.allow_soft_placement = True
 
         # Initialize session
         sess = tf.Session(config=config)
@@ -196,6 +215,11 @@ class Graphsage():
             best_model_name = 'graphsage-best-model-{}/model.ckpt'.format(self.suffix)
 
         # writer = tf.summary.FileWriter("logs", sess.graph)
+        writer = tensorboardX.SummaryWriter("logs/"+best_model_name.replace("/model.ckpt", ""))
+        best_val_acc = -1
+        if self.load_model is not None: # finetune
+            model.freeze_aggregators()
+            print("Freeze aggregators , train classification layer.")
         for epoch in range(self.epochs):
             minibatch.shuffle()
 
@@ -223,7 +247,8 @@ class Graphsage():
                           "train_f1_mic=", "{:.5f}".format(train_f1_mic),
                           "train_f1_mac=", "{:.5f}".format(train_f1_mac),
                           "time=", "{:.5f}".format(avg_time))
-                iter += 1
+                    writer.add_scalar("train_f1", train_f1_mic, epoch)
+                iter += 1 
                 total_steps += 1
              # Validation
             sess.run(val_adj_info.op)
@@ -233,10 +258,59 @@ class Graphsage():
             print("val_loss=", "{:.5f}".format(val_cost),
                 "val_f1_mic=", "{:.5f}".format(val_f1_mic),
                 "val_f1_mac=", "{:.5f}".format(val_f1_mac))
+            writer.add_scalar("val_f1", val_f1_mic, epoch)
+            # if val_f1_mic > best_val_acc:
+            #     saver.save(sess, best_model_name)
+            #     best_val_acc = val_f1_mic
 
+        # unfreeze aggregators and train the whole graph
+        if self.load_model is not None:
+            print("Train the whole graph with lr/10")
+            model.switch_to_finetune_mode()
+            for epoch in range(self.epochs):
+                minibatch.shuffle()
+
+                iter = 0
+                print('Epoch: %04d' % (epoch + 1))
+                epoch_val_costs.append(0)
+                while not minibatch.end():
+                    # Construct feed dictionary
+                    feed_dict, labels = minibatch.next_minibatch_feed_dict()
+                    feed_dict.update({placeholders['dropout']: self.dropout})
+
+                    t = time.time()
+                    # Training step
+                    outs = sess.run([merged, model.opt_op, model.loss, model.preds], feed_dict=feed_dict)
+                    train_cost = outs[2]
+
+                    # Print results
+                    avg_time = (avg_time * total_steps +
+                                time.time() - t) / (total_steps + 1)
+
+                    if iter == 0:
+                        train_f1_mic, train_f1_mac = calc_f1(labels, outs[-1], sigmoid=sigmoid)
+                        print("Iter:", '%04d' % iter,
+                            "train_loss=", "{:.5f}".format(train_cost),
+                            "train_f1_mic=", "{:.5f}".format(train_f1_mic),
+                            "train_f1_mac=", "{:.5f}".format(train_f1_mac),
+                            "time=", "{:.5f}".format(avg_time))
+                        writer.add_scalar("train_f1", train_f1_mic, epoch+self.epochs)
+                    iter += 1 
+                    total_steps += 1
+                # Validation
+                sess.run(val_adj_info.op)
+                val_cost, val_f1_mic, val_f1_mac, duration = evaluate(sess, model, minibatch, sigmoid=sigmoid)
+                sess.run(train_adj_info.op)
+                epoch_val_costs[-1] += val_cost
+                print("val_loss=", "{:.5f}".format(val_cost),
+                    "val_f1_mic=", "{:.5f}".format(val_f1_mic),
+                    "val_f1_mac=", "{:.5f}".format(val_f1_mac))
+                writer.add_scalar("val_f1", val_f1_mic, epoch+self.epochs)
+
+        # saver.restore(sess, best_model_name)
         save_path = saver.save(sess, best_model_name)
         print("Model saved in path: %s" % save_path)
-
+        writer.close()
         print("Optimization Finished!")
         sess.run(val_adj_info.op)
         val_cost, val_f1_mic, val_f1_mac, duration = incremental_evaluate(sess, model, minibatch, self.batch_size, test=True, sigmoid=sigmoid)
