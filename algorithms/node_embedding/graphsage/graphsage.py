@@ -15,6 +15,7 @@ import dgl.function as fn
 from utils import f1, accuracy
 import itertools
 import os
+import tensorboardX
 
 class Aggregator(nn.Module):
     def __init__(self, g, in_feats, out_feats, activation=None, bias=True):
@@ -172,6 +173,11 @@ class GraphsageAPI():
         self.multiclass = data.multiclass
         self.suffix = suffix
         self.load_model = load_model
+        if self.load_model:
+            self.epochs = self.epochs // 2 
+            self.validation_steps = 1
+        else:
+            self.validation_steps = 1
         if self.multiclass:
             print("Train graphsage with multiclass")
 
@@ -223,7 +229,7 @@ class GraphsageAPI():
             optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         best_val_acc = 0
         npt = 0
-        max_patience = 4
+        max_patience = 1e9
 
         if self.load_model is not None:
             pretrained_model = torch.load(self.load_model)
@@ -239,6 +245,7 @@ class GraphsageAPI():
             print("Load pretrained model ", self.load_model)
         else:
             best_model_name = 'graphsage-best-model-{}.pkl'.format(self.suffix)
+        writer = tensorboardX.SummaryWriter("summary/"+best_model_name.replace(".pkl", "").replace("best-model-",""))
         print("Save best model to ", best_model_name)
         for epoch in range(self.epochs):
             stime = time.time()
@@ -251,10 +258,11 @@ class GraphsageAPI():
             loss.backward()
             optimizer.step()
             etime = time.time() - stime
-            if epoch % 20 == 0:
+            if epoch % self.validation_steps == 0:
                 print('Epoch {} - loss {} - time: {}'.format(epoch, loss.item(), etime))
                 # evaluate too slow
                 acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
+                writer.add_scalar("val_acc", acc, epoch)
                 if acc > best_val_acc:
                     best_val_acc = acc
                     torch.save(model.state_dict(), best_model_name)
@@ -267,6 +275,43 @@ class GraphsageAPI():
                     break 
         if os.path.isdir(best_model_name):
             model.load_state_dict(torch.load(best_model_name))
+
+        # finetune model
+        if self.load_model: 
+            for i in range(self.layers):
+                model.layers[i].requires_grad = True
+            npt = 0
+            optimizer = torch.optim.Adam(model.parameters(), lr=self.lr/10, weight_decay=self.weight_decay/10)
+            for epoch in range(self.epochs):
+                stime = time.time()
+                model.train()
+                # forward
+                logits = model(features)
+                loss = loss_fcn(logits[train_mask], labels[train_mask])
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                etime = time.time() - stime
+                if epoch % self.validation_steps == 0:
+                    print('Epoch {} - loss {} - time: {}'.format(epoch, loss.item(), etime))
+                    # evaluate too slow
+                    acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
+                    writer.add_scalar("val_acc", acc, epoch+self.epochs)
+                    if acc > best_val_acc:
+                        best_val_acc = acc
+                        torch.save(model.state_dict(), best_model_name)
+                        print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc))
+                        npt= 0
+                    else:
+                        npt += 1
+                    if npt > max_patience:
+                        print("Early stopping")
+                        break 
+        writer.close()
+        if os.path.isdir(best_model_name):
+            model.load_state_dict(torch.load(best_model_name))
+        # end finetune
         # os.remove(best_model_name)
         with torch.no_grad():
             model.eval()

@@ -200,10 +200,12 @@ class NELLInductiveDataloader(object):
         onehot_labels = np.vstack((ally, ty))
         onehot_labels[test_idx_reorder, :] = onehot_labels[test_idx_range, :]
         labels = np.argmax(onehot_labels, 1)
-
-        idx_train = range(len(y))
+ 
+        idx_train = list(range(len(y)))
         idx_test = test_idx_range.tolist()
-        idx_val = range(len(y), len(y)+500)
+        idx_val = list(range(len(y), len(y)+500))
+        mask = np.zeros((labels.shape[0]))
+        mask[idx_test + idx_train + idx_val] = 1
         idx_free = np.argwhere(mask == 0).flatten().tolist()
         
         train_mask = _sample_mask(idx_train, labels.shape[0])

@@ -108,7 +108,7 @@ def rbf_mmd_test(X, Y, bandwidth='median', null_samples=2000,
 
 def load_data(dataset):
     dataname = dataset.split('/')[-1]
-    if dataname in "cora citeseer pubmed".split():
+    if dataname in "cora citeseer pubmed NELL".split():
         return load_data_inductive(dataset)
     else:
         return TUDataset(dataset)
@@ -117,6 +117,7 @@ def load_data(dataset):
 def main(args):
     data = load_data(args.dataset)
     dataname = args.dataset.split('/')[-1]
+    print(dataname)
     if dataname in "cora citeseer pubmed NELL".split():
         train_data, val_data, test_data = data
         train_feats = load_features('train', train_data.graph, args)[train_data.mask]

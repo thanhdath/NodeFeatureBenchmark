@@ -71,8 +71,9 @@ def construct_placeholders(num_classes):
 
 class Graphsage():
     def __init__(self, data, features, batch_size=512, max_degree=100, model='graphsage_mean',
-                 samples_1=25, samples_2=10, samples_3=0, dim_1=64, dim_2=64,
-                 model_size="small", identity_dim=0, epochs=200, dropout=0.5, train_features=False):
+                 samples_1=25, samples_2=10, samples_3=0, dim_1=64, dim_2=64, lr=0.01,
+                 model_size="small", identity_dim=0, epochs=200, dropout=0.5, train_features=False,
+                 load_model=None, suffix=""):
         self.batch_size = batch_size
         self.max_degree = max_degree
         self.model = model
@@ -90,6 +91,11 @@ class Graphsage():
         self.data = data
         self.features = features
         self.sigmoid = self.data.multiclass
+        self.load_model = load_model
+        self.suffix = suffix
+        self.lr = lr
+        if self.load_model:
+            self.lr /= 5
 
     def train(self):
         train_data = self.data 
@@ -146,7 +152,8 @@ class Graphsage():
                                         sigmoid_loss=self.sigmoid,
                                         identity_dim=self.identity_dim,
                                         logging=True,
-                                        train_features=self.train_features)
+                                        train_features=self.train_features,
+                                        learning_rate=self.lr)
         else:
             raise Exception('Error: model name unrecognized.')
 
@@ -172,6 +179,23 @@ class Graphsage():
 
         train_adj_info = tf.assign(adj_info, minibatch.adj)
         val_adj_info = tf.assign(adj_info, minibatch.test_adj)
+
+        # save model
+        vars2save = []
+        for i in range(len(model.aggregators)):
+            vars2save += tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=model.aggregators[i].name_scope)
+        saver = tf.train.Saver({x.name: x for x in vars2save})
+        # restore pretrain model
+        if self.load_model is not None:
+            saver.restore(sess, self.load_model)
+            print("Restore pretrained model: ", self.load_model)
+
+            from_data = self.load_model.replace("graphsage-best-model-", "").replace("/model.ckpt", "")
+            best_model_name = 'graphsage-best-model-{}-from-{}/model.ckpt'.format(self.suffix, from_data)
+        else:
+            best_model_name = 'graphsage-best-model-{}/model.ckpt'.format(self.suffix)
+
+        # writer = tf.summary.FileWriter("logs", sess.graph)
         for epoch in range(self.epochs):
             minibatch.shuffle()
 
@@ -209,6 +233,9 @@ class Graphsage():
             print("val_loss=", "{:.5f}".format(val_cost),
                 "val_f1_mic=", "{:.5f}".format(val_f1_mic),
                 "val_f1_mac=", "{:.5f}".format(val_f1_mac))
+
+        save_path = saver.save(sess, best_model_name)
+        print("Model saved in path: %s" % save_path)
 
         print("Optimization Finished!")
         sess.run(val_adj_info.op)

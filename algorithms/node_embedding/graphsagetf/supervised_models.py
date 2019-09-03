@@ -53,14 +53,15 @@ class SupervisedGraphsage(models.SampleAndAggregate):
            self.embeds = tf.get_variable("node_embeddings", [adj.get_shape().as_list()[0], identity_dim])
         else:
            self.embeds = None
-        if features is None: 
-            if identity_dim == 0:
-                raise Exception("Must have a positive value for identity feature dimension if no input features given.")
-            self.features = self.embeds
-        else:
-            self.features = tf.Variable(tf.constant(features, dtype=tf.float32), trainable=train_features)
-            if not self.embeds is None:
-                self.features = tf.concat([self.embeds, self.features], axis=1)
+        with tf.name_scope("features"):
+            if features is None: 
+                if identity_dim == 0:
+                    raise Exception("Must have a positive value for identity feature dimension if no input features given.")
+                self.features = self.embeds
+            else:
+                self.features = tf.Variable(tf.constant(features, dtype=tf.float32), trainable=train_features)
+                if not self.embeds is None:
+                    self.features = tf.concat([self.embeds, self.features], axis=1)
         # self.degrees = degrees
         self.concat = concat
         self.num_classes = num_classes
@@ -82,7 +83,6 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
                 support_sizes1, concat=self.concat, model_size=self.model_size)
         dim_mult = 2 if self.concat else 1
-
         self.outputs1 = tf.nn.l2_normalize(self.outputs1, 1)
 
         dim_mult = 2 if self.concat else 1
