@@ -19,6 +19,7 @@ class _LINE(object):
         self.negative_ratio = negative_ratio
 
         self.gen_sampling_table()
+        tf.reset_default_graph()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth=True
         self.sess = tf.Session(config=config)

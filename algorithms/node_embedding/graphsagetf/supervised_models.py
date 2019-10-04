@@ -75,7 +75,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.trainable_varlist = None
         # two optimizer for finetuning
-        self.optimizer_finetune = tf.train.AdamOptimizer(learning_rate=self.learning_rate/10)
+        self.optimizer_finetune = tf.train.AdamOptimizer(learning_rate=self.learning_rate/5)
 
         self.build()
 
@@ -96,7 +96,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
                 support_sizes1, concat=self.concat, model_size=self.model_size)
         dim_mult = 2 if self.concat else 1
-        self.outputs1 = tf.nn.l2_normalize(self.outputs1, 1)
+        self.outputs1 = tf.nn.l2_normalize(self.outputs1, 1) # FIXME
 
         dim_mult = 2 if self.concat else 1
         self.node_pred = layers.Dense(dim_mult*self.dims[-1], self.num_classes, 

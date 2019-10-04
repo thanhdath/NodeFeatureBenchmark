@@ -139,7 +139,7 @@ def dict2arr(dictt, graph):
 def load_data(dataset):
     data_name = dataset.split('/')[-1]
     if data_name in ["citeseer", "pubmed"]:
-        return CitationDataloader(dataset)
+        return CitationDataloader(dataset, random_split=False)
     elif data_name == "reddit":
         return RedditDataset(self_loop=False)
     elif data_name == "reddit_self_loop":
@@ -148,7 +148,7 @@ def load_data(dataset):
         return NELLDataloader(dataset)
     else:
         # cora bc flickr wiki youtube homo-sapiens
-        return DefaultDataloader(dataset)
+        return DefaultDataloader(dataset, random_split=False)
 
 
 def main(args):

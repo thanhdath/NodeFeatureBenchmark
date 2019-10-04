@@ -393,6 +393,19 @@ class ProposedFeature(FeatureInitialization):
             for node in features1}
         return features
 
+class NaiveVertexColoring(FeatureInitialization):
+    def __init__(self, **kwargs):
+        super(ProposedFeature).__init__()
+    def _generate(self, graph, dim_size):
+        features = {}
+        for node in graph.nodes():
+            feature = [graph.degree(x) for x in graph.neighbors(node)]
+            if len(feature) > dim_size:
+                feature = np.random.permutation(feature)[:dim_size].tolist()
+            elif len(feature) < dim_size:
+                feature = feature + np.zeros((dim_size-len(feature))).tolist()
+            features[node] = feature
+        return features
 
 lookup = {
     "ori": OriginalFeature,
@@ -419,6 +432,7 @@ lookup = {
     "graphwave": GraphWaveFeature,
     "struc2vec": Struc2VecFeature,
     "netmf": DeepwalkNetMFFeature,
-    "propose": ProposedFeature
+    "propose": ProposedFeature,
+    "wl": NaiveVertexColoring
 }
 

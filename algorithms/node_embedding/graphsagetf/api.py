@@ -70,9 +70,9 @@ def construct_placeholders(num_classes):
 
 
 class Graphsage():
-    def __init__(self, data, features, batch_size=512, max_degree=100, model='mean',
-                 samples_1=25, samples_2=10, samples_3=0, dim_1=128, dim_2=128, lr=0.01,
-                 model_size="small", identity_dim=0, epochs=50, dropout=0.2, train_features=False,
+    def __init__(self, data, features, batch_size=128, max_degree=100, model='mean',
+                 samples_1=25, samples_2=10, samples_3=10, dim_1=128, dim_2=128, lr=0.01,
+                 model_size="small", identity_dim=0, epochs=400, dropout=0.2, train_features=False,
                  load_model=None, suffix=""):
         self.batch_size = batch_size
         self.max_degree = max_degree
@@ -153,7 +153,8 @@ class Graphsage():
                                         identity_dim=self.identity_dim,
                                         logging=True,
                                         train_features=self.train_features,
-                                        learning_rate=self.lr)
+                                        learning_rate=self.lr,
+                                        weight_decay=0.0)
         elif self.model == 'gcn':
             # Create model
             sampler = UniformNeighborSampler(adj_info)
@@ -172,7 +173,40 @@ class Graphsage():
                                         concat=False,
                                         sigmoid_loss = self.sigmoid,
                                         identity_dim = self.identity_dim,
-                                        logging=True)
+                                        logging=True,
+                                        weight_decay=0.0)
+        elif self.model == 'maxpool':
+            sampler = UniformNeighborSampler(adj_info)
+            layer_infos = [SAGEInfo("node", sampler, self.samples_1, self.dim_1),
+                                SAGEInfo("node", sampler, self.samples_2, self.dim_2)]
+
+            model = SupervisedGraphsage(num_classes, placeholders, 
+                                        features,
+                                        adj_info,
+                                        minibatch.deg,
+                                        layer_infos=layer_infos, 
+                                        aggregator_type="maxpool",
+                                        model_size=self.model_size,
+                                        sigmoid_loss = self.sigmoid,
+                                        identity_dim = self.identity_dim,
+                                        logging=True,
+                                        weight_decay=0.0)
+        elif self.model == 'graphsage_seq':
+            sampler = UniformNeighborSampler(adj_info)
+            layer_infos = [SAGEInfo("node", sampler, self.samples_1, self.dim_1),
+                                SAGEInfo("node", sampler, self.samples_2, self.dim_2)]
+
+            model = SupervisedGraphsage(num_classes, placeholders, 
+                                        features,
+                                        adj_info,
+                                        minibatch.deg,
+                                        layer_infos=layer_infos, 
+                                        aggregator_type="seq",
+                                        model_size=self.model_size,
+                                        sigmoid_loss = self.sigmoid,
+                                        identity_dim = self.identity_dim,
+                                        logging=True,
+                                        weight_decay=0.0)
         else:
             raise Exception('Error: model name unrecognized.')
 
@@ -262,7 +296,7 @@ class Graphsage():
             if val_f1_mic > best_val_acc:
                 saver.save(sess, best_model_name)
                 best_val_acc = val_f1_mic
-
+                
         # unfreeze aggregators and train the whole graph
         if self.load_model is not None:
             print("Train the whole graph with lr/10")

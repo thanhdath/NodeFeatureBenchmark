@@ -16,7 +16,7 @@ def deepwalk(G, dim_size, number_walks=20, walk_length=10,
 
     print("Learning representation...")
     word2vec = Word2Vec(sentences=sentences, min_count=0, workers=workers,
-                            size=dim_size, sg=1)
+                            size=dim_size, sg=1, seed=40)
     vectors = {}
     for word in G.nodes():
         vectors[word] = word2vec.wv[str(word)]

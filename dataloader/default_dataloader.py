@@ -79,11 +79,23 @@ class DefaultDataloader():
             self.labels = torch.LongTensor(labels.argmax(axis=1))
             self.n_classes = int(self.labels.max() + 1)
 
-        if "cora" in datadir and (not random_split):
-            print("Split train-val-test by default for cora dataset.")
-            self.train_mask = torch.ByteTensor(_sample_mask(range(140), self.labels.shape[0]))
-            self.val_mask = torch.ByteTensor(_sample_mask(range(200, 500), self.labels.shape[0]))
-            self.test_mask = torch.ByteTensor(_sample_mask(range(500, 1500), self.labels.shape[0]))
+        if "cora" in datadir:
+            if not random_split:
+                print("Split train-val-test by default for cora dataset.")
+                self.train_mask = torch.ByteTensor(_sample_mask(range(140), self.labels.shape[0]))
+                self.val_mask = torch.ByteTensor(_sample_mask(range(200, 500), self.labels.shape[0]))
+                self.test_mask = torch.ByteTensor(_sample_mask(range(500, 1500), self.labels.shape[0]))
+            else:
+                state = np.random.get_state()
+                np.random.seed(0)
+                valuable_nodes = list(range(140)) + list(range(200, 500)) + list(range(500, 1500))
+                indices = np.random.permutation(valuable_nodes)
+                n_train = int(len(indices) * 0.6)
+                n_val = int(len(indices) * 0.2)
+                self.train_mask = torch.ByteTensor(_sample_mask(indices[:n_train], self.labels.shape[0]))
+                self.val_mask = torch.ByteTensor(_sample_mask(indices[n_train:n_train+n_val], self.labels.shape[0]))
+                self.test_mask = torch.ByteTensor(_sample_mask(indices[n_train+n_val:], self.labels.shape[0]))
+                np.random.set_state(state)
         else:
             print("Split train-val-test 0.7-0.1-0.2.")
             indices = np.random.permutation(np.arange(self.labels.shape[0]))
