@@ -396,15 +396,29 @@ class ProposedFeature(FeatureInitialization):
 class NaiveVertexColoring(FeatureInitialization):
     def __init__(self, **kwargs):
         super(ProposedFeature).__init__()
-    def _generate(self, graph, dim_size):
+
+    def _generate(self, graph, dim_size, k=1):
         features = {}
         for node in graph.nodes():
-            feature = [graph.degree(x) for x in graph.neighbors(node)]
-            if len(feature) > dim_size:
-                feature = np.random.permutation(feature)[:dim_size].tolist()
-            elif len(feature) < dim_size:
-                feature = feature + np.zeros((dim_size-len(feature))).tolist()
-            features[node] = feature
+            features[node] = [node]
+        for i in range(k):
+            for node in graph.nodes():
+                features[node] = np.concatenate([list(graph.neighbors(x)) for x in features[node]]).tolist()
+        for node in graph.nodes():
+            features[node] = [graph.degree(x) for x in features[node]]
+            features[node] = list(sorted(features[node]))
+        
+        # HASH function
+        hash_ = {}
+        idx = 0
+        for node in graph.nodes():
+            feature = tuple(features[node])
+            if feature not in hash_:
+                hash_[feature] = [idx] 
+                # hash_[feature] = [int(x) for x in bin(idx)[2:]] # binary
+                idx += 1
+            features[node] = hash_[feature] + np.zeros((dim_size-len(hash_[feature]))).tolist()
+        print("K = {} - N unique values in hash / number of nodes: {}/{}".format(k, idx, graph.number_of_nodes()))
         return features
 
 lookup = {
