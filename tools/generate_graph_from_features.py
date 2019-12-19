@@ -1,4 +1,4 @@
-from dataloader import CitationDataloader, DefaultDataloader
+from dataloader import CitationDataloader, DefaultDataloader, NELLDataloader
 import torch 
 import torch.nn.functional as F
 import sys
@@ -29,8 +29,8 @@ def load_data(dataset):
     #     return RedditDataset(self_loop=False)
     # elif data_name == "reddit_self_loop":
     #     return RedditDataset(self_loop=True)
-    # elif data_name == "NELL":
-    #     return NELLDataloader(dataset)
+    elif data_name == "NELL":
+        return NELLDataloader(dataset)
     else:
         # cora bc flickr wiki youtube homo-sapiens
         return DefaultDataloader(dataset, random_split=False)
@@ -88,9 +88,14 @@ if __name__ == '__main__':
     out_dir = args.out_dir
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
-    np.savetxt(out_dir+"/edgelist.txt", edge_index, delimiter=",")
+    np.savetxt(out_dir+"/edgelist.txt", edge_index.astype(np.int32), 
+        delimiter=" ", fmt="%d")
 
     copyfile(features_path, f"{out_dir}/features.npz")
-    copyfile("data/" + args.dataname + "/labels.txt", f"{out_dir}/labels.txt")
+    # copyfile("data/" + args.dataname + "/labels.txt", f"{out_dir}/labels.txt")
+    labels = data.labels.cpu().numpy()
+    with open(f"{out_dir}/labels.txt", "w+") as fp:
+        for i, label in enumerate(labels):
+            fp.write(f"{i} {label}\n")
     
     print("Graph has been saved to", out_dir)

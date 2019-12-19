@@ -58,7 +58,7 @@ def get_algorithm(args, data, features):
                       suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
                       load_model=args.load_model)
     elif args.alg == "graphsage":
-        if features.shape[0] > 0:
+        if features.shape[0] > 20000:
             return Graphsage(data, features, 
                 max_degree=args.max_degree, 
                 samples_1=args.samples_1,

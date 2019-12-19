@@ -29,5 +29,5 @@ class GCN(nn.Module):
         for i, layer in enumerate(self.layers):
             if i != 0:
                 h = self.dropout(h)
-            h = layer(h, g)
+            h = layer(g, h)
         return h

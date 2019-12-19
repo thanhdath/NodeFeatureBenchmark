@@ -67,7 +67,7 @@ class TUDataset(object):
             g.ndata['node_label'] = DS_node_labels
             self.one_hot_node_labels = self._to_onehot(DS_node_labels)
         except:
-            print("Graph does not has node attributes.")
+            print("Graph does not has node labels.")
 
         # split train val test
         train_size = int(ratio[0] * len(self.graph_lists))
