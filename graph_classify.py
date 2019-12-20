@@ -66,7 +66,9 @@ def build_gin_params(args, data):
         degree_as_tag=args.degree_as_tag,
         epochs=350,
         lr=0.01,
-        final_dropout=0.5
+        final_dropout=0.5,
+        model_name=f"gin-best-model-{time.time()}.pkl",
+        transfer_from=None
     )
     return params
 

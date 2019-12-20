@@ -1,9 +1,9 @@
 """
 mkdir logs
 mkdir logs/mi
-for data in cora citeseer pubmed NELL
+for data in pubmed
 do 
-    for init in hope deepwalk
+    for init in deepwalk
     do
         python -u tools/mutual_information.py $data $init > logs/mi/$data-$init
     done
@@ -11,17 +11,92 @@ done
 """
 
 
-import numpy as np
-import os
-import sys
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import torch.autograd as autograd
-from tqdm import tqdm
-import matplotlib.pyplot as plt
+#Written by Weihao Gao from UIUC
 
+import scipy.spatial as ss
+import scipy.stats as sst
+from scipy.special import digamma,gamma
+from sklearn.neighbors import KernelDensity
+from math import log,pi,exp
+import numpy.random as nr
+import numpy as np
+import random
+import time
+import matplotlib.pyplot as plt
+from cvxopt import matrix,solvers
+
+
+#Usage Functions
+def kraskov_mi(x,y,k=5):
+    '''
+        Estimate the mutual information I(X;Y) of X and Y from samples {x_i, y_i}_{i=1}^N
+        Using KSG mutual information estimator
+
+        Input: x: 2D list of size N*d_x
+        y: 2D list of size N*d_y
+        k: k-nearest neighbor parameter
+
+        Output: one number of I(X;Y)
+    '''
+
+    assert len(x)==len(y), "Lists should have same length"
+    assert k <= len(x)-1, "Set k smaller than num. samples - 1"
+    N = len(x)
+    dx = len(x[0])       
+    dy = len(y[0])
+    data = np.concatenate((x,y),axis=1)
+
+    tree_xy = ss.cKDTree(data)
+    tree_x = ss.cKDTree(x)
+    tree_y = ss.cKDTree(y)
+
+    knn_dis = [tree_xy.query(point,k+1,p=float('inf'))[0][k] for point in data]
+    ans_xy = -digamma(k) + digamma(N) + (dx+dy)*log(2)#2*log(N-1) - digamma(N) #+ vd(dx) + vd(dy) - vd(dx+dy)
+    ans_x = digamma(N) + dx*log(2)
+    ans_y = digamma(N) + dy*log(2)
+    for i in range(N):
+        ans_xy += (dx+dy)*log(knn_dis[i])/N
+        ans_x += -digamma(len(tree_x.query_ball_point(x[i],knn_dis[i]-1e-15,p=float('inf'))))/N+dx*log(knn_dis[i])/N
+        ans_y += -digamma(len(tree_y.query_ball_point(y[i],knn_dis[i]-1e-15,p=float('inf'))))/N+dy*log(knn_dis[i])/N
+        
+    return ans_x+ans_y-ans_xy
+
+#Auxilary functions
+def vd(d,q):
+    # Compute the volume of unit l_q ball in d dimensional space
+    if (q==float('inf')):
+        return d*log(2)
+    return d*log(2*gamma(1+1.0/q)) - log(gamma(1+d*1.0/q))
+
+def entropy(x,k=5,q=float('inf')):
+    # Estimator of (differential entropy) of X 
+    # Using k-nearest neighbor methods 
+    assert k <= len(x)-1, "Set k smaller than num. samples - 1"
+    N = len(x)
+    d = len(x[0])     
+    thre = 3*(log(N)**2/N)**(1/d)
+    tree = ss.cKDTree(x)
+    knn_dis = [tree.query(point,k+1,p=q)[0][k] for point in x]
+    truncated_knn_dis = [knn_dis[s] for s in range(N) if knn_dis[s] < thre]
+    ans = -digamma(k) + digamma(N) + vd(d,q)
+    return ans + d*np.mean(map(log,knn_dis))
+
+def kde_entropy(x):
+    # Estimator of (differential entropy) of X 
+    # Using resubstitution of KDE
+    N = len(x)
+    d = len(x[0])
+    local_est = np.zeros(N)
+    for i in range(N):
+        kernel = sst.gaussian_kde(x.transpose())
+        local_est[i] = kernel.evaluate(x[i].transpose())
+    return -np.mean(map(log,local_est))
+
+
+import sys
+# x = np.random.multivariate_normal( mean=[0,0],
+#                                   cov=[[1,0],[0,1]],
+#                                  size = 300)
 def dict2arr(dictt):
     """
     Note: always sort graph nodes
@@ -29,11 +104,10 @@ def dict2arr(dictt):
     dict_arr = np.array([dictt[int(x)] for x in range(len(dictt))])
     return dict_arr
 # load embedding and node features
-data = sys.argv[1] # cora
-init = sys.argv[2] # deepwalk
+data = sys.argv[1]
+init = sys.argv[2]
 feature_file = f"/home/datht/nodefeature/data/{data}/features.npz"
 embed_unsup_file = f"/home/datht/nodefeature/feats/{data}-{init}-seed40-dim128.npz"
-figure_file = f"figures/{data}-original-vs-{init}.png"
 features = np.load(feature_file, allow_pickle=True)["features"][()]
 embeds = np.load(embed_unsup_file, allow_pickle=True)["features"][()]
 
@@ -41,100 +115,5 @@ x = dict2arr(features)
 y = dict2arr(embeds)
 print(x.shape, y.shape)
 
-class Mine(nn.Module):
-    def __init__(self, x_size=2, y_size=2, hidden_size=100):
-        super().__init__()
-        self.fcx = nn.Linear(x_size, hidden_size)
-        self.fcy = nn.Linear(y_size, hidden_size)
-        self.transform = nn.Sequential(
-            nn.Linear(hidden_size, hidden_size),
-            nn.ELU(),
-            nn.Linear(hidden_size, 1)
-        )
-        
-        nn.init.normal_(self.fcx.weight, std=0.02)
-        nn.init.constant_(self.fcx.bias, 0)
-        nn.init.normal_(self.fcy.weight, std=0.02)
-        nn.init.constant_(self.fcy.bias, 0)
-        nn.init.normal_(self.transform[0].weight, std=0.02)
-        nn.init.constant_(self.transform[0].bias, 0)
-        nn.init.normal_(self.transform[-1].weight, std=0.02)
-        nn.init.constant_(self.transform[-1].bias, 0)
-        
-    def forward(self, x, y):
-        x = F.elu(self.fcx(x))
-        y = F.elu(self.fcy(y))
-        output = self.transform(x+y)
-        return output
+print("MI: ", kraskov_mi(x, y))
 
-def mutual_information(joint_x, joint_y, marginal_x, marginal_y, mine_net):
-    t = mine_net(joint_x, joint_y)
-    et = torch.exp(mine_net(marginal_x, marginal_y))
-    mi_lb = torch.mean(t) - torch.log(torch.mean(et))
-    return mi_lb, t, et
-
-def learn_mine(batch, mine_net, mine_net_optim,  ma_et, ma_rate=0.01):
-    # batch is a tuple of (joint, marginal)
-    joint , marginal = batch
-    joint_x, joint_y = joint
-    marginal_x, marginal_y = marginal
-    joint_x = torch.autograd.Variable(torch.FloatTensor(joint_x)).cuda()
-    joint_y = torch.autograd.Variable(torch.FloatTensor(joint_y)).cuda()
-    marginal_x = torch.autograd.Variable(torch.FloatTensor(marginal_x)).cuda()
-    marginal_y = torch.autograd.Variable(torch.FloatTensor(marginal_y)).cuda()
-    
-    mi_lb , t, et = mutual_information(joint_x, joint_y, marginal_x, marginal_y, mine_net)
-    ma_et = (1-ma_rate)*ma_et + ma_rate*torch.mean(et)
-    
-    # unbiasing use moving average
-    loss = -(torch.mean(t) - (1/ma_et.mean()).detach()*torch.mean(et))
-    # use biased estimator
-#     loss = - mi_lb
-    
-    mine_net_optim.zero_grad()
-    autograd.backward(loss)
-    mine_net_optim.step()
-    return mi_lb, ma_et
-
-def sample_batch(x, y, batch_size=100, sample_mode='joint'):
-    if sample_mode == 'joint':
-        index = np.random.choice(range(x.shape[0]), size=batch_size, replace=False)
-        batch = x[index], y[index]
-    else:
-        joint_index = np.random.choice(range(x.shape[0]), size=batch_size, replace=False)
-        marginal_index = np.random.choice(range(x.shape[0]), size=batch_size, replace=False)
-        batch = x[joint_index], y[marginal_index]
-    return batch
-
-def train(data, mine_net,mine_net_optim, batch_size=100, iter_num=int(5e+3), log_freq=int(1e+3)):
-    # data is x or y
-    result = list()
-    ma_et = 1.
-    for i in range(iter_num):
-        if i%1000 == 0: print("Iter", i)
-        batch_joint = sample_batch(x, y, batch_size=batch_size)
-        batch_marginal = sample_batch(x, y, batch_size=batch_size,sample_mode='marginal')
-
-        mi_lb, ma_et = learn_mine((batch_joint, batch_marginal), mine_net, mine_net_optim, ma_et)
-        result.append(mi_lb.detach().cpu().numpy())
-        if (i+1)%(log_freq)==0:
-            print("MI: ", result[-1])
-    return result
-
-def ma(a, window_size=100):
-    return [np.mean(a[i:i+window_size]) for i in range(0,len(a)-window_size)]
-
-mine_net_indep = Mine(x_size=x.shape[1], y_size=y.shape[1]).cuda()
-mine_net_optim_indep = optim.Adam(mine_net_indep.parameters(), lr=0.01)
-result_indep = train(x,mine_net_indep,mine_net_optim_indep, batch_size=512, iter_num = 20000)
-
-figure_dir = figure_file.split("/")[0]
-
-if not os.path.isdir(figure_dir):
-    os.makedirs(figure_dir)
-
-result_indep = ma(result_indep)
-print("Smoothed result indep: ", result_indep[-1])
-plt.figure()
-plt.plot(result_indep, linewidth=.4)
-plt.savefig(figure_file)

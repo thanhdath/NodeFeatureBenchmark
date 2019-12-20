@@ -46,20 +46,22 @@ def eval_net(args, net, dataloader, criterion):
     total_correct = 0
 
     # total_iters = len(dataloader)
+    with torch.no_grad():
+        for data in dataloader:
+            graphs, labels = data
+            labels = labels.to(args.device)
 
-    for data in dataloader:
-        graphs, labels = data
-        labels = labels.to(args.device)
+            total += len(labels)
 
-        total += len(labels)
+            outputs = net(graphs)
+            _, predicted = torch.max(outputs.data, 1)
 
-        outputs = net(graphs)
-        _, predicted = torch.max(outputs.data, 1)
+            total_correct += (predicted == labels.data).sum().item()
+            loss = criterion(outputs, labels)
+            # crossentropy(reduce=True) for default
+            total_loss += loss.item() * len(labels)
 
-        total_correct += (predicted == labels.data).sum().item()
-        loss = criterion(outputs, labels)
-        # crossentropy(reduce=True) for default
-        total_loss += loss.item() * len(labels)
+            labels = labels.cpu()
 
     loss, acc = 1.0*total_loss / total, 1.0*total_correct / total
 
@@ -111,7 +113,15 @@ def gin_api(args):
     # it's not cost-effective to hanle the cursor and init 0
     # https://stackoverflow.com/a/23121189
     best_val_acc = 0
-    best_model_name = 'gin-best-model-{}.pkl'.format(time.time())
+#     best_model_name = 'gin-best-model-{}.pkl'.format(time.time())
+    best_model_name = args.model_name
+    if args.transfer_from is not None:
+        model.load_state_dict(torch.load(args.transfer_from))
+        print("Transfer from", args.transfer_from)
+    
+    _, valid_acc = eval_net(args, model, validloader, criterion)
+    print("== No finetuning - val acc: {:.3f}".format(valid_acc))
+    
     for epoch in range(args.epochs):
         model.train()
         scheduler.step()
@@ -129,7 +139,7 @@ def gin_api(args):
             print("== Epoch {} - Best val acc: {:.3f}".format(epoch, valid_acc))
     model.load_state_dict(torch.load(best_model_name))
     eval_net_f1(args, model, testloader)
-    os.remove(best_model_name)
+    # os.remove(best_model_name)
 
 
 
