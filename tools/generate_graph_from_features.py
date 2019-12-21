@@ -51,12 +51,19 @@ def generate_graph(features, kind="sigmoid", threshold=None, k=5,
         edge_index = adj.nonzero().cpu().numpy()
     elif kind == "knn":
         print(f"Knn k = {k}")
-        sorted_scores = torch.argsort(-scores, dim=1)[:, :k]
-        edge_index = np.zeros((len(scores)*k, 2))
-        N = len(scores)
-        for i in range(k):
-            edge_index[i*N:(i+1)*N, 0] = np.arange(N)
-            edge_index[i*N:(i+1)*N, 1] = sorted_scores[:, i]
+        if len(scores) > 60000: # avoid memory error
+            edge_index = []
+            for i, node_scores in enumerate(scores):
+                candidate_nodes = torch.argsort(-node_scores)[:k]
+                edge_index += [[i, node] for node in candidate_nodes]
+            edge_index = np.array(edge_index, dtype=np.int32)
+        else:
+            sorted_scores = torch.argsort(-scores, dim=1)[:, :k]
+            edge_index = np.zeros((len(scores)*k, 2))
+            N = len(scores)
+            for i in range(k):
+                edge_index[i*N:(i+1)*N, 0] = np.arange(N)
+                edge_index[i*N:(i+1)*N, 1] = sorted_scores[:, i]
     else:
         raise NotImplementedError
     

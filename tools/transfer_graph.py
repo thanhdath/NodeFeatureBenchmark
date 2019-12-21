@@ -15,20 +15,30 @@
     Noise:
     PYTHONPATH="." python -u tools/transfer_graph.py knn
 
-    for i in 0.0001 0.0005
-    do
-        PYTHONPATH="." python -u tools/transfer_graph.py knn-n$i > logs/transfer-gin/knn-n$i.log
-    done
+    mkdir logs
+    mkdir logs/transfer-gin
+    for t in $(seq 1 20)
+    do 
+        rm *.pkl
+        mkdir logs/transfer-gin/$t
+        python tools/torus_sphere.py
 
-    for i in 0.0001 0.0005
-    do
-        PYTHONPATH="." python -u tools/transfer_graph.py knn gin-knn-n$i.pkl > logs/transfer-gin/knn-transfer-from-knn-n$i.log
-    done
+        for i in 0.0 0.0001 0.001 0.01
+        do
+            PYTHONPATH="." python -u tools/transfer_graph.py knn-n$i > logs/transfer-gin/$t/knn-n$i.log
+        done
 
-    for i in 0.0001 0.0005
-    do
-        PYTHONPATH="." python -u tools/transfer_graph.py knn-n$i gin-knn.pkl > logs/transfer-gin/knn-n$i-transfer-from-knn.log
+        for i in 0.0 0.0001 0.001 0.01
+        do
+            PYTHONPATH="." python -u tools/transfer_graph.py knn-n0.0 gin-knn-n$i.pkl > logs/transfer-gin/$t/knn-transfer-from-knn-n$i.log
+        done
+
+        for i in 0.0001 0.001 0.01
+        do
+            PYTHONPATH="." python -u tools/transfer_graph.py knn-n$i gin-knn-n0.0.pkl > logs/transfer-gin/$t/knn-n$i-transfer-from-knn.log
+        done
     done
+    
 """
 
 from dataloader.tu_dataset import TUDataset

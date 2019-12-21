@@ -33,6 +33,14 @@ def add_graphsage_parser(subparsers):
     parser.add_argument('--samples_1', default=25, type=int, help="")
     return parser
 
+def add_gat_parser(subparsers):
+    parser = subparsers.add_parser('gat', help='GAT algorithm.')
+    parser.add_argument('--num-heads', default=8, type=int)
+    parser.add_argument('--num-layers', default=1, type=int)
+    parser.add_argument('--num-out-heads', default=1, type=int)
+    parser.add_argument('--num-hidden', default=8, type=int)
+    parser.add_argument('--epochs', default=200, type=int)
+    return parser
 
 def add_diffpool_parser(subparsers):
     parser = subparsers.add_parser('diffpool', help='Diffpool algorithm.')

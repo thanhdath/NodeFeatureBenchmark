@@ -90,7 +90,7 @@ num_graphs = 1000
 # num_nodes_per_graph = 500
 graph_method = 'knn'
 k = 5
-noises = [0.001, 0.005, 0.01, 0.05, 0.1]
+noises = [0.0, 0.0001, 0.001, 0.01, 0.1]
 
 for noise in noises:
     print("Noise: ", noise)
@@ -100,7 +100,7 @@ for noise in noises:
 
     # Generate sphere graphs
     for _ in range(num_graphs//2):
-        n_nodes = np.random.randint(100, 1000)
+        n_nodes = np.random.randint(100, 200)
         features = sample_sphere(n_nodes)
         features_list.append(features)
         edge_index = generate_graph(features, kind=graph_method, k=k, threshold=.72, noise_knn=noise)
@@ -110,7 +110,7 @@ for noise in noises:
 
     # Generate torus graphs
     for _ in range(num_graphs//2):
-        n_nodes = np.random.randint(100, 1000)
+        n_nodes = np.random.randint(100, 200)
         features = sample_torus(80, 40, n_nodes) / 120
         features_list.append(features)
         edge_index = generate_graph(features, kind=graph_method, k=k, threshold=.72, noise_knn=noise)
@@ -145,7 +145,7 @@ for noise in noises:
     print("nodes: ", len(node_attributes))
 
     datasetname = f"torus_vs_sphere-{graph_method}-n{noise}"
-    outdir = f"/home/datht/nodefeature/data/{datasetname}"
+    outdir = f"data/{datasetname}"
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
 

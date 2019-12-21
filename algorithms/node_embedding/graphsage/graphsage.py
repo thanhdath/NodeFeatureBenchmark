@@ -273,7 +273,7 @@ class GraphsageAPI():
                 if npt > max_patience:
                     print("Early stopping")
                     break 
-        if os.path.isdir(best_model_name):
+        if os.path.isfile(best_model_name):
             model.load_state_dict(torch.load(best_model_name))
 
         # finetune model
@@ -309,7 +309,7 @@ class GraphsageAPI():
                         print("Early stopping")
                         break 
         writer.close()
-        if os.path.isdir(best_model_name):
+        if os.path.isfile(best_model_name):
             model.load_state_dict(torch.load(best_model_name))
         # end finetune
         # os.remove(best_model_name)

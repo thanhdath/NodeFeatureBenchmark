@@ -80,6 +80,8 @@ def eval_net_f1(args, net, dataloader):
             outputs = net(graphs)
             outputss.append(outputs)
             labelss.append(labels)
+    if len(outputss) == 0:
+        return
     outputss = torch.cat(outputss, dim=0)
     labelss = torch.cat(labelss, dim=0)
     micro, macro = f1(outputss, labelss)
@@ -129,10 +131,10 @@ def gin_api(args):
         train(args, model, trainloader, optimizer, criterion, epoch)
 
         train_loss, train_acc = eval_net(args, model, trainloader, criterion)
-        if epoch % 20 == 0:
-            print("Epoch {} - train loss {:.3f} - train acc {:.3f}".format(epoch, train_loss, train_acc))
         
         _, valid_acc = eval_net(args, model, validloader, criterion)
+        if epoch % 20 == 0:
+            print("Epoch {} - train loss {:.3f} - train acc {:.3f} - val acc {:.3f}".format(epoch, train_loss, train_acc, valid_acc))
         if best_val_acc < valid_acc:
             best_val_acc = valid_acc
             torch.save(model.state_dict(), best_model_name)

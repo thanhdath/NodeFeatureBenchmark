@@ -7,7 +7,7 @@ import torch
 import random
 from dgl.data import citation_graph as citegrh
 from parser import *
-from algorithms.node_embedding import SGC, Nope, DGIAPI, GraphsageAPI
+from algorithms.node_embedding import *
 from algorithms.node_embedding.graphsagetf.api import Graphsage
 from algorithms.logistic_regression import LogisticRegressionPytorch
 import os
@@ -43,6 +43,7 @@ def parse_args():
     add_nope_parser(subparsers)
     add_dgi_parser(subparsers)
     add_graphsage_parser(subparsers)
+    add_gat_parser(subparsers)
     return parser.parse_args()
 
 
@@ -72,6 +73,10 @@ def get_algorithm(args, data, features):
                                 learnable_features=args.learnable_features, 
                                 suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
                                 load_model=args.load_model)
+    elif args.alg == "gat":
+        return GATAPI(data, features, num_heads=args.num_heads, num_layers=args.num_layers,
+            num_out_heads=args.num_out_heads, num_hidden=args.num_hidden, 
+            epochs=args.epochs, cuda=args.cuda)
     else:
         raise NotImplementedError
 
