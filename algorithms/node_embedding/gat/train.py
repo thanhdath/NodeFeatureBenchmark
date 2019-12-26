@@ -42,12 +42,13 @@ class GATAPI():
         self.self_loop = self_loop
         self.data = data
         self.graph = self.preprocess_graph(data.graph)
-        self.features = torch.FloatTensor(features) 
+        self.features = torch.FloatTensor(features)  
         self.cuda = cuda
         self.epochs = epochs
         self.suffix = suffix
         self.validation_steps = 1
         self.multiclass = data.multiclass
+        self.load_model = load_model
 
         heads = ([num_heads] * num_layers) + [num_out_heads]
         self.model = GAT(self.graph,
@@ -95,7 +96,22 @@ class GATAPI():
         # use optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
 
-        best_model_name = 'gat-best-model-{}.pkl'.format(self.suffix)
+        if self.load_model is not None:
+            pretrained_model = torch.load(self.load_model)
+            pretrained_model = {k: v for k, v in pretrained_model.items(
+            ) if "layers.{}".format(self.layers) not in k}
+            state = model.state_dict()
+            state.update(pretrained_model)
+            model.load_state_dict(state)
+            from_data = self.load_model.replace(".pkl", "").replace("gat-best-model-", "")
+            best_model_name = 'gat-best-model-{}-from-{}.pkl'.format(self.suffix, from_data)
+            print("Load pretrained model ", self.load_model)
+        else:
+            best_model_name = 'gat-best-model-{}.pkl'.format(self.suffix)
+
+        val_acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
+        print('== No finetuning: {:.3f}'.format(val_acc))
+
         best_val_acc = 0
         for epoch in range(self.epochs):
             stime = time.time()
