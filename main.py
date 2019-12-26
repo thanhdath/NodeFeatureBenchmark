@@ -82,7 +82,8 @@ def get_algorithm(args, data, features):
         return GATAPI(data, features, num_heads=args.num_heads, num_layers=args.num_layers,
                       num_out_heads=args.num_out_heads, num_hidden=args.num_hidden,
                       epochs=args.epochs, cuda=args.cuda,
-                      suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed))
+                      suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
+                      load_model=args.load_model)
     else:
         raise NotImplementedError
 

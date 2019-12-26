@@ -97,12 +97,7 @@ class GATAPI():
         optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
 
         if self.load_model is not None:
-            pretrained_model = torch.load(self.load_model)
-            pretrained_model = {k: v for k, v in pretrained_model.items(
-            ) if "layers.{}".format(self.layers) not in k}
-            state = model.state_dict()
-            state.update(pretrained_model)
-            model.load_state_dict(state)
+            model.load_state_dict(torch.load(self.load_model))
             from_data = self.load_model.replace(".pkl", "").replace("gat-best-model-", "")
             best_model_name = 'gat-best-model-{}-from-{}.pkl'.format(self.suffix, from_data)
             print("Load pretrained model ", self.load_model)

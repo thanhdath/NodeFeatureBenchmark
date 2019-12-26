@@ -40,6 +40,8 @@ def add_gat_parser(subparsers):
     parser.add_argument('--num-out-heads', default=1, type=int)
     parser.add_argument('--num-hidden', default=8, type=int)
     parser.add_argument('--epochs', default=200, type=int)
+    parser.add_argument('--load-model', dest='load_model',
+                        help="Path to pretrain embeds model.")
     return parser
 
 def add_diffpool_parser(subparsers):
