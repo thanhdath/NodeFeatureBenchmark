@@ -83,7 +83,7 @@ class GATAPI():
         if self.cuda:
             model = model.cuda()
             features = features.cuda()
-            labels = data.labels.cuda()
+            labels = labels.cuda()
             train_mask = train_mask.cuda()
             val_mask = val_mask.cuda()
             test_mask = test_mask.cuda()

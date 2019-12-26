@@ -17,7 +17,9 @@ import itertools
 import os
 import tensorboardX
 
+
 class Aggregator(nn.Module):
+
     def __init__(self, g, in_feats, out_feats, activation=None, bias=True):
         super(Aggregator, self).__init__()
         self.g = g
@@ -45,6 +47,7 @@ class Aggregator(nn.Module):
 
 
 class MeanAggregator(Aggregator):
+
     def __init__(self, g, in_feats, out_feats, activation, bias):
         super(MeanAggregator, self).__init__(g, in_feats, out_feats, activation, bias)
 
@@ -58,8 +61,10 @@ class MeanAggregator(Aggregator):
 
 
 class PoolingAggregator(Aggregator):
+
     def __init__(self, g, in_feats, out_feats, activation, bias):  # (2F, F)
-        super(PoolingAggregator, self).__init__(g, in_feats*2, out_feats, activation, bias)
+        super(PoolingAggregator, self).__init__(
+            g, in_feats * 2, out_feats, activation, bias)
         self.mlp = PoolingAggregator.MLP(in_feats, in_feats, F.relu, False, True)
 
     def concat(self, h, nei, nodes):
@@ -68,12 +73,14 @@ class PoolingAggregator(Aggregator):
         return concatenate
 
     class MLP(nn.Module):
+
         def __init__(self, in_feats, out_feats, activation, dropout, bias):  # (F, F)
             super(PoolingAggregator.MLP, self).__init__()
             self.linear = nn.Linear(in_feats, out_feats, bias=bias)  # (F, F)
             self.dropout = nn.Dropout(p=dropout)
             self.activation = activation
-            nn.init.xavier_uniform_(self.linear.weight, gain=nn.init.calculate_gain('relu'))
+            nn.init.xavier_uniform_(
+                self.linear.weight, gain=nn.init.calculate_gain('relu'))
 
         def forward(self, nei):
             nei = self.dropout(nei)  # (B, N, F)
@@ -85,6 +92,7 @@ class PoolingAggregator(Aggregator):
 
 
 class GraphSAGELayer(nn.Module):
+
     def __init__(self,
                  g,
                  in_feats,
@@ -113,6 +121,7 @@ class GraphSAGELayer(nn.Module):
 
 
 class GraphSAGE(nn.Module):
+
     def __init__(self,
                  g,
                  in_feats,
@@ -126,18 +135,22 @@ class GraphSAGE(nn.Module):
         self.layers = nn.ModuleList()
 
         # input layer
-        self.layers.append(GraphSAGELayer(g, in_feats, n_hidden, activation, dropout, aggregator_type))
+        self.layers.append(GraphSAGELayer(g, in_feats, n_hidden,
+                                          activation, dropout, aggregator_type))
         # hidden layers
         for i in range(n_layers - 1):
-            self.layers.append(GraphSAGELayer(g, n_hidden, n_hidden, activation, dropout, aggregator_type))
+            self.layers.append(GraphSAGELayer(g, n_hidden, n_hidden,
+                                              activation, dropout, aggregator_type))
         # output layer
-        self.layers.append(GraphSAGELayer(g, n_hidden, n_classes, None, dropout, aggregator_type))
+        self.layers.append(GraphSAGELayer(
+            g, n_hidden, n_classes, None, dropout, aggregator_type))
 
     def forward(self, features):
         h = features
         for layer in self.layers:
             h = layer(h)
         return h
+
 
 def evaluate(model, features, labels, mask, multiclass=False):
     model.eval()
@@ -147,11 +160,13 @@ def evaluate(model, features, labels, mask, multiclass=False):
         labels = labels[mask]
         return accuracy(logits, labels, multiclass=multiclass)
 
+
 class GraphsageAPI():
+
     def __init__(self, data, features, dropout=0.5, cuda=True, lr=1e-2,
-        epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean",
-        learnable_features=False, suffix="", load_model=None):
-        self.data = data 
+                 epochs=200, hidden=16, layers=2, weight_decay=5e-4, aggregator="mean",
+                 learnable_features=False, suffix="", load_model=None):
+        self.data = data
         self.learnable_features = learnable_features
         if not learnable_features:
             self.features = torch.FloatTensor(features)
@@ -163,18 +178,18 @@ class GraphsageAPI():
 
         self.graph = self.preprocess_graph(data)
         self.dropout = dropout
-        self.cuda = cuda 
-        self.lr = lr 
-        self.epochs = epochs 
-        self.hidden = hidden 
-        self.layers = layers 
+        self.cuda = cuda
+        self.lr = lr
+        self.epochs = epochs
+        self.hidden = hidden
+        self.layers = layers
         self.weight_decay = weight_decay
         self.aggregator = aggregator
         self.multiclass = data.multiclass
         self.suffix = suffix
         self.load_model = load_model
         if self.load_model:
-            self.epochs = self.epochs // 2 
+            self.epochs = self.epochs // 2
             self.validation_steps = 1
         else:
             self.validation_steps = 1
@@ -190,8 +205,8 @@ class GraphsageAPI():
     def train(self):
         features = self.features
         labels = self.data.labels
-        train_mask = self.data.train_mask 
-        val_mask = self.data.val_mask 
+        train_mask = self.data.train_mask
+        val_mask = self.data.val_mask
         test_mask = self.data.test_mask
 
         in_feats = features.shape[1]
@@ -206,14 +221,14 @@ class GraphsageAPI():
 
         # create GraphSAGE model
         model = GraphSAGE(self.graph,
-                        in_feats,
-                        self.hidden,
-                        n_classes,
-                        self.layers,
-                        F.relu,
-                        self.dropout,
-                        self.aggregator
-                        )
+                          in_feats,
+                          self.hidden,
+                          n_classes,
+                          self.layers,
+                          F.relu,
+                          self.dropout,
+                          self.aggregator
+                          )
         if self.cuda:
             model.cuda()
         if self.multiclass:
@@ -224,29 +239,37 @@ class GraphsageAPI():
         # use optimizer
         if self.learnable_features:
             optimizer = torch.optim.Adam(itertools.chain(model.parameters(), self.features_embedding.parameters()),
-                lr=self.lr, weight_decay=self.weight_decay)
+                                         lr=self.lr, weight_decay=self.weight_decay)
         else:
-            optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+            optimizer = torch.optim.Adam(
+                model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         best_val_acc = 0
         npt = 0
         max_patience = 1e9
 
         if self.load_model is not None:
             pretrained_model = torch.load(self.load_model)
-            pretrained_model = {k:v for k, v in pretrained_model.items() if "layers.{}".format(self.layers) not in k}
+            pretrained_model = {k: v for k, v in pretrained_model.items(
+            ) if "layers.{}".format(self.layers) not in k}
             state = model.state_dict()
             state.update(pretrained_model)
             model.load_state_dict(state)
             for i in range(self.layers):
                 model.layers[i].requires_grad = False
-            from_data = self.load_model.replace(".pkl", "").replace("graphsage-best-model-", "")
+            from_data = self.load_model.replace(
+                ".pkl", "").replace("graphsage-best-model-", "")
             best_model_name = 'graphsage-best-model-{}-from-{}.pkl'.format(
                 self.suffix, from_data)
             print("Load pretrained model ", self.load_model)
         else:
             best_model_name = 'graphsage-best-model-{}.pkl'.format(self.suffix)
-        writer = tensorboardX.SummaryWriter("summary/"+best_model_name.replace(".pkl", "").replace("best-model-",""))
+        writer = tensorboardX.SummaryWriter(
+            "summary/" + best_model_name.replace(".pkl", "").replace("best-model-", ""))
         print("Save best model to ", best_model_name)
+
+        acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
+        print("No finetuning: {:.3f}".format(acc))
+
         for epoch in range(self.epochs):
             stime = time.time()
             model.train()
@@ -261,27 +284,29 @@ class GraphsageAPI():
             if epoch % self.validation_steps == 0:
                 print('Epoch {} - loss {} - time: {}'.format(epoch, loss.item(), etime))
                 # evaluate too slow
-                acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
+                acc = evaluate(model, features, labels, val_mask,
+                               multiclass=self.multiclass)
                 writer.add_scalar("val_acc", acc, epoch)
                 if acc > best_val_acc:
                     best_val_acc = acc
                     torch.save(model.state_dict(), best_model_name)
                     print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc))
-                    npt= 0
+                    npt = 0
                 else:
                     npt += 1
                 if npt > max_patience:
                     print("Early stopping")
-                    break 
+                    break
         if os.path.isfile(best_model_name):
             model.load_state_dict(torch.load(best_model_name))
 
         # finetune model
-        if self.load_model: 
+        if self.load_model:
             for i in range(self.layers):
                 model.layers[i].requires_grad = True
             npt = 0
-            optimizer = torch.optim.Adam(model.parameters(), lr=self.lr/10, weight_decay=self.weight_decay/10)
+            optimizer = torch.optim.Adam(
+                model.parameters(), lr=self.lr / 10, weight_decay=self.weight_decay / 10)
             for epoch in range(self.epochs):
                 stime = time.time()
                 model.train()
@@ -296,18 +321,19 @@ class GraphsageAPI():
                 if epoch % self.validation_steps == 0:
                     print('Epoch {} - loss {} - time: {}'.format(epoch, loss.item(), etime))
                     # evaluate too slow
-                    acc = evaluate(model, features, labels, val_mask, multiclass=self.multiclass)
-                    writer.add_scalar("val_acc", acc, epoch+self.epochs)
+                    acc = evaluate(model, features, labels, val_mask,
+                                   multiclass=self.multiclass)
+                    writer.add_scalar("val_acc", acc, epoch + self.epochs)
                     if acc > best_val_acc:
                         best_val_acc = acc
                         torch.save(model.state_dict(), best_model_name)
                         print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc))
-                        npt= 0
+                        npt = 0
                     else:
                         npt += 1
                     if npt > max_patience:
                         print("Early stopping")
-                        break 
+                        break
         writer.close()
         if os.path.isfile(best_model_name):
             model.load_state_dict(torch.load(best_model_name))

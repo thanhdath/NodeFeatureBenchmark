@@ -13,6 +13,7 @@ from algorithms.logistic_regression import LogisticRegressionPytorch
 import os
 from sklearn.decomposition import PCA
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Node feature initialization benchmark.")
@@ -26,8 +27,9 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=40)
     parser.add_argument('--verbose', type=int, default=1)
     parser.add_argument('--cuda', action='store_true')
-    parser.add_argument('--pca', action='store_true', 
-        help="Whether to reduce feature dimention to feature_size. Use for original features, identity features.")
+    # parser.add_argument('--load-model')
+    parser.add_argument('--pca', action='store_true',
+                        help="Whether to reduce feature dimention to feature_size. Use for original features, identity features.")
 
     # for logistic regression
     parser.add_argument('--logreg-bias', action='store_true',
@@ -54,29 +56,32 @@ def get_algorithm(args, data, features):
         return Nope(features)
     elif args.alg == "dgi":
         return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda,
-                      learnable_features=args.learnable_features, 
+                      learnable_features=args.learnable_features,
                       epochs=args.epochs,
-                      suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
+                      suffix="{}-{}-{}".format(args.dataset.split('/')
+                                               [-1], args.init, args.seed),
                       load_model=args.load_model)
     elif args.alg == "graphsage":
         if features.shape[0] > 20000:
-            return Graphsage(data, features, 
-                max_degree=args.max_degree, 
-                samples_1=args.samples_1,
-                train_features=args.learnable_features,
-                suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
-                load_model=args.load_model,
-                model=args.aggregator)
+            return Graphsage(data, features,
+                             max_degree=args.max_degree,
+                             samples_1=args.samples_1,
+                             train_features=args.learnable_features,
+                             suffix="{}-{}-{}".format(args.dataset.split('/')
+                                                      [-1], args.init, args.seed),
+                             load_model=args.load_model,
+                             model=args.aggregator)
         else:
-            return GraphsageAPI(data, features, cuda=args.cuda, 
+            return GraphsageAPI(data, features, cuda=args.cuda,
                                 aggregator=args.aggregator,
-                                learnable_features=args.learnable_features, 
-                                suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
+                                learnable_features=args.learnable_features,
+                                suffix="{}-{}-{}".format(args.dataset.split('/')
+                                                         [-1], args.init, args.seed),
                                 load_model=args.load_model)
     elif args.alg == "gat":
         return GATAPI(data, features, num_heads=args.num_heads, num_layers=args.num_layers,
-            num_out_heads=args.num_out_heads, num_hidden=args.num_hidden, 
-            epochs=args.epochs, cuda=args.cuda)
+                      num_out_heads=args.num_out_heads, num_hidden=args.num_hidden,
+                      epochs=args.epochs, cuda=args.cuda)
     else:
         raise NotImplementedError
 
@@ -102,9 +107,9 @@ def get_feature_initialization(args, data, inplace=True, input_graph=False):
         raise NotImplementedError
     kwargs = {}
     if init == "ori":
-        kwargs = {"feature_path": args.dataset+"/features.npz"}
+        kwargs = {"feature_path": args.dataset + "/features.npz"}
     elif init == "label":
-        kwargs = {"label_path": args.dataset+"/labels.npz"}
+        kwargs = {"label_path": args.dataset + "/labels.npz"}
     elif init == "ssvd0.5":
         init = "ssvd"
         kwargs = {"alpha": 0.5}
@@ -183,9 +188,10 @@ def main(args):
     features = dict2arr(features, data.graph)
 
     inits_fixed_dim = "ori label identity".split()
-    init, norm = (args.init+"-0").split("-")[:2]
+    init, norm = (args.init + "-0").split("-")[:2]
     if args.pca and init in inits_fixed_dim:
-        print("Perform PCA to reduce feature dimention from {} to {}.".format(features.shape[1], args.feature_size))
+        print("Perform PCA to reduce feature dimention from {} to {}.".format(
+            features.shape[1], args.feature_size))
         pca = PCA(n_components=args.feature_size)
         pca.fit(features.numpy())
         features = torch.FloatTensor(pca.transform(features.numpy()))
