@@ -46,13 +46,23 @@ from dataloader.tu_dataset import TUDataset
 # %autoreload 2
 import os 
 import sys 
+import argparse
+import numpy as np
+import torch
+parser = argparse.ArgumentParser()
+parser.add_argument('--graph-method', default='knn')
+parser.add_argument('--transfer-from', default=None)
+parser.add_argument('--seed', type=int, default=100)
+args = parser.parse_args()
+print(args)
+np.random.seed(args.seed)
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-graph_method = sys.argv[1]
-transfer_from = None
-if len(sys.argv) >= 3:
-    transfer_from = sys.argv[2]
-data = TUDataset(f"data/torus_vs_sphere-{graph_method}", ratio=[.8, .2, .0])
+graph_method = args.graph_method
+transfer_from = args.transfer_from
+data = TUDataset(f"tools/data/torus_vs_sphere-{graph_method}-n0.0-seed{args.seed}", ratio=[.8, .2, .0])
 
 
 from algorithms.graph_embedding import *

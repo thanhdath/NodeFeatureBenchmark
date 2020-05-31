@@ -59,7 +59,7 @@ def generate_graph(features, kind="sigmoid", threshold=None, k=5,
             edge_index = np.array(edge_index, dtype=np.int32)
         else:
             sorted_scores = torch.argsort(-scores, dim=1)[:, :k]
-            edge_index = np.zeros((len(scores)*k, 2))
+            edge_index = np.zeros((len(scores)*k, 2), dtype=np.int32)
             N = len(scores)
             for i in range(k):
                 edge_index[i*N:(i+1)*N, 0] = np.arange(N)

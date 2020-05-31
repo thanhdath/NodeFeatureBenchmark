@@ -1,62 +1,38 @@
-data=cora
-feat_size=128
-inits=label
-mkdir log
-for seed in $(seq 40 42)
-do
-alg=nope
-for init in $inits
-do
-echo $alg-$init
-python -u main.py --dataset data/$data  \
-    --feature_size $feat_size \
-    --init $init \
-    --seed $seed \
-    --cuda \
-    $alg > log/$alg/$data-$init-seed$seed
-done # init
 
-alg=sgc
-mkdir log/$alg
-for init in $inits
-do
-echo $alg-$init
-python -u main.py --dataset data/$data  \
-    --feature_size $feat_size \
-    --init $init \
-    --seed $seed \
-    --cuda \
-    $alg > log/$alg/$data-$init-seed$seed
-done # init
-done
-
-for seed in $(seq 40 42)
-do
-alg=dgi
-mkdir log/$alg
-for init in $inits
-do
-echo $alg-$init
-python -u main.py --dataset data/$data  \
-    --feature_size $feat_size \
-    --init $init \
-    --seed $seed \
-    --cuda \
-    $alg --self-loop > log/$alg/$data-$init-seed$seed
-done # init
+mkdir logs 
+mkdir logs/graph-from-features
+data=NELL
+for i in knn sigmoid
+do 
+echo $i
+    # python -u main.py --dataset temp/$data-gen-$i \
+    #     --init ori --seed 40 --cuda sgc > logs/graph-from-features/sgc-$data-$i.log
+    # python -u main.py --dataset temp/$data-gen-$i \
+    #     --init ori --seed 40 --cuda dgi > logs/graph-from-features/dgi-$data-$i.log
+    python -u main.py --dataset temp/$data-gen-$i \
+        --init ori --seed 40 --cuda graphsage --aggregator mean > logs/graph-from-features/graphsage-$data-$i.log
+done 
 
 
-alg=graphsage
-mkdir log/$alg
-for init in $inits
+mkdir logs 
+mkdir logs/graph-from-features
+for data in NELL
 do
-echo $alg-$init
-python -u main.py --dataset data/$data  \
-    --feature_size $feat_size \
-    --init $init \
-    --seed $seed \
-    --cuda \
-    $alg --aggregator mean > log/$alg/$data-$init-seed$seed
-done # init
+    for i in knn sigmoid
+    do 
+    echo $i
+        python -u main.py --dataset temp/$data-gen-$i \
+            --init ori --seed 40 --cuda gat > logs/graph-from-features/gat-$data-$i.log
+    done 
+done 
 
-done # seed
+mkdir logs/gat
+for data in NELL
+do
+    for i in ori deepwalk hope
+    do 
+    echo $i
+        python -u main.py --dataset data/$data \
+            --init $i --seed 40 --cuda gat > logs/gat/$data-$i.log
+    done 
+done 

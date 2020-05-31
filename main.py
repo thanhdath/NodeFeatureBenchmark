@@ -185,7 +185,7 @@ def main(args):
             features = get_feature_initialization(args, data, inplace=inplace)
             if not os.path.isdir('feats'):
                 os.makedirs('feats')
-            if args.init not in ["identity"]:
+            if args.init not in ["identity", "ori"]:
                 np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
 

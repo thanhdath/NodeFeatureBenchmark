@@ -1,89 +1,144 @@
-#Written by Weihao Gao from UIUC
-
-import scipy.spatial as ss
-import scipy.stats as sst
-from scipy.special import digamma,gamma
-from sklearn.neighbors import KernelDensity
-from math import log,pi,exp
-import numpy.random as nr
+import dgl
+from dgl.data.ppi import LegacyPPIDataset
+from torch.utils.data import DataLoader
+import torch
 import numpy as np
+import torch.nn.functional as F
+import torch.nn as nn
+import networkx as nx
+import torch
+import torch.nn.functional as F
+import torch.nn as nn
 import random
-import time
-import matplotlib.pyplot as plt
-from cvxopt import matrix,solvers
+
+def generate_graph(features, kind="sigmoid", threshold=None, k=5, noise_knn=0.0):
+    features_norm = F.normalize(features, dim=1)
+    scores = features_norm.mm(features_norm.t())
+    # print(f"Generate graph using {kind}")
+    if kind == "sigmoid":
+        scores = torch.sigmoid(scores)
+        if threshold is None:
+            threshold = scores.mean()
+        # print(f"Scores range: {scores.min()}-{scores.max()}")
+        # print("Threshold: ", threshold)
+        adj = scores > threshold
+        adj = adj.int()
+        edge_index = adj.nonzero().cpu().numpy()
+    elif kind == "knn":
+        # print(f"Knn k = {k}")
+        sorted_scores = torch.argsort(-scores, dim=1)[:, :k]
+        edge_index = np.zeros((len(scores)*k, 2), dtype=np.int32)
+        N = len(scores)
+        for i in range(k):
+            edge_index[i*N:(i+1)*N, 0] = np.arange(N)
+            edge_index[i*N:(i+1)*N, 1] = sorted_scores[:, i]
+
+        if noise_knn > 0:
+            adj = np.zeros((N, N), dtype=np.int32)
+            adj[edge_index[:,0], edge_index[:,1]] = 1
+            n_added_edges = int(len(adj)**2 * noise_knn)
+            no_edge_index = np.argwhere(adj == 0)
+            add_edge_index = np.random.permutation(no_edge_index)[:n_added_edges]
+            adj[add_edge_index[:,0], add_edge_index[:,1]] = 1
+            src, trg = adj.nonzero()
+            edge_index = np.concatenate([src.reshape(-1,1), trg.reshape(-1,1)], axis=1)
+    else:
+        raise NotImplementedError
+    
+    # print("Number of edges: ", edge_index.shape[0])
+    return edge_index
+
+def gen_graph(n=200):
+    v = [1]*(n//2) + [0]*(n//2)
+    random.shuffle(v)
+    p = 64
+    d = 5
+    lam = 1
+    mu = 0
+    """# Generate B (i.e. X)"""
+    m_u = np.zeros(p)
+    cov_u = np.eye(p)/p
+    u = np.random.multivariate_normal(m_u, cov_u, n)
+    Z = np.random.randn(n, p)
+    B = np.zeros((n, p))
+
+    for i in range(n):
+        a = np.sqrt(mu/ n)*v[i]*u[i]
+        b = Z[i]/np.sqrt(p)
+        B[i,:] =  a + b
+    
+    """# Generate A"""
+    c_in = d + lam*np.sqrt(d)
+    c_out = d - lam*np.sqrt(d)
+
+    p_A = np.zeros((n, n))
+
+    for i in range(n):
+        for j in range(n):
+            if v[i] == v[j]:
+                p_A[i,j] = c_in / n
+            else:
+                p_A[i,j] = c_out / n
+
+    p_samples = np.random.sample((n,n))
+    A = np.zeros((n,n))
+    edge_index = generate_graph(torch.FloatTensor(B), kind="knn", k=5)
+    A[edge_index[:,0], edge_index[:,1]] = 1
+    return A, B, np.array(v)
+
+A1, F1, L1 = gen_graph(n=200)
+A2, F2, L2 = gen_graph(n=200)
 
 
-#Usage Functions
-def kraskov_mi(x,y,k=5):
-    '''
-        Estimate the mutual information I(X;Y) of X and Y from samples {x_i, y_i}_{i=1}^N
-        Using KSG mutual information estimator
+# gen edgelist, labels, featuresh
+features = F1
+edgelist = np.argwhere(A1 > 0)
+labels = L1
 
-        Input: x: 2D list of size N*d_x
-        y: 2D list of size N*d_y
-        k: k-nearest neighbor parameter
+import os
+outdir = "data-autoencoder/syn/0"
+if not os.path.isdir(outdir):
+    os.makedirs(outdir)
 
-        Output: one number of I(X;Y)
-    '''
+with open(outdir + "/edgelist.txt", "w+") as fp:
+    for src, trg in edgelist:
+        fp.write(f"{src} {trg}\n")
+with open(outdir + "/labels.txt", "w+") as fp:
+    for i, label in enumerate(labels):
+        fp.write(f"{i} {label}\n")
+np.savez_compressed(outdir + "/features.npz", features=features)
 
-    assert len(x)==len(y), "Lists should have same length"
-    assert k <= len(x)-1, "Set k smaller than num. samples - 1"
-    N = len(x)
-    dx = len(x[0])       
-    dy = len(y[0])
-    data = np.concatenate((x,y),axis=1)
+features = F2
+edgelist = np.argwhere(A2 > 0)
+labels = L2
 
-    tree_xy = ss.cKDTree(data)
-    tree_x = ss.cKDTree(x)
-    tree_y = ss.cKDTree(y)
+outdir = "data-autoencoder/syn/1"
+if not os.path.isdir(outdir):
+    os.makedirs(outdir)
 
-    knn_dis = [tree_xy.query(point,k+1,p=float('inf'))[0][k] for point in data]
-    ans_xy = -digamma(k) + digamma(N) + (dx+dy)*log(2)#2*log(N-1) - digamma(N) #+ vd(dx) + vd(dy) - vd(dx+dy)
-    ans_x = digamma(N) + dx*log(2)
-    ans_y = digamma(N) + dy*log(2)
-    for i in range(N):
-        ans_xy += (dx+dy)*log(knn_dis[i])/N
-        ans_x += -digamma(len(tree_x.query_ball_point(x[i],knn_dis[i]-1e-15,p=float('inf'))))/N+dx*log(knn_dis[i])/N
-        ans_y += -digamma(len(tree_y.query_ball_point(y[i],knn_dis[i]-1e-15,p=float('inf'))))/N+dy*log(knn_dis[i])/N
-        
-    return ans_x+ans_y-ans_xy
+with open(outdir + "/edgelist.txt", "w+") as fp:
+    for src, trg in edgelist:
+        fp.write(f"{src} {trg}\n")
+with open(outdir + "/labels.txt", "w+") as fp:
+    for i, label in enumerate(labels):
+        fp.write(f"{i} {label}\n")
+np.savez_compressed(outdir + "/features.npz", features=features)
 
-#Auxilary functions
-def vd(d,q):
-    # Compute the volume of unit l_q ball in d dimensional space
-    if (q==float('inf')):
-        return d*log(2)
-    return d*log(2*gamma(1+1.0/q)) - log(gamma(1+d*1.0/q))
-
-def entropy(x,k=5,q=float('inf')):
-    # Estimator of (differential entropy) of X 
-    # Using k-nearest neighbor methods 
-    assert k <= len(x)-1, "Set k smaller than num. samples - 1"
-    N = len(x)
-    d = len(x[0])     
-    thre = 3*(log(N)**2/N)**(1/d)
-    tree = ss.cKDTree(x)
-    knn_dis = [tree.query(point,k+1,p=q)[0][k] for point in x]
-    truncated_knn_dis = [knn_dis[s] for s in range(N) if knn_dis[s] < thre]
-    ans = -digamma(k) + digamma(N) + vd(d,q)
-    return ans + d*np.mean(map(log,knn_dis))
-
-def kde_entropy(x):
-    # Estimator of (differential entropy) of X 
-    # Using resubstitution of KDE
-    N = len(x)
-    d = len(x[0])
-    local_est = np.zeros(N)
-    for i in range(N):
-    kernel = sst.gaussian_kde(x.transpose())
-    local_est[i] = kernel.evaluate(x[i].transpose())
-    return -np.mean(map(log,local_est))
+"""
+for i in 0 1
+do
+echo $i
+    python -u -W ignore main.py --dataset temp/data-autoencoder/syn/$i --init ori --cuda graphsage --aggregator mean > logs/syn$i.log
+done
+python -u -W ignore main.py --dataset temp/data-autoencoder/syn/1 --init ori --cuda graphsage --aggregator mean --load-model graphsage-best-model-0-ori-40.pkl > logs/syn1-tf-0.log
+python -u -W ignore main.py --dataset temp/data-autoencoder/syn/0 --init ori --cuda graphsage --aggregator mean --load-model graphsage-best-model-1-ori-40.pkl > logs/syn0-tf-1.log
 
 
-
-
-
-
-
-
-
+for i in 0 1
+do
+echo $i
+    python -u -W ignore main.py --dataset temp/data-autoencoder/syn/$i --init ori --cuda gat > logs/syn$i.log
+done
+python -u -W ignore main.py --dataset temp/data-autoencoder/syn/1 --init ori --cuda gat --load-model gat-best-model-0-ori-40.pkl > logs/syn1-tf-0.log
+python -u -W ignore main.py --dataset temp/data-autoencoder/syn/0 --init ori --cuda gat --load-model gat-best-model-1-ori-40.pkl > logs/syn0-tf-1.log
+"""

@@ -1,9 +1,9 @@
 """
 mkdir logs
 mkdir logs/mi
-for data in pubmed
+for data in NELL
 do 
-    for init in deepwalk
+    for init in deepwalk hope
     do
         python -u tools/mutual_information.py $data $init > logs/mi/$data-$init
     done

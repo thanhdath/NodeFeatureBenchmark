@@ -8,6 +8,11 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 import torch.nn.functional as F
 import os 
 import dgl
+import networkx as nx
+from networkx.readwrite import json_graph
+import json
+from tqdm import tqdm
+
 def sample_sphere(num_nodes):
     N = num_nodes
 
@@ -62,7 +67,7 @@ def generate_graph(features, kind="sigmoid", threshold=None, k=5, noise_knn=0.0)
         # print("Threshold: ", threshold)
         adj = scores > threshold
         adj = adj.int()
-        edge_index = adj.nonzero().cpu().numpy()
+        edge_index = adj.nonzero().cpu().numpy() 
     elif kind == "knn":
         # print(f"Knn k = {k}")
         sorted_scores = torch.argsort(-scores, dim=1)[:, :k]
@@ -86,27 +91,11 @@ def generate_graph(features, kind="sigmoid", threshold=None, k=5, noise_knn=0.0)
     
     # print("Number of edges: ", edge_index.shape[0])
     return edge_index
-
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--num-graphs', type=int, default=1000)
-parser.add_argument('--graph-method', default='knn')
-parser.add_argument('--k', type=int, default=5)
-parser.add_argument('--seed', type=int, default=100)
-args = parser.parse_args()
-
-
-num_graphs = args.num_graphs
+num_graphs = 1000
 # num_nodes_per_graph = 500
-graph_method = args.graph_method
-k = args.k
-# noises = [0.0, 0.0001, 0.001, 0.01, 0.1]
-noises = [0.0]
-seed = args.seed
-np.random.seed(seed)
-random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
+graph_method = 'knn'
+k = 5
+noises = [0.0, 0.0001, 0.001, 0.01, 0.1]
 
 for noise in noises:
     print("Noise: ", noise)
@@ -116,7 +105,8 @@ for noise in noises:
 
     # Generate sphere graphs
     for _ in range(num_graphs//2):
-        n_nodes = np.random.randint(100, 200)
+        # n_nodes = np.random.randint(50, 150)
+        n_nodes = 100
         features = sample_sphere(n_nodes)
         features_list.append(features)
         edge_index = generate_graph(features, kind=graph_method, k=k, threshold=.72, noise_knn=noise)
@@ -126,54 +116,70 @@ for noise in noises:
 
     # Generate torus graphs
     for _ in range(num_graphs//2):
-        n_nodes = np.random.randint(100, 200)
+        # n_nodes = np.random.randint(50, 150)
+        n_nodes = 100
         features = sample_torus(80, 40, n_nodes) / 120
         features_list.append(features)
         edge_index = generate_graph(features, kind=graph_method, k=k, threshold=.72, noise_knn=noise)
         assert edge_index.max() <= len(features), "Wrong edge index"
         graph_list.append(edge_index)
         labels.append(1)
-
-    all_edges = []
-    edges_attr = []
-    all_nodes = []
-    graph_labels = []
-    graph_indicators = []
-    node_attributes = []
-    node_labels = []
-    inc = 0
-    for idx in range(len(features_list)):
-        features = features_list[idx]
-        edgelist = graph_list[idx] + inc
-        graph_label = labels[idx]
-        inc += len(features)
-        
-        all_edges.append(edgelist)
-        graph_labels.append(graph_label)
-        graph_indicators += [idx for _ in range(len(features))]
-        node_attributes.append(features)
-    all_edges = np.concatenate(all_edges, axis=0).astype(np.int32) + 1
-    # all_nodes = np.concatn(all_nodes)
-    graph_indicators = np.array(graph_indicators) + 1
-    node_attributes = np.concatenate(node_attributes, axis=0)
-
-    print("edges: ", len(all_edges))
-    print("nodes: ", len(node_attributes))
-
-    datasetname = f"torus_vs_sphere-{graph_method}-n{noise}-seed{seed}"
-    outdir = f"data/{datasetname}"
+    
+    datasetname = f"torus_vs_sphere-{graph_method}-n{noise}"
+    outdir = f"data-multigraph/{datasetname}"
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
 
-    with open(outdir + f"/{datasetname}_A.txt", "w+") as fp:
-        for src, trg in all_edges:
-            fp.write("{},{}\n".format(src, trg))
-    with open(outdir + f"/{datasetname}_graph_indicator.txt", "w+") as fp:
-        for i in graph_indicators:
-            fp.write(f"{i}\n")
-    with open(outdir + f"/{datasetname}_graph_labels.txt", "w+") as fp:
-        for i in graph_labels:
-            fp.write(f"{i}\n")
-    with open(outdir + f"/{datasetname}_node_attributes.txt", "w+") as fp:
-        for i in node_attributes:
-            fp.write("{}\n".format(",".join([f"{x:.4f}" for x in i])))
+    for i, (edge_index, features, label) in tqdm(enumerate(zip(graph_list, features_list, labels))):
+        g = nx.DiGraph()
+        g.add_edges_from([[int(src), int(trg)] for src, trg in edge_index])
+        for node in g.nodes():
+            g.node[node]["features"] = features[node].tolist()
+            outfile = outdir + f"/{i}.json"
+            with open(outfile, "w+") as fp:
+                fp.write(json.dumps(json_graph.node_link_data(g)))
+    
+
+    # all_edges = []
+    # edges_attr = []
+    # all_nodes = []
+    # graph_labels = []
+    # graph_indicators = []
+    # node_attributes = []
+    # node_labels = []
+    # inc = 0
+    # for idx in range(len(features_list)):
+    #     features = features_list[idx]
+    #     edgelist = graph_list[idx] + inc
+    #     graph_label = labels[idx]
+    #     inc += len(features)
+        
+    #     all_edges.append(edgelist)
+    #     graph_labels.append(graph_label)
+    #     graph_indicators += [idx for _ in range(len(features))]
+    #     node_attributes.append(features)
+    # all_edges = np.concatenate(all_edges, axis=0).astype(np.int32) + 1
+    # # all_nodes = np.concatn(all_nodes)
+    # graph_indicators = np.array(graph_indicators) + 1
+    # node_attributes = np.concatenate(node_attributes, axis=0)
+
+    # print("edges: ", len(all_edges))
+    # print("nodes: ", len(node_attributes))
+
+    # datasetname = f"torus_vs_sphere-{graph_method}-n{noise}"
+    # outdir = f"data/{datasetname}"
+    # if not os.path.isdir(outdir):
+    #     os.makedirs(outdir)
+
+    # with open(outdir + f"/{datasetname}_A.txt", "w+") as fp:
+    #     for src, trg in all_edges:
+    #         fp.write("{},{}\n".format(src, trg))
+    # with open(outdir + f"/{datasetname}_graph_indicator.txt", "w+") as fp:
+    #     for i in graph_indicators:
+    #         fp.write(f"{i}\n")
+    # with open(outdir + f"/{datasetname}_graph_labels.txt", "w+") as fp:
+    #     for i in graph_labels:
+    #         fp.write(f"{i}\n")
+    # with open(outdir + f"/{datasetname}_node_attributes.txt", "w+") as fp:
+    #     for i in node_attributes:
+    #         fp.write("{}\n".format(",".join([f"{x:.4f}" for x in i])))

@@ -109,14 +109,14 @@ def load_data(dataset):
         return (CitationInductiveDataloader(dataset, "train"), 
             CitationInductiveDataloader(dataset, "valid"), 
             CitationInductiveDataloader(dataset, "test"), )
-    elif data_name in "cora".split():
-        return (DefaultInductiveDataloader(dataset, "train"),
-            DefaultInductiveDataloader(dataset, "valid"),
-            DefaultInductiveDataloader(dataset, "test"))
     elif data_name == "NELL":
         return (NELLInductiveDataloader(dataset, "train"),
             NELLInductiveDataloader(dataset, "valid"),
             NELLInductiveDataloader(dataset, "test"))
+    else:
+        return (DefaultInductiveDataloader(dataset, "train"),
+            DefaultInductiveDataloader(dataset, "valid"),
+            # DefaultInductiveDataloader(dataset, "test"))
 
 def load_features(mode, graph, args):
     inits_one = "ori ori-rowsum ori-standard degree-standard triangle-standard kcore-standard egonet-standard clique-standard coloring-standard".split()
@@ -148,7 +148,7 @@ def main(args):
     train_data, val_data, test_data = load_data(args.dataset)
     train_features = load_features('train', train_data.graph, args)
     val_features = load_features('valid', val_data.graph, args)
-    test_features = load_features('test', test_data.graph, args)
+    # test_features = load_features('test', test_data.graph, args)
 
     use_default_classifier = False
     if args.alg == "sgc":

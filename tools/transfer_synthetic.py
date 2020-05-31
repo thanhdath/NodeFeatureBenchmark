@@ -10,7 +10,14 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import random
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--lam", type=float, default=1.0)
+parser.add_argument("--mu", type=float, default=128)
+args = parser.parse_args()
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # def collate(sample):
 #     graphs, feats, labels = map(list, zip(*sample))
 #     graph = dgl.batch(graphs)
@@ -44,14 +51,14 @@ import random
 
 
 def gen_graph(n=200):
-    v = [1]*(n//2) + [0]*(n//2)
+    v = [1]*(n//2) + [-1]*(n//2)
     random.shuffle(v)
-    p = 64
+    p = 8
     d = 5
-    lam = 0.5
-    mu = 5
+    lam = args.lam
+    mu = args.mu
     """# Generate B (i.e. X)"""
-    m_u = np.zeros(p)
+    m_u = np.zeros(p) + 0.1
     cov_u = np.eye(p)/p
     u = np.random.multivariate_normal(m_u, cov_u, n)
     Z = np.random.randn(n, p)
@@ -78,13 +85,65 @@ def gen_graph(n=200):
     p_samples = np.random.sample((n,n))
     A = np.zeros((n,n))
     A[p_A > p_samples] = 1
-    return A, B, np.array(v)
+    labels = np.array(v)
+    labels[labels == -1] = 0
+    return A, B, labels
+
+# def gen_graph(n=200):
+#     v = [1]*(n//2) + [-1]*(n//2)
+#     random.shuffle(v)
+#     p = 8
+#     d = 5
+#     lam = args.lam
+#     mu = args.mu
+#     """# Generate B (i.e. X)"""
+#     m_u = np.zeros(p)
+#     cov_u = np.eye(p)/p
+#     u = np.random.multivariate_normal(m_u, cov_u, n)
+#     Z = np.random.randn(n, p)
+#     B = np.zeros((n, p))
+
+#     for i in range(n):
+#         # a = np.sqrt(mu/ n)*v[i]*u[i]
+#         # b = Z[i]/np.sqrt(p)
+#         # B[i,:] =  a + b
+#         ua = np.random.normal(0, 1/p)
+#         B[i,:] = np.random.normal(np.sqrt(mu)*v[i]*ua/np.sqrt(n), 1/p)
+    
+#     """# Generate A"""
+#     # A = np.zeros((n,n))
+#     # for i in range(n):
+#     #     for j in range(i+1):
+#     #         if i < j:
+#     #             A[i,j] = np.random.normal(lam*v[i]*v[j]/n, 1/n)
+#     #         elif i==j:
+#     #             A[i,j] = np.random.normal(lam*v[i]*v[j]/n, 2/n)
+#     # A = A + A.T
+#     # A[A>0] = 1
+#     c_in = d + lam*np.sqrt(d)
+#     c_out = d - lam*np.sqrt(d)
+
+#     p_A = np.zeros((n, n))
+
+#     for i in range(n):
+#         for j in range(n):
+#             if v[i] == v[j]:
+#                 p_A[i,j] = c_in / n
+#             else:
+#                 p_A[i,j] = c_out / n
+
+#     p_samples = np.random.sample((n,n))
+#     A = np.zeros((n,n))
+#     A[p_A > p_samples] = 1
+#     labels = np.array(v)
+#     labels[labels == -1] = 0
+#     return A, B, labels
 
 A1, F1, L1 = gen_graph(n=200)
 A2, F2, L2 = gen_graph(n=200)
-
-A1 = torch.FloatTensor(A1).cuda()
-A2 = torch.FloatTensor(A2).cuda()
+print(F1.shape)
+A1 = torch.FloatTensor(A1).to(device)
+A2 = torch.FloatTensor(A2).to(device)
 
 from sklearn.metrics import f1_score
 def compute_f1(pA, A):
@@ -124,7 +183,7 @@ class Model(nn.Module):
         # x2 = torch.sigmoid(x2)
         return x1, x2
 
-model = Model().cuda()
+model = Model().to(device)
 # loss_fn = nn.BCELoss()
 loss_fn = nn.MSELoss()
 optim = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
@@ -145,8 +204,61 @@ for iter in range(400):
         microf11 = compute_f1(pred_A1, upper_half1)
         microf12 = compute_f1(pred_A2, upper_half2)
         print(f"Iter {iter} - loss {loss:.4f} - f1 {microf11:.3f}  {microf12:.3f}")
-    
 
+
+# gen edgelist, labels, featuresh
+# kmeans
+from sklearn.cluster import KMeans
+kmeans = KMeans(n_clusters=2, random_state=0).fit(F1)
+kmeans_labels = kmeans.labels_
+print("Cluster 0")
+ids = np.argwhere(kmeans_labels == 0).flatten()
+print(np.unique(L1[ids], return_counts=True))
+print("Cluster 1")
+ids = np.argwhere(kmeans_labels == 1).flatten()
+print(np.unique(L1[ids], return_counts=True))
+
+
+
+# features = F1
+# edgelist = np.argwhere(A1.detach().cpu().numpy() > 0)
+# labels = L1
+
+# import os
+# outdir = "data-autoencoder/syn/0"
+# if not os.path.isdir(outdir):
+#     os.makedirs(outdir)
+
+# with open(outdir + "/edgelist.txt", "w+") as fp:
+#     for src, trg in edgelist:
+#         fp.write(f"{src} {trg}\n")
+# with open(outdir + "/labels.txt", "w+") as fp:
+#     for i, label in enumerate(labels):
+#         fp.write(f"{i} {label}\n")
+# np.savez_compressed(outdir + "/features.npz", features=features)
+# np.savetxt(outdir+"/features.tsv", features, fmt="%.4f", delimiter="\t")
+# np.savetxt(outdir+"/labels.tsv", labels, fmt="%d")
+
+# features = F2
+# edgelist = np.argwhere(A2.detach().cpu().numpy() > 0)
+# labels = L2
+
+# outdir = "data-autoencoder/syn/1"
+# if not os.path.isdir(outdir):
+#     os.makedirs(outdir)
+
+# with open(outdir + "/edgelist.txt", "w+") as fp:
+#     for src, trg in edgelist:
+#         fp.write(f"{src} {trg}\n")
+# with open(outdir + "/labels.txt", "w+") as fp:
+#     for i, label in enumerate(labels):
+#         fp.write(f"{i} {label}\n")
+# np.savez_compressed(outdir + "/features.npz", features=features)
+# import sys;
+# sys.exit()
+
+
+print("Save graphs")
 # gen edgelist, labels, featuresh
 X1 = model.X1.weight
 X2 = model.M(X1.t()).t()
@@ -192,7 +304,47 @@ echo $i
 done
 python -u -W ignore main.py --dataset temp/data-autoencoder/syn/1 --init ori --cuda graphsage --aggregator mean --load-model graphsage-best-model-0-ori-40.pkl > logs/syn1-tf-0.log
 python -u -W ignore main.py --dataset temp/data-autoencoder/syn/0 --init ori --cuda graphsage --aggregator mean --load-model graphsage-best-model-1-ori-40.pkl > logs/syn0-tf-1.log
+
+
+for i in 0 1
+do
+echo $i
+    python -u -W ignore main.py --dataset temp/data-autoencoder/syn/$i --init ori --cuda gat > logs/syn$i.log
+done
+python -u -W ignore main.py --dataset temp/data-autoencoder/syn/1 --init ori --cuda gat --load-model gat-best-model-0-ori-40.pkl > logs/syn1-tf-0.log
+python -u -W ignore main.py --dataset temp/data-autoencoder/syn/0 --init ori --cuda gat --load-model gat-best-model-1-ori-40.pkl > logs/syn0-tf-1.log
 """
 
-# python -u main.py --dataset temp/data-autoencoder/ppi/1/ --init ori --cuda graphsage --aggregator mean --load-model graphsage-best-model-0-ori-40.pkl > logs/ppi1-transfer-from-0.log
-# python -u main.py --dataset temp/data-autoencoder/ppi/0/ --init ori --cuda graphsage --aggregator mean --load-model graphsage-best-model-1-ori-40.pkl > logs/ppi0-transfer-from-1.log
+"""
+mkdir logs/transfer
+for mu in -1 -0.8 -0.6 -0.2 0 0.2 0.4 0.6 0.8 1
+do 
+    for lambda in 0 0.2 0.4 0.6 0.8 1.0
+    do 
+        echo $mu-$lambda
+        python temp/syn2.py --lam $lambda --mu $mu
+        for i in 0 1
+        do
+        echo $i
+            python -u -W ignore main.py --dataset data-autoencoder/syn/$i --init ori \
+                --cuda gat > logs/transfer/$mu-$lambda-syn$i.log
+        done
+        python -u -W ignore main.py --dataset data-autoencoder/syn/1 --init ori \
+            --cuda gat --load-model gat-best-model-0-ori-40.pkl > logs/transfer/$mu-$lambda-syn1-tf-0.log
+    done
+done
+"""
+
+"""
+mkdir logs/transfer
+for mu in -1 -0.8 -0.6 -0.2 0 0.2 0.4 0.6 0.8 1
+do 
+    for lambda in 0 0.2 0.4 0.6 0.8 1.0
+    do 
+        echo $mu-$lambda
+        python temp/syn2.py --lam $lambda --mu $mu
+        python -u -W ignore main.py --dataset data-autoencoder/syn/0 --init ori \
+                --cuda nope > logs/transfer/$mu-$lambda-syn0.log
+    done
+done
+"""
