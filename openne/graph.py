@@ -6,10 +6,6 @@ import pickle as pkl
 import numpy as np
 import scipy.sparse as sp
 
-__author__ = "Zhang Zhengyan"
-__email__ = "zhangzhengyan14@mails.tsinghua.edu.cn"
-
-
 class Graph(object):
     def __init__(self):
         self.G = None

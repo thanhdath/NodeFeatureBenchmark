@@ -9,9 +9,6 @@ import torch
 from sklearn.preprocessing import normalize
 from scipy.sparse import vstack, csr_matrix, hstack
 
-__author__ = "Alan WANG"
-__email__ = "alan1995wang@outlook.com"
-
 def matrix_multiplication_chunk(m, chunk):
     res = sp.csr_matrix((m.shape))
     n_iters = int(np.ceil(m.shape[0]/chunk))

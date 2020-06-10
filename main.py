@@ -8,8 +8,6 @@ import random
 from dgl.data import citation_graph as citegrh
 from algorithms.node_embedding import *
 import os
-from sklearn.decomposition import PCA
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
