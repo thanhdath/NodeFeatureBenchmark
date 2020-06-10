@@ -39,9 +39,9 @@ class RedditDataset(object):
         # tarin/val/test indices
         self.node_ids = reddit_data["node_ids"]
         node_types = reddit_data["node_types"]
-        self.train_mask = torch.LongTensor(node_types == 1)
-        self.val_mask = torch.LongTensor(node_types == 2)
-        self.test_mask = torch.LongTensor(node_types == 3)
+        self.train_mask = torch.BoolTensor(node_types == 1)
+        self.val_mask = torch.BoolTensor(node_types == 2)
+        self.test_mask = torch.BoolTensor(node_types == 3)
         self.multiclass = False
         self.n_classes = self.num_labels
 

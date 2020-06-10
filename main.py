@@ -24,18 +24,10 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=40)
     parser.add_argument('--verbose', type=int, default=1)
     parser.add_argument('--cuda', action='store_true')
-    # for logistic regression
-    parser.add_argument('--logreg-bias', action='store_true',
-                        dest='logreg_bias', help="Whether use bias in logistic regression or not.")
-    parser.add_argument('--logreg-wc', dest='logreg_weight_decay', type=float,
-                        default=5e-6, help="Weight decay for logistic regression.")
-    parser.add_argument('--logreg-epochs',
-                        dest='logreg_epochs', default=300, type=int)
 
     parser.add_argument('--aggregator', default="mean",
                         help="Aggregator type (mean or pooling)")
-    parser.add_argument('--load-model', dest='load_model',
-                        help="Path to pretrain embeds model.")
+    parser.add_argument('--load-model', help="Path to pretrain embeds model.")
     parser.add_argument('--max_degree', default=25, type=int,
                         help="Max degree for neighbors sampling.")
     parser.add_argument('--samples_1', default=25, type=int, help="")
@@ -138,7 +130,6 @@ def main(args):
 
     feat_file = 'feats/{}-{}-seed{}-dim{}.npz'.format(args.dataset.split('/')[-1], args.init,
                                                       load_seed, args.feature_size)
-
     if args.shuffle:
         features = get_feature_initialization(args, data, inplace=inplace)
     else:

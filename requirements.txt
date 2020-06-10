@@ -2,3 +2,6 @@ networkx==2.3
 sklearn
 requests
 matplotlib
+gensim
+dgl-cu101
+tensorboardX
