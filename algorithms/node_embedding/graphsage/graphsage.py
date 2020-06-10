@@ -1,8 +1,5 @@
 """
-Inductive Representation Learning on Large Graphs
-Paper: http://papers.nips.cc/paper/6703-inductive-representation-learning-on-large-graphs.pdf
-Code: https://github.com/williamleif/graphsage-simple
-Simple reference implementation of GraphSAGE.
+This code is inherited from DGL.
 """
 import time
 import abc

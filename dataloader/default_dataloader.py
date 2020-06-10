@@ -82,9 +82,9 @@ class DefaultDataloader():
         if "cora" in datadir:
             if not random_split:
                 print("Split train-val-test by default for cora dataset.")
-                self.train_mask = torch.ByteTensor(_sample_mask(range(140), self.labels.shape[0]))
-                self.val_mask = torch.ByteTensor(_sample_mask(range(200, 500), self.labels.shape[0]))
-                self.test_mask = torch.ByteTensor(_sample_mask(range(500, 1500), self.labels.shape[0]))
+                self.train_mask = torch.LongTensor(_sample_mask(range(140), self.labels.shape[0]))
+                self.val_mask = torch.LongTensor(_sample_mask(range(200, 500), self.labels.shape[0]))
+                self.test_mask = torch.LongTensor(_sample_mask(range(500, 1500), self.labels.shape[0]))
             else:
                 state = np.random.get_state()
                 np.random.seed(0)
@@ -92,18 +92,18 @@ class DefaultDataloader():
                 indices = np.random.permutation(valuable_nodes)
                 n_train = int(len(indices) * 0.6)
                 n_val = int(len(indices) * 0.2)
-                self.train_mask = torch.ByteTensor(_sample_mask(indices[:n_train], self.labels.shape[0]))
-                self.val_mask = torch.ByteTensor(_sample_mask(indices[n_train:n_train+n_val], self.labels.shape[0]))
-                self.test_mask = torch.ByteTensor(_sample_mask(indices[n_train+n_val:], self.labels.shape[0]))
+                self.train_mask = torch.LongTensor(_sample_mask(indices[:n_train], self.labels.shape[0]))
+                self.val_mask = torch.LongTensor(_sample_mask(indices[n_train:n_train+n_val], self.labels.shape[0]))
+                self.test_mask = torch.LongTensor(_sample_mask(indices[n_train+n_val:], self.labels.shape[0]))
                 np.random.set_state(state)
         else:
             print("Split train-val-test 0.7-0.1-0.2.")
             indices = np.random.permutation(np.arange(self.labels.shape[0]))
             n_train = int(len(indices) * 0.7)
             n_val = int(len(indices) * 0.1)
-            self.train_mask = torch.ByteTensor(_sample_mask(indices[:n_train], self.labels.shape[0]))
-            self.val_mask = torch.ByteTensor(_sample_mask(indices[n_train:n_train+n_val], self.labels.shape[0]))
-            self.test_mask = torch.ByteTensor(_sample_mask(indices[n_train+n_val:], self.labels.shape[0]))
+            self.train_mask = torch.LongTensor(_sample_mask(indices[:n_train], self.labels.shape[0]))
+            self.val_mask = torch.LongTensor(_sample_mask(indices[n_train:n_train+n_val], self.labels.shape[0]))
+            self.test_mask = torch.LongTensor(_sample_mask(indices[n_train+n_val:], self.labels.shape[0]))
         print("""Graph info: 
             - Number of nodes: {}
             - Number of edges: {}
@@ -217,3 +217,4 @@ class DefaultInductiveDataloader():
             labels=labels[idx_test], test_nodes=idx_test,
             n_classes=labels.max()+1, multiclass=multiclass)
         np.save(extract_dir+'/test_feats.npy', features)
+        
