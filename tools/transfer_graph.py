@@ -1,4 +1,15 @@
 """
+    for seed in 100 101 102 103 104
+    do
+        echo $seed 
+        python -u tools/transfer_graph.py --graph-method knn --seed $seed --epochs 100 > logs/knn-sigmoid/knn-seed$seed.log
+        python -u tools/transfer_graph.py --graph-method sigmoid --seed $seed --epochs 100 > logs/knn-sigmoid/sigmoid-seed$seed.log
+        python -u tools/transfer_graph.py --graph-method knn --seed $seed \
+            --transfer-from gin-sigmoid-seed$seed.pkl --epochs 0 > logs/knn-sigmoid/knn-from-sigmoid-seed$seed.log
+        python -u tools/transfer_graph.py --graph-method sigmoid --seed $seed \
+            --transfer-from gin-knn-seed$seed.pkl --epochs 0 > logs/knn-sigmoid/sigmoid-from-knn-seed$seed.log
+    done
+
     for i in knn sigmoid
     do
         PYTHONPATH="." python -u tools/transfer_graph.py $i > logs/transfer-gin/$i.log
@@ -53,6 +64,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--graph-method', default='knn')
 parser.add_argument('--transfer-from', default=None)
 parser.add_argument('--seed', type=int, default=100)
+parser.add_argument('--epochs', type=int, default=200)
 args = parser.parse_args()
 print(args)
 np.random.seed(args.seed)
@@ -62,7 +74,7 @@ torch.cuda.manual_seed(args.seed)
 
 graph_method = args.graph_method
 transfer_from = args.transfer_from
-data = TUDataset(f"tools/data/torus_vs_sphere-{graph_method}-n0.0-seed{args.seed}", ratio=[.8, .2, .0])
+data = TUDataset(f"tools/data/torus_vs_sphere-{graph_method}-n0.0-seed{args.seed}", ratio=[.8, .1, .1])
 
 
 from algorithms.graph_embedding import *
@@ -81,9 +93,9 @@ def init_features(data):
         g.ndata['feat'] = np.array([features_dict[int(x)] for x in g.nodes()])
 
 if transfer_from is None:
-    model_name = f"gin-{graph_method}.pkl"
+    model_name = f"gin-{graph_method}-seed{args.seed}.pkl"
 else:
-    model_name = f"gin-{graph_method}-transfer-from-{transfer_from}.pkl"
+    model_name = f"gin-{graph_method}-transfer-from-{transfer_from.split('.')[0]}-seed{args.seed}.pkl"
 gin_params = SimpleNamespace(
     dataset=data,
     batch_size=32,
@@ -96,7 +108,7 @@ gin_params = SimpleNamespace(
     neighbor_pooling_type="sum",
     learn_eps=False,
     degree_as_tag=False,
-    epochs=200,
+    epochs=args.epochs,
     lr=0.01,
     final_dropout=0.5,
     model_name=model_name,

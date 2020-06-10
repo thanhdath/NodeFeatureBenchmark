@@ -1,1 +1,4 @@
 networkx==2.3
+sklearn
+requests
+matplotlib

@@ -1,3 +1,13 @@
+"""
+for s in 100 101 102 103 104
+do
+    echo $s 
+    python torus_sphere.py --seed $s --graph-method knn
+    python torus_sphere.py --seed $s --graph-method sigmoid
+done
+"""
+
+
 import networkx as nx
 import numpy as np
 import torch
@@ -8,6 +18,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 import torch.nn.functional as F
 import os 
 import dgl
+
 def sample_sphere(num_nodes):
     N = num_nodes
 
@@ -50,48 +61,65 @@ def sample_torus(R, r, n_nodes):
             ps_z.append(z)
     return torch.tensor(list(zip(ps_x, ps_y, ps_z)))
 
-def generate_graph(features, kind="sigmoid", threshold=None, k=5, noise_knn=0.0):
+def generate_graph(features, kind="sigmoid", k=5, log=True):
     features_norm = F.normalize(features, dim=1)
-    scores = features_norm.mm(features_norm.t())
-    # print(f"Generate graph using {kind}")
+    # scores = features_norm.mm(features_norm.t())
+    N = len(features_norm)
+    scores = torch.pdist(features_norm)
+    # print("Scores before sigmoid")
+    # print(scores)
+    if log:
+        print(f"Generate graph using {kind}")
     if kind == "sigmoid":
-        scores = torch.sigmoid(scores)
-        if threshold is None:
-            threshold = scores.mean()
-        # print(f"Scores range: {scores.min()}-{scores.max()}")
-        # print("Threshold: ", threshold)
-        adj = scores > threshold
-        adj = adj.int()
-        edge_index = adj.nonzero().cpu().numpy()
+        # print("Scores after sigmoid")
+        scores = 1 - torch.sigmoid(scores)
+        # find index to cut 
+        n_edges = int((k*N - N)/2)
+        threshold = scores[torch.argsort(-scores)[n_edges]]
+        if log:
+            print(f"Scores range: {scores.min():.3f}-{scores.max():.3f}")
+            print(f"Expected average degree: {k} => Threshold: {threshold:.3f}")
+        edges = scores >= threshold
+        adj = np.zeros((len(features), len(features)), dtype=np.int)
+        inds = torch.triu(torch.ones(len(adj),len(adj))) 
+        inds[np.arange(len(adj)), np.arange(len(adj))] = 0
+        adj[inds == 1] = edges.cpu().numpy().astype(np.int)
+        adj = adj + adj.T
+        adj[adj > 0] = 1
+        src, trg = adj.nonzero()
+        edge_index = np.concatenate([src.reshape(1, -1), trg.reshape(1,-1)], axis=0).T
     elif kind == "knn":
-        # print(f"Knn k = {k}")
-        sorted_scores = torch.argsort(-scores, dim=1)[:, :k]
-        edge_index = np.zeros((len(scores)*k, 2), dtype=np.int32)
-        N = len(scores)
-        for i in range(k):
-            edge_index[i*N:(i+1)*N, 0] = np.arange(N)
-            edge_index[i*N:(i+1)*N, 1] = sorted_scores[:, i]
-
-        if noise_knn > 0:
-            adj = np.zeros((N, N), dtype=np.int32)
-            adj[edge_index[:,0], edge_index[:,1]] = 1
-            n_added_edges = int(len(adj)**2 * noise_knn)
-            no_edge_index = np.argwhere(adj == 0)
-            add_edge_index = np.random.permutation(no_edge_index)[:n_added_edges]
-            adj[add_edge_index[:,0], add_edge_index[:,1]] = 1
-            src, trg = adj.nonzero()
-            edge_index = np.concatenate([src.reshape(-1,1), trg.reshape(-1,1)], axis=1)
+        k = int(k)
+        if log:
+            print(f"Knn k = {k}")
+        scores_matrix = np.zeros((len(features), len(features)))
+        inds = torch.triu(torch.ones(len(features),len(features))) 
+        inds[np.arange(len(features)), np.arange(len(features))] = 0
+        scores_matrix[inds == 1] = scores
+        scores_matrix = scores_matrix + scores_matrix.T
+        if len(scores_matrix) > 60000: # avoid memory error
+            edge_index = []
+            for i, node_scores in enumerate(scores_matrix):
+                candidate_nodes = np.argsort(node_scores)[:k]
+                edge_index += [[i, node] for node in candidate_nodes]
+            edge_index = np.array(edge_index, dtype=np.int32)
+        else:
+            sorted_scores = np.argsort(scores_matrix, axis=1)[:, :k]
+            edge_index = np.zeros((len(scores_matrix)*k, 2), dtype=np.int32)
+            N = len(scores_matrix)
+            for i in range(k):
+                edge_index[i*N:(i+1)*N, 0] = np.arange(N)
+                edge_index[i*N:(i+1)*N, 1] = sorted_scores[:, i]
     else:
         raise NotImplementedError
-    
-    # print("Number of edges: ", edge_index.shape[0])
+    if log:
+        print("Number of edges: ", edge_index.shape[0])
     return edge_index
 
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--num-graphs', type=int, default=1000)
 parser.add_argument('--graph-method', default='knn')
-parser.add_argument('--k', type=int, default=5)
 parser.add_argument('--seed', type=int, default=100)
 args = parser.parse_args()
 
@@ -99,7 +127,10 @@ args = parser.parse_args()
 num_graphs = args.num_graphs
 # num_nodes_per_graph = 500
 graph_method = args.graph_method
-k = args.k
+if graph_method == "knn":
+    k = 5
+else:
+    k = 20
 # noises = [0.0, 0.0001, 0.001, 0.01, 0.1]
 noises = [0.0]
 seed = args.seed
@@ -119,7 +150,7 @@ for noise in noises:
         n_nodes = np.random.randint(100, 200)
         features = sample_sphere(n_nodes)
         features_list.append(features)
-        edge_index = generate_graph(features, kind=graph_method, k=k, threshold=.72, noise_knn=noise)
+        edge_index = generate_graph(features, kind=graph_method, k=k)
         assert edge_index.max() <= len(features), f"Wrong edge index {edge_index.max()} - {len(features)}"
         graph_list.append(edge_index)
         labels.append(0)
@@ -129,7 +160,7 @@ for noise in noises:
         n_nodes = np.random.randint(100, 200)
         features = sample_torus(80, 40, n_nodes) / 120
         features_list.append(features)
-        edge_index = generate_graph(features, kind=graph_method, k=k, threshold=.72, noise_knn=noise)
+        edge_index = generate_graph(features, kind=graph_method, k=k)
         assert edge_index.max() <= len(features), "Wrong edge index"
         graph_list.append(edge_index)
         labels.append(1)

@@ -101,7 +101,7 @@ def gin_api(args):
         collate_fn=collate).train_valid_loader()
 
     input_dim, label_dim, max_num_nodes = dataset.statistics()
-    model = GIN(
+    model = GIN( 
         args.num_layers, args.num_mlp_layers,
         input_dim, args.hidden_dim, label_dim,
         args.final_dropout, args.learn_eps,
@@ -140,6 +140,8 @@ def gin_api(args):
             torch.save(model.state_dict(), best_model_name)
             print("== Epoch {} - Best val acc: {:.3f}".format(epoch, valid_acc))
     model.load_state_dict(torch.load(best_model_name))
+    _, test_acc = eval_net(args, model, testloader, criterion)
+    print(f"Test Acc: {test_acc:.3f}")
     eval_net_f1(args, model, testloader)
     # os.remove(best_model_name)
 
