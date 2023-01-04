@@ -6,13 +6,8 @@ from features_init import lookup as lookup_feature_init
 import torch
 import random
 from dgl.data import citation_graph as citegrh
-from parser import *
 from algorithms.node_embedding import *
-from algorithms.node_embedding.graphsagetf.api import Graphsage
-from algorithms.logistic_regression import LogisticRegressionPytorch
 import os
-from sklearn.decomposition import PCA
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -27,65 +22,23 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=40)
     parser.add_argument('--verbose', type=int, default=1)
     parser.add_argument('--cuda', action='store_true')
-    # parser.add_argument('--load-model')
-    parser.add_argument('--pca', action='store_true',
-                        help="Whether to reduce feature dimention to feature_size. Use for original features, identity features.")
 
-    # for logistic regression
-    parser.add_argument('--logreg-bias', action='store_true',
-                        dest='logreg_bias', help="Whether use bias in logistic regression or not.")
-    parser.add_argument('--logreg-wc', dest='logreg_weight_decay', type=float,
-                        default=5e-6, help="Weight decay for logistic regression.")
-    parser.add_argument('--logreg-epochs',
-                        dest='logreg_epochs', default=300, type=int)
-
-    subparsers = parser.add_subparsers(dest="alg",
-                                       help='Choose 1 of the GNN algorithm from: sgc, dgi, graphsage, nope.')
-    add_sgc_parser(subparsers)
-    add_nope_parser(subparsers)
-    add_dgi_parser(subparsers)
-    add_graphsage_parser(subparsers)
-    add_gat_parser(subparsers)
+    parser.add_argument('--aggregator', default="mean",
+                        help="Aggregator type (mean or pooling)")
+    parser.add_argument('--load-model', help="Path to pretrain embeds model.")
+    parser.add_argument('--max_degree', default=25, type=int,
+                        help="Max degree for neighbors sampling.")
+    parser.add_argument('--samples_1', default=25, type=int, help="")
     return parser.parse_args()
 
 
 def get_algorithm(args, data, features):
-    if args.alg == "sgc":
-        return SGC(data, features, degree=args.degree, cuda=args.cuda)
-    elif args.alg == "nope":
-        return Nope(features)
-    elif args.alg == "dgi":
-        return DGIAPI(data, features, self_loop=args.self_loop, cuda=args.cuda,
-                      learnable_features=args.learnable_features,
-                      epochs=args.epochs,
-                      suffix="{}-{}-{}".format(args.dataset.split('/')
-                                               [-1], args.init, args.seed),
-                      load_model=args.load_model)
-    elif args.alg == "graphsage":
-        if features.shape[0] > 20000:
-            return Graphsage(data, features,
-                             max_degree=args.max_degree,
-                             samples_1=args.samples_1,
-                             train_features=args.learnable_features,
-                             suffix="{}-{}-{}".format(args.dataset.split('/')
-                                                      [-1], args.init, args.seed),
-                             load_model=args.load_model,
-                             model=args.aggregator)
-        else:
-            return GraphsageAPI(data, features, cuda=args.cuda,
-                                aggregator=args.aggregator,
-                                learnable_features=args.learnable_features,
-                                suffix="{}-{}-{}".format(args.dataset.split('/')
-                                                         [-1], args.init, args.seed),
-                                load_model=args.load_model)
-    elif args.alg == "gat":
-        return GATAPI(data, features, num_heads=args.num_heads, num_layers=args.num_layers,
-                      num_out_heads=args.num_out_heads, num_hidden=args.num_hidden,
-                      epochs=args.epochs, cuda=args.cuda,
-                      suffix="{}-{}-{}".format(args.dataset.split('/')[-1], args.init, args.seed),
-                      load_model=args.load_model)
-    else:
-        raise NotImplementedError
+    return GraphsageAPI(data, features, cuda=args.cuda,
+        aggregator=args.aggregator,
+        learnable_features=args.learnable_features,
+        suffix="{}-{}-{}".format(args.dataset.split('/')
+                                    [-1], args.init, args.seed),
+        load_model=args.load_model)
 
 
 def add_weight(subgraph):
@@ -175,7 +128,6 @@ def main(args):
 
     feat_file = 'feats/{}-{}-seed{}-dim{}.npz'.format(args.dataset.split('/')[-1], args.init,
                                                       load_seed, args.feature_size)
-
     if args.shuffle:
         features = get_feature_initialization(args, data, inplace=inplace)
     else:
@@ -188,28 +140,8 @@ def main(args):
             if args.init not in ["identity", "ori"]:
                 np.savez_compressed(feat_file, features=features)
     features = dict2arr(features, data.graph)
-
-    inits_fixed_dim = "ori label identity".split()
-    init, norm = (args.init + "-0").split("-")[:2]
-    if args.pca and init in inits_fixed_dim:
-        print("Perform PCA to reduce feature dimention from {} to {}.".format(
-            features.shape[1], args.feature_size))
-        pca = PCA(n_components=args.feature_size)
-        pca.fit(features.numpy())
-        features = torch.FloatTensor(pca.transform(features.numpy()))
-
     alg = get_algorithm(args, data, features)
     embeds = alg.train()
-
-    if args.alg in ["sgc", "dgi", "nope"]:
-        print("Using default logistic regression")
-        torch.cuda.empty_cache()
-        classifier = LogisticRegressionPytorch(embeds,
-                                               data.labels, data.train_mask, data.val_mask, data.test_mask,
-                                               epochs=args.logreg_epochs, weight_decay=args.logreg_weight_decay,
-                                               bias=args.logreg_bias, cuda=args.cuda,
-                                               multiclass=data.multiclass)
-
 
 def init_environment(args):
     np.random.seed(args.seed)

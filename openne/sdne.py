@@ -1,11 +1,6 @@
 import tensorflow as tf
 import numpy as np
 
-
-__author__ = "Wang Binlu"
-__email__ = "wblmail@whu.edu.cn"
-
-
 def fc_op(input_op, name, n_out, layer_collector, act_func=tf.nn.leaky_relu):
     n_in = input_op.get_shape()[-1].value
     with tf.name_scope(name) as scope:

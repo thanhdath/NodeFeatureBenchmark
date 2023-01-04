@@ -1,8 +1,5 @@
 """
-Inductive Representation Learning on Large Graphs
-Paper: http://papers.nips.cc/paper/6703-inductive-representation-learning-on-large-graphs.pdf
-Code: https://github.com/williamleif/graphsage-simple
-Simple reference implementation of GraphSAGE.
+This code is inherited from DGL.
 """
 import time
 import abc
@@ -256,10 +253,8 @@ class GraphsageAPI():
             model.load_state_dict(state)
             for i in range(self.layers):
                 model.layers[i].requires_grad = False
-            from_data = self.load_model.replace(
-                ".pkl", "").replace("graphsage-best-model-", "")
-            best_model_name = 'graphsage-best-model-{}-from-{}.pkl'.format(
-                self.suffix, from_data)
+            from_data = self.load_model.replace(".pkl", "").replace("graphsage-best-model-", "")
+            best_model_name = 'graphsage-best-model-{}-from-{}.pkl'.format(self.suffix, from_data)
             print("Load pretrained model ", self.load_model)
         else:
             best_model_name = 'graphsage-best-model-{}.pkl'.format(self.suffix)
@@ -273,11 +268,10 @@ class GraphsageAPI():
         for epoch in range(self.epochs):
             stime = time.time()
             model.train()
+            optimizer.zero_grad()
             # forward
             logits = model(features)
             loss = loss_fcn(logits[train_mask], labels[train_mask])
-
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             etime = time.time() - stime
@@ -299,46 +293,9 @@ class GraphsageAPI():
                     break
         if os.path.isfile(best_model_name):
             model.load_state_dict(torch.load(best_model_name))
-
-        # finetune model
-        if self.load_model:
-            for i in range(self.layers):
-                model.layers[i].requires_grad = True
-            npt = 0
-            optimizer = torch.optim.Adam(
-                model.parameters(), lr=self.lr / 10, weight_decay=self.weight_decay / 10)
-            for epoch in range(self.epochs):
-                stime = time.time()
-                model.train()
-                # forward
-                logits = model(features)
-                loss = loss_fcn(logits[train_mask], labels[train_mask])
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                etime = time.time() - stime
-                if epoch % self.validation_steps == 0:
-                    print('Epoch {} - loss {} - time: {}'.format(epoch, loss.item(), etime))
-                    # evaluate too slow
-                    acc = evaluate(model, features, labels, val_mask,
-                                   multiclass=self.multiclass)
-                    writer.add_scalar("val_acc", acc, epoch + self.epochs)
-                    if acc > best_val_acc:
-                        best_val_acc = acc
-                        torch.save(model.state_dict(), best_model_name)
-                        print('== Epoch {} - Best val acc: {:.3f}'.format(epoch, acc))
-                        npt = 0
-                    else:
-                        npt += 1
-                    if npt > max_patience:
-                        print("Early stopping")
-                        break
         writer.close()
         if os.path.isfile(best_model_name):
             model.load_state_dict(torch.load(best_model_name))
-        # end finetune
-        # os.remove(best_model_name)
         with torch.no_grad():
             model.eval()
             output = model(features)

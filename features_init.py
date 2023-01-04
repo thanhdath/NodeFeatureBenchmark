@@ -53,7 +53,7 @@ class FeatureInitialization():
         log_verbose("Time init features: {:.3f}s".format(etime-stime), verbose)
         if inplace:
             for node in graph.nodes():
-                graph.node[node]['feature'] = features[node]
+                graph.nodes()[node]['feature'] = features[node]
         return features
     def _generate(self, graph, dim_size):
         return {}

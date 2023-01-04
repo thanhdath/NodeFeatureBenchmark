@@ -92,9 +92,9 @@ class NELLDataloader(object):
         self.labels = torch.LongTensor(labels)
         self.onehot_labels = onehot_labels
         self.num_labels = onehot_labels.shape[1]
-        self.train_mask = torch.ByteTensor(train_mask)
-        self.val_mask = torch.ByteTensor(val_mask)
-        self.test_mask = torch.ByteTensor(test_mask)
+        self.train_mask = torch.BoolTensor(train_mask)
+        self.val_mask = torch.BoolTensor(val_mask)
+        self.test_mask = torch.BoolTensor(test_mask)
         self.multiclass = False
         self.n_classes = int(self.labels.max() + 1)
 

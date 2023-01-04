@@ -7,10 +7,6 @@ import scipy.sparse.linalg as lg
 from . import graph as g
 from sklearn.preprocessing import normalize
 
-__author__ = "Alan WANG"
-__email__ = "alan1995wang@outlook.com"
-
-
 class LLE(object):
 
     def __init__(self, graph, d):
